@@ -74,7 +74,11 @@ bool System::Discover()
 ZoneList System::GetZoneList() const
 {
   OS::CLockGuard lock(*m_mutex);
-  return m_zones;
+  ZoneList list;
+  for (ZoneList::const_iterator it = m_zones.begin(); it != m_zones.end(); ++it)
+    if (it->second->GetCoordinator())
+      list.insert(std::make_pair(it->first, it->second));
+  return list;
 }
 
 ZonePlayerList System::GetZonePlayerList() const
