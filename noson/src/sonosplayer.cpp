@@ -200,6 +200,16 @@ bool Player::RemoveAllTracksFromQueue()
   return m_AVTransport->RemoveAllTracksFromQueue();
 }
 
+bool Player::RemoveTrackFromQueue(const std::string& objectID, unsigned containerUpdateID)
+{
+  return m_AVTransport->RemoveTrackFromQueue(objectID, containerUpdateID);
+}
+
+bool Player::ReorderTracksInQueue(unsigned startIndex, unsigned numTracks, unsigned insBefore, unsigned containerUpdateID)
+{
+  return m_AVTransport->ReorderTracksInQueue(startIndex, numTracks, insBefore, containerUpdateID);
+}
+
 bool Player::SetPlayMode(PlayMode_t mode)
 {
   return m_AVTransport->SetPlayMode(mode);

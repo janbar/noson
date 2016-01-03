@@ -75,6 +75,8 @@ namespace NSROOT
     bool PlayQueue(bool start);
     unsigned AddURIToQueue(const DigitalItemPtr& item, unsigned position);
     bool RemoveAllTracksFromQueue();
+    bool RemoveTrackFromQueue(const std::string& objectID, unsigned containerUpdateID);
+    bool ReorderTracksInQueue(unsigned startIndex, unsigned numTracks, unsigned insBefore, unsigned containerUpdateID);
 
     bool SetPlayMode(PlayMode_t mode);
     bool Play();
