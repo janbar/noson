@@ -61,6 +61,8 @@ namespace NSROOT
 
     bool Browse(const std::string& objectId, unsigned index, unsigned count, ElementList& vars);
 
+    bool RefreshShareIndex();
+
     // Implements EventSubscriber
     virtual void HandleEventMessage(EventMessagePtr msg);
 

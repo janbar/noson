@@ -104,6 +104,11 @@ ContentProperty Player::GetContentProperty()
   return *(m_contentDirectory->GetContentProperty().Get());
 }
 
+bool Player::RefreshShareIndex()
+{
+  return m_contentDirectory->RefreshShareIndex();
+}
+
 bool Player::GetZoneInfo(ElementList& vars)
 {
   return m_deviceProperties->GetZoneInfo(vars);

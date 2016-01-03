@@ -81,6 +81,17 @@ bool ContentDirectory::Browse(const std::string& objectId, unsigned index, unsig
   return false;
 }
 
+bool ContentDirectory::RefreshShareIndex()
+{
+  ElementList vars;
+  ElementList args;
+  args.push_back(ElementPtr(new Element("AlbumArtistDisplayOption", "")));
+  vars = Request("RefreshShareIndex", args);
+  if (!vars.empty() && vars[0]->compare("u:RefreshShareIndexResponse") == 0)
+    return true;
+  return false;
+}
+
 void ContentDirectory::HandleEventMessage(EventMessagePtr msg)
 {
   if (!msg)

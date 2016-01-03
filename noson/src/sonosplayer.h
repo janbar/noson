@@ -60,6 +60,7 @@ namespace NSROOT
     RCSProperty GetRenderingProperty();
     ContentProperty GetContentProperty();
 
+    bool RefreshShareIndex();
     bool GetZoneInfo(ElementList& vars);
     bool GetTransportInfo(ElementList& vars);
     bool GetPositionInfo(ElementList &vars);
