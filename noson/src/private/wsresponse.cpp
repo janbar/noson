@@ -261,8 +261,6 @@ bool WSResponse::GetResponse()
 
 size_t WSResponse::ReadContent(char* buf, size_t buflen)
 {
-  if (!m_socket->IsConnected())
-    return 0;
   size_t s = 0;
   if (!m_contentChunked)
   {
