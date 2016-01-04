@@ -86,6 +86,7 @@ int main(int argc, char** argv)
 
         SONOS::ContentDirectory mycontent(playerPtr->GetHost(), playerPtr->GetPort());
         SONOS::ContentList bdir(mycontent, search);
+        fprintf(stderr, "UpdateID: %u\n", bdir.GetUpdateID());
         fprintf(stderr, "Item count: %u\n", bdir.size());
         SONOS::ContentList::iterator it = bdir.begin();
         int i = 0;
