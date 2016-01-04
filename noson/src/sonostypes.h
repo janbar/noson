@@ -35,7 +35,7 @@ namespace NSROOT
   {
     SVCEvent_TransportChanged        = 0x01,
     SVCEvent_RenderingControlChanged = 0x02,
-    SVCEvent_ContentDirectoryChanged = 0x03,
+    SVCEvent_ContentDirectoryChanged = 0x04,
   } SVCEventMask_t;
 
   typedef enum
