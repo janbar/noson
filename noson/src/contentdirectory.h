@@ -67,7 +67,7 @@ namespace NSROOT
     virtual void HandleEventMessage(EventMessagePtr msg);
 
     Locked<ContentProperty>& GetContentProperty() { return m_property; }
-    
+
   private:
     EventHandler m_eventHandler;
     Subscription m_subscription;
@@ -139,12 +139,16 @@ namespace NSROOT
 
     unsigned size() { return m_totalCount; }
 
+    unsigned GetUpdateID() { return m_baseUpdateID; }
+
   private:
     ContentDirectory& m_service;
     unsigned m_bulkSize;
     std::string m_root;
+    unsigned m_baseUpdateID;
     unsigned m_totalCount;
     unsigned m_browsedCount;
+    unsigned m_lastUpdateID;
 
     List m_list;
 
@@ -177,11 +181,15 @@ namespace NSROOT
 
     Table& table() { return m_table; }
 
+    unsigned GetUpdateID() { return m_baseUpdateID; }
+
   private:
     ContentDirectory& m_service;
     std::string m_root;
+    unsigned m_baseUpdateID;
     unsigned m_totalCount;
     unsigned m_startingIndex;
+    unsigned m_lastUpdateID;
 
     Table m_table;
 
