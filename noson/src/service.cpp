@@ -79,22 +79,22 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
     return vars;
   }
 
-  tinyxml2::XMLDocument rootdoc;
+  // Receive content data
+  size_t len = 0, l = 0;
+  std::string data;
+  char buffer[4096];
+  while ((l = response.ReadContent(buffer, sizeof(buffer))))
   {
-    size_t len = 0, l = 0;
-    std::string data;
-    char buffer[4096];
-    while ((l = response.ReadContent(buffer, sizeof(buffer))))
-    {
-      data.append(buffer, l);
-      len += l;
-    }
-    // Parse xml content
-    if (rootdoc.Parse(data.c_str(), len) != tinyxml2::XML_SUCCESS)
-    {
-      DBG(DBG_ERROR, "%s: parse xml failed\n", __FUNCTION__);
-      return vars;
-    }
+    data.append(buffer, l);
+    len += l;
+  }
+
+  // Parse xml content
+  tinyxml2::XMLDocument rootdoc;
+  if (rootdoc.Parse(data.c_str(), len) != tinyxml2::XML_SUCCESS)
+  {
+    DBG(DBG_ERROR, "%s: parse xml failed\n", __FUNCTION__);
+    return vars;
   }
   tinyxml2::XMLElement* elem; // an element
   // Check for response: s:Envelope/s:Body/{respTag}

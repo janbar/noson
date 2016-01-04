@@ -60,15 +60,19 @@ namespace NSROOT
 
   private:
     NetSocket* m_socket;
-    struct timeval m_timeout; 
+    struct timeval m_timeout;
     bool m_parsed;
     HRM_t m_parsedMethod;
     std::string m_parsedURI;
     std::string m_parsedQueryProtocol;
     typedef std::map<std::string, std::string> entries_t;
     entries_t m_namedEntries;
+    bool m_contentChunked;
     size_t m_contentLength;
     size_t m_consumed;
+    char* m_chunkBuffer;
+    char* m_chunkPtr;
+    char* m_chunkEnd;
 
     bool ParseQuery();
   };

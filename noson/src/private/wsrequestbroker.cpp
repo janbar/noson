@@ -23,6 +23,7 @@
 #include "socket.h"
 #include "debug.h"
 #include "builtin.h"
+#include "cppdef.h"
 
 #define HTTP_TOKEN_MAXSIZE    20
 #define HTTP_HEADER_MAXSIZE   4000
@@ -105,8 +106,12 @@ WSRequestBroker::WSRequestBroker(NetSocket* socket, timeval timeout)
 , m_timeout(timeout)
 , m_parsed(false)
 , m_parsedMethod(HRM_HEAD)
+, m_contentChunked(false)
 , m_contentLength(0)
 , m_consumed(0)
+, m_chunkBuffer(NULL)
+, m_chunkPtr(NULL)
+, m_chunkEnd(NULL)
 {
   m_socket->SetTimeout(timeout);
   m_parsed = ParseQuery();
@@ -114,6 +119,7 @@ WSRequestBroker::WSRequestBroker(NetSocket* socket, timeval timeout)
 
 WSRequestBroker::~WSRequestBroker()
 {
+  SAFE_DELETE_ARRAY(m_chunkBuffer);
 }
 
 void WSRequestBroker::SetTimeout(timeval timeout)
@@ -132,7 +138,47 @@ const std::string& WSRequestBroker::GetParsedNamedEntry(const std::string& name)
 
 size_t WSRequestBroker::ReadContent(char* buf, size_t buflen)
 {
-  size_t s = m_socket->ReceiveData(buf, buflen);
+  size_t s = 0;
+  if (!m_contentChunked)
+  {
+    // let read on unknown length
+    if (!m_contentLength)
+      s = m_socket->ReceiveData(buf, buflen);
+    else if (m_contentLength > m_consumed)
+    {
+      size_t len = m_contentLength - m_consumed;
+      s = m_socket->ReceiveData(buf, len > buflen ? buflen : len);
+    }
+  }
+  else
+  {
+    if (m_chunkPtr == NULL || m_chunkPtr >= m_chunkEnd)
+    {
+      SAFE_DELETE_ARRAY(m_chunkBuffer);
+      m_chunkBuffer = m_chunkPtr = m_chunkEnd = NULL;
+      std::string strread;
+      size_t len = 0;
+      while (ReadHeaderLine(m_socket, "\r\n", strread, &len) && len == 0);
+      DBG(DBG_PROTO, "%s: chunked data (%s)\n", __FUNCTION__, strread.c_str());
+      std::string chunkStr("0x0");
+      uint32_t chunkSize = 0;
+      if (!strread.empty() && sscanf(chunkStr.append(strread).c_str(), "%x", &chunkSize) == 1 && chunkSize > 0)
+      {
+        if (!(m_chunkBuffer = new char[chunkSize]))
+          return 0;
+        m_chunkPtr = m_chunkBuffer;
+        m_chunkEnd = m_chunkBuffer + chunkSize;
+        if (m_socket->ReceiveData(m_chunkBuffer, chunkSize) != chunkSize)
+          return 0;
+      }
+      else
+        return 0;
+    }
+    if ((s = m_chunkEnd - m_chunkPtr) > buflen)
+      s = buflen;
+    memcpy(buf, m_chunkPtr, s);
+    m_chunkPtr += s;
+  }
   m_consumed += s;
   return s;
 }

@@ -70,21 +70,19 @@ void EventBroker::Process()
           rb.GetParsedNamedEntry("CONTENT-TYPE").compare(0, 8, "text/xml") == 0 &&
           rb.HasContent())
   {
-    EventMessage msg;
-    msg.event = EVENT_UPNP_PROPCHANGE;
-    msg.subject.push_back(rb.GetParsedNamedEntry("SID"));
-    msg.subject.push_back(rb.GetParsedNamedEntry("SEQ"));
-    size_t len = rb.GetContentLength();
-    m_buffer = new char[len + 1];
-    m_buffer[len] = '\0';
-    char* pos = m_buffer;
-    char* end = m_buffer + len;
-    size_t l = 0;
-    while ((l = rb.ReadContent(pos, end - pos)))
-      pos += l;
+    // Receive content data
+    size_t len = 0, l = 0;
+    std::string data;
+    char buffer[4096];
+    while ((l = rb.ReadContent(buffer, sizeof(buffer))))
+    {
+      data.append(buffer, l);
+      len += l;
+    }
+
     // Parse xml content
     tinyxml2::XMLDocument rootdoc;
-    if (rootdoc.Parse(m_buffer, len) != tinyxml2::XML_SUCCESS)
+    if (rootdoc.Parse(data.c_str(), len) != tinyxml2::XML_SUCCESS)
     {
       DBG(DBG_ERROR, "%s: parse xml failed\n", __FUNCTION__);
       WSStatus status(HSC_Internal_Server_Error);
@@ -94,12 +92,19 @@ void EventBroker::Process()
       m_sockPtr->Disconnect();
       return;
     }
+
+    // Setup new event message
+    EventMessage msg;
+    msg.event = EVENT_UPNP_PROPCHANGE;
+    msg.subject.push_back(rb.GetParsedNamedEntry("SID"));
+    msg.subject.push_back(rb.GetParsedNamedEntry("SEQ"));
+
+    // Parse document
     tinyxml2::XMLElement* root; // root element
     tinyxml2::XMLElement* elem; // an element
     tinyxml2::XMLNode* node;    // a node
     tinyxml2::XMLDocument doc;  // a document
     const char* str;
-
     if ((root = rootdoc.RootElement()) && memcmp(root->Name(), "e:propertyset", 13) == 0)
     {
       // Check for embedded doc 'Event': propertyset/property/LastChange
