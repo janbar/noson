@@ -158,24 +158,42 @@ std::string ContentSearch::Root() const
   std::string objectId;
   switch (m_search)
   {
-    case SearchArtist:
-      objectId.assign("A:ARTIST");
-      break;
-    case SearchAlbum:
-      objectId.assign("A:ALBUM");
-      break;
-    case SearchGenre:
-      objectId.assign("A:GENRE");
-      break;
-    case SearchTrack:
-      objectId.assign("A:TRACKS");
-      break;
-    case SearchRadio:
-      objectId.assign("R:0");
-      break;
-    case SearchQueue:
-      objectId.assign("Q:0");
-      break;
+  case SearchArtist:
+    objectId.assign("A:ALBUMARTIST");
+    break;
+  case SearchAlbum:
+    objectId.assign("A:ALBUM");
+    break;
+  case SearchGenre:
+    objectId.assign("A:GENRE");
+    break;
+  case SearchTrack:
+    objectId.assign("A:TRACKS");
+    break;
+  case SearchComposer:
+    objectId.assign("A:COMPOSER");
+    break;
+  case SearchContributor:
+    objectId.assign("A:ARTIST");
+    break;
+  case SearchPlaylist:
+    objectId.assign("A:PLAYLISTS");
+    break;
+  case SearchRadio:
+    objectId.assign("R:0");
+    break;
+  case SearchQueue:
+    objectId.assign("Q:0");
+    break;
+  case SearchSonosPlaylist:
+    objectId.assign("SQ:");
+    break;
+  case SearchShare:
+    objectId.assign("S:");
+    break;
+  case SearchCategory:
+  default:
+    objectId.assign("A:");
   }
   if (!m_string.empty())
     objectId.append(":").append(m_string);

@@ -82,7 +82,21 @@ namespace NSROOT
   //// ContentSearch
   ////
 
-  typedef enum { SearchArtist, SearchAlbum, SearchGenre, SearchTrack, SearchRadio, SearchQueue } Search_t;
+  typedef enum
+  {
+    SearchArtist,
+    SearchAlbum,
+    SearchGenre,
+    SearchTrack,
+    SearchComposer,
+    SearchContributor,
+    SearchPlaylist,
+    SearchRadio,
+    SearchQueue,
+    SearchSonosPlaylist,
+    SearchShare,
+    SearchCategory,
+  } Search_t;
 
   class ContentSearch
   {
