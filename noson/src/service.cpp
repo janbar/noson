@@ -134,7 +134,7 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
       {
         ElementPtr var(new Element(elem->Name(), elem->GetText()));
         vars.push_back(var);
-        //DBG(DBG_PROTO, "%s: %s = %s\n", __FUNCTION__, var->GetKey().c_str(), var->c_str());
+        DBG(DBG_PROTO, "%s: %s = %s\n", __FUNCTION__, var->GetKey().c_str(), var->c_str());
       }
       elem = elem->NextSiblingElement(NULL);
     }
