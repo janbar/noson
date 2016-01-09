@@ -19,8 +19,6 @@
  *
  */
 
-#include <string>
-
 #include "avtransport.h"
 #include "private/builtin.h"
 #include "private/cppdef.h"
