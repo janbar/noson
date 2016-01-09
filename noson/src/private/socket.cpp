@@ -168,7 +168,7 @@ static int __connectAddr(struct addrinfo *addr, net_socket_t *s, int rcvbuf)
   signal(SIGALRM, old_sighandler);
   alarm(old_alarm);
 #endif
-  DBG(DBG_DEBUG, "%s: connected to socket(%p)\n", __FUNCTION__, s);
+  DBG(DBG_PROTO, "%s: connected to socket(%p)\n", __FUNCTION__, s);
   return err;
 }
 
