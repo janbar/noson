@@ -47,7 +47,7 @@ int main(int argc, char** argv)
     search.assign(argv[2]);
 
 
-  SONOS::DBGLevel(4); // debug/proto
+  SONOS::DBGLevel(3); // debug/proto
 
   {
 
@@ -92,7 +92,7 @@ int main(int argc, char** argv)
         int i = 0;
         while (it != bdir.end())
         {
-          fprintf(stderr, "Item %d: [%d] [%s]\n", ++i, (*it)->IsItem(), (*it)->GetValue("dc:title").c_str());
+          fprintf(stderr, "Item %d: [%d] [%s] [%s]\n", ++i, (*it)->IsItem(), (*it)->GetValue("dc:title").c_str(), (*it)->GetObjectID().c_str());
           ++it;
         }
 
