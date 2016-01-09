@@ -83,7 +83,7 @@ DigitalItem::DigitalItem(const std::string& objectID, const std::string& parentI
   {
     std::vector<std::string> tokens;
     __tokenize((*it)->c_str(), ".", tokens);
-    if (tokens.size() >= 4 && tokens[0] == "object")
+    if (tokens.size() >= 2 && tokens[0] == "object")
     {
       for (unsigned i = 0; i < sizeof(TypeTable); ++i)
       {
@@ -92,12 +92,15 @@ DigitalItem::DigitalItem(const std::string& objectID, const std::string& parentI
         m_type = (Type_t)i;
         break;
       }
-      for (unsigned i = 0; i < sizeof(SubTypeTable); ++i)
+      if (tokens.size() >= 3)
       {
-        if (tokens[2] != SubTypeTable[i])
-          continue;
-        m_subType = (SubType_t)i;
-        break;
+        for (unsigned i = 0; i < sizeof(SubTypeTable); ++i)
+        {
+          if (tokens[2] != SubTypeTable[i])
+            continue;
+          m_subType = (SubType_t)i;
+          break;
+        }
       }
     }
   }
