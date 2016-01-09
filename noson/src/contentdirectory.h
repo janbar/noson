@@ -63,6 +63,8 @@ namespace NSROOT
 
     bool RefreshShareIndex();
 
+    bool DestroyObject(const std::string& objectID);
+
     // Implements EventSubscriber
     virtual void HandleEventMessage(EventMessagePtr msg);
 

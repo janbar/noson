@@ -75,9 +75,16 @@ namespace NSROOT
     bool SetCurrentURI(const std::string& uri, const std::string& title);
     bool PlayQueue(bool start);
     unsigned AddURIToQueue(const DigitalItemPtr& item, unsigned position);
+    unsigned AddMultipleURIsToQueue(const std::vector<DigitalItemPtr>& items, const DigitalItemPtr& container);
     bool RemoveAllTracksFromQueue();
     bool RemoveTrackFromQueue(const std::string& objectID, unsigned containerUpdateID);
     bool ReorderTracksInQueue(unsigned startIndex, unsigned numTracks, unsigned insBefore, unsigned containerUpdateID);
+
+    bool SaveQueue(const std::string& title);
+    bool CreateSavedQueue(const std::string& title);
+    unsigned AddURIToSavedQueue(const std::string& SQObjectID, const DigitalItemPtr& item, unsigned containerUpdateID);
+    bool ReorderTracksInSavedQueue(const std::string& SQObjectID, const std::string& trackList, const std::string& newPositionList, unsigned containerUpdateID);
+    bool DestroySavedQueue(const std::string& SQObjectID);
 
     bool SetPlayMode(PlayMode_t mode);
     bool Play();

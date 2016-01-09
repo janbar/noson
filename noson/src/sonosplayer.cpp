@@ -200,6 +200,18 @@ unsigned Player::AddURIToQueue(const DigitalItemPtr& item, unsigned position)
   return m_AVTransport->AddURIToQueue(item->GetValue("res"), item->DIDL(), position);
 }
 
+unsigned Player::AddMultipleURIsToQueue(const std::vector<DigitalItemPtr>& items, const DigitalItemPtr& container)
+{
+  std::vector<std::string> uris;
+  std::vector<std::string> metadatas;
+  for (std::vector<DigitalItemPtr>::const_iterator it = items.begin(); it != items.end(); ++it)
+  {
+    uris.push_back((*it)->GetValue("res"));
+    metadatas.push_back((*it)->DIDL());
+  }
+  return m_AVTransport->AddMultipleURIsToQueue(uris, metadatas, container->GetValue("res"), container->DIDL());
+}
+
 bool Player::RemoveAllTracksFromQueue()
 {
   return m_AVTransport->RemoveAllTracksFromQueue();
@@ -213,6 +225,31 @@ bool Player::RemoveTrackFromQueue(const std::string& objectID, unsigned containe
 bool Player::ReorderTracksInQueue(unsigned startIndex, unsigned numTracks, unsigned insBefore, unsigned containerUpdateID)
 {
   return m_AVTransport->ReorderTracksInQueue(startIndex, numTracks, insBefore, containerUpdateID);
+}
+
+bool Player::SaveQueue(const std::string& title)
+{
+  return m_AVTransport->SaveQueue(title);
+}
+
+bool Player::CreateSavedQueue(const std::string& title)
+{
+  return m_AVTransport->CreateSavedQueue(title);
+}
+
+unsigned Player::AddURIToSavedQueue(const std::string& SQObjectID, const DigitalItemPtr& item, unsigned containerUpdateID)
+{
+  return m_AVTransport->AddURIToSavedQueue(SQObjectID, item->GetValue("res"), item->DIDL(), containerUpdateID);
+}
+
+bool Player::ReorderTracksInSavedQueue(const std::string& SQObjectID, const std::string& trackList, const std::string& newPositionList, unsigned containerUpdateID)
+{
+  return m_AVTransport->ReorderTracksInSavedQueue(SQObjectID, trackList, newPositionList, containerUpdateID);
+}
+
+bool Player::DestroySavedQueue(const std::string& SQObjectID)
+{
+  return m_contentDirectory->DestroyObject(SQObjectID);
 }
 
 bool Player::SetPlayMode(PlayMode_t mode)

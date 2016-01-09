@@ -92,6 +92,17 @@ bool ContentDirectory::RefreshShareIndex()
   return false;
 }
 
+bool ContentDirectory::DestroyObject(const std::string& objectID)
+{
+  ElementList vars;
+  ElementList args;
+  args.push_back(ElementPtr(new Element("ObjectID", objectID)));
+  vars = Request("DestroyObject", args);
+  if (!vars.empty() && vars[0]->compare("u:DestroyObjectResponse") == 0)
+    return true;
+  return false;
+}
+
 void ContentDirectory::HandleEventMessage(EventMessagePtr msg)
 {
   if (!msg)
@@ -262,7 +273,7 @@ bool ContentList::Previous(List::iterator& i)
 
 bool ContentList::BrowseContent(unsigned startingIndex, unsigned count, List::iterator position)
 {
-  DBG(DBG_DEBUG, "%s: browse %u from %u\n", __FUNCTION__, count, startingIndex);
+  DBG(DBG_PROTO, "%s: browse %u from %u\n", __FUNCTION__, count, startingIndex);
   ElementList vars;
   ElementList::const_iterator it;
   if (m_service.Browse(m_root, startingIndex, count, vars) && (it = vars.FinKey("Result")) != vars.end())
@@ -280,7 +291,7 @@ bool ContentList::BrowseContent(unsigned startingIndex, unsigned count, List::it
     {
       m_list.insert(position, didl.GetItems().begin(), didl.GetItems().end());
       m_browsedCount += didl.GetItems().size();
-      DBG(DBG_DEBUG, "%s: count %u\n", __FUNCTION__, didl.GetItems().size());
+      DBG(DBG_PROTO, "%s: count %u\n", __FUNCTION__, didl.GetItems().size());
       return true;
     }
   }
@@ -356,7 +367,7 @@ bool ContentBrowser::Browse(unsigned index, unsigned count)
 
 bool ContentBrowser::BrowseContent(unsigned startingIndex, unsigned count, Table::iterator position)
 {
-  DBG(DBG_DEBUG, "%s: browse %u from %u\n", __FUNCTION__, count, startingIndex);
+  DBG(DBG_PROTO, "%s: browse %u from %u\n", __FUNCTION__, count, startingIndex);
   ElementList vars;
   ElementList::const_iterator it;
   if (m_service.Browse(m_root, startingIndex, count, vars) && (it = vars.FinKey("Result")) != vars.end())
@@ -373,7 +384,7 @@ bool ContentBrowser::BrowseContent(unsigned startingIndex, unsigned count, Table
     if (didl.IsValid())
     {
       m_table.insert(position, didl.GetItems().begin(), didl.GetItems().end());
-      DBG(DBG_DEBUG, "%s: count %u\n", __FUNCTION__, didl.GetItems().size());
+      DBG(DBG_PROTO, "%s: count %u\n", __FUNCTION__, didl.GetItems().size());
       return true;
     }
   }

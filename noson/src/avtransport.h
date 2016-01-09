@@ -29,6 +29,7 @@
 #include "locked.h"
 
 #include <stdint.h>
+#include <vector>
 
 namespace NSROOT
 {
@@ -84,6 +85,9 @@ namespace NSROOT
 
     unsigned AddURIToQueue(const std::string& uri, const std::string& metadata, unsigned position);
 
+    unsigned AddMultipleURIsToQueue(const std::vector<std::string>& uris, const std::vector<std::string>& metadatas,
+            const std::string& containerUri, const std::string& containerMetadata);
+
     bool ReorderTracksInQueue(unsigned startIndex, unsigned numTracks, unsigned insBefore, unsigned containerUpdateID);
 
     bool RemoveTrackFromQueue(const std::string& objectID, unsigned containerUpdateID);
@@ -91,6 +95,17 @@ namespace NSROOT
     bool RemoveTrackRangeFromQueue(unsigned startIndex, unsigned numTracks, unsigned containerUpdateID);
 
     bool RemoveAllTracksFromQueue();
+
+    bool SaveQueue(const std::string& title);
+    
+    bool CreateSavedQueue(const std::string& title);
+
+    unsigned AddURIToSavedQueue(const std::string& SQObjectID, const std::string& uri, const std::string& metadata, unsigned containerUpdateID);
+
+    // to reorder: provide new positions for moved tracks, i.e: trackList = "1,6,9" newPositionList = "2,8,3"
+    // to delete : provide range to keep in trackList, i.e: 1-5,7-8,10-15
+    bool ReorderTracksInSavedQueue(const std::string& SQObjectID, const std::string& trackList, const std::string& newPositionList, unsigned containerUpdateID);
+
 
     // Implements EventSubscriber
     virtual void HandleEventMessage(EventMessagePtr msg);
