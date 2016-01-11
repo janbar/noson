@@ -115,6 +115,19 @@ const ElementPtr DigitalItem::GetProperty(const std::string& key) const
     return ElementPtr(NULL);
 }
 
+std::vector<ElementPtr> DigitalItem::GetCollection(const std::string& key) const
+{
+  std::vector<ElementPtr> list;
+  ElementList::const_iterator it = m_vars.FinKey(key);
+  if (it != m_vars.end())
+  {
+    do {
+      list.push_back(*it);
+    } while (m_vars.FindKey(key, ++it) != m_vars.end());
+  }
+  return list;
+}
+
 const ElementPtr& DigitalItem::SetProperty(const ElementPtr& var)
 {
   if (var)
