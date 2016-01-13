@@ -94,16 +94,11 @@ bool System::ConnectZone(const ZonePtr& zone, void* CBHandle, EventCB eventCB)
   if (!m_eventHandler.IsRunning() && !m_eventHandler.Start())
     return false;
   // Check zone
-  if (!zone)
+  const ZonePtr _zone(zone);
+  if (!_zone)
     return false;
-  ZonePlayerPtr cinfo = zone->GetCoordinator();
-  if (!cinfo)
-    return false;
-  URIParser uri(cinfo->GetAttribut("location"));
-  if (!uri.Scheme() || !uri.Host() || !uri.Port())
-    return false;
-  DBG(DBG_DEBUG, "%s: connect player '%s' (%s:%u)\n", __FUNCTION__, cinfo->c_str(), uri.Host(), uri.Port());
-  m_connectedZone.player = PlayerPtr(new Player(cinfo->GetAttribut("uuid"), uri.Host(), uri.Port(), m_eventHandler, CBHandle, eventCB));
+  DBG(DBG_DEBUG, "%s: connect zone '%s'\n", __FUNCTION__, _zone->GetZoneName().c_str());
+  m_connectedZone.player = PlayerPtr(new Player(*_zone, m_eventHandler, CBHandle, eventCB));
   m_connectedZone.zone = zone;
   return true;
 }

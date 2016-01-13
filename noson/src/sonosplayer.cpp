@@ -31,6 +31,34 @@
 
 using namespace NSROOT;
 
+Player::Player(const Zone& zone, EventHandler& eventHandler, void* CBHandle, EventCB eventCB)
+: m_uuid()
+, m_host()
+, m_port(0)
+, m_eventHandler(eventHandler)
+, m_CBHandle(CBHandle)
+, m_eventCB(eventCB)
+, m_eventSignaled(false)
+, m_eventMask(0)
+{
+  ZonePlayerPtr cinfo = zone.GetCoordinator();
+  if (cinfo)
+  {
+    URIParser uri(cinfo->GetAttribut("location"));
+    if (uri.Scheme() && uri.Host() && uri.Port())
+    {
+      DBG(DBG_DEBUG, "%s: initialize player '%s' as coordinator (%s:%u)\n", __FUNCTION__, cinfo->c_str(), uri.Host(), uri.Port());
+      m_uuid = cinfo->GetAttribut("uuid");
+      m_host = uri.Host();
+      m_port = uri.Port();
+    }
+    else
+      DBG(DBG_ERROR, "%s: invalid coordinator for zone '%s' (%s)\n", __FUNCTION__, zone.GetZoneName().c_str(), cinfo->GetAttribut("location").c_str());
+  }
+  else
+    DBG(DBG_ERROR, "%s: zone '%s' hasn't any coordinator\n", __FUNCTION__, zone.GetZoneName().c_str());
+}
+
 Player::Player(const std::string& uuid, const std::string& host, unsigned port, EventHandler& eventHandler, void* CBHandle, EventCB eventCB)
 : m_uuid(uuid)
 , m_host(host)
