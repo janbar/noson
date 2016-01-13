@@ -54,12 +54,14 @@ namespace NSROOT
     Player(const std::string& uuid, const std::string& host, unsigned port, EventHandler& eventHandler, void* CBHandle = 0, EventCB eventCB = 0);
     virtual ~Player();
 
+    bool IsValid() const { return m_valid; }
     const std::string& GetHost() const { return m_host; }
     unsigned GetPort() const { return m_port; }
     void RenewSubscriptions();
     unsigned char LastEvents();
+    unsigned GetRCSCount() { return m_RCSGroup.size(); }
+    std::vector<RCSProperty> GetRenderingProperty();
     AVTProperty GetTransportProperty();
-    RCSProperty GetRenderingProperty();
     ContentProperty GetContentProperty();
 
     bool RefreshShareIndex();
@@ -68,10 +70,10 @@ namespace NSROOT
     bool GetPositionInfo(ElementList &vars);
     bool GetMediaInfo(ElementList &vars);
 
-    bool GetVolume(uint8_t* value);
-    bool SetVolume(uint8_t value);
-    bool GetMute(uint8_t* value);
-    bool SetMute(uint8_t value);
+    bool GetVolume(std::vector<uint8_t>& values);
+    bool SetVolume(std::vector<uint8_t> values);
+    bool GetMute(std::vector<uint8_t>& values);
+    bool SetMute(std::vector<uint8_t> values);
 
     bool SetCurrentURI(const DigitalItemPtr& item);
     bool SetCurrentURI(const std::string& uri, const std::string& title);
@@ -103,6 +105,7 @@ namespace NSROOT
     virtual void HandleEventMessage(EventMessagePtr msg);
 
   private:
+    bool m_valid;
     std::string m_uuid;
     std::string m_host;
     unsigned m_port;
@@ -117,13 +120,17 @@ namespace NSROOT
 
     // services
     Subscription m_AVTSubscription;
-    Subscription m_RCSSubscription;
     Subscription m_CDSubscription;
+
+    typedef std::vector<std::pair<Subscription, RenderingControl*> > RCSGroup;
+    RCSGroup m_RCSGroup;
 
     AVTransport*        m_AVTransport;
     DeviceProperties*   m_deviceProperties;
-    RenderingControl*   m_renderingControl;
     ContentDirectory*   m_contentDirectory;
+
+    // cold startup
+    void Init(const Zone& zone);
 
     // event callback
     static void CB_AVTransport(void* handle);

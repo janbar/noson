@@ -48,6 +48,7 @@ namespace NSROOT
   class Zone : public std::vector<ZonePlayerPtr>
   {
   public:
+    Zone() {}
     Zone(const std::string& group) : m_group(group) {}
     virtual ~Zone() {}
 

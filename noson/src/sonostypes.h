@@ -157,6 +157,9 @@ namespace NSROOT
     int VolumeMaster;
     int VolumeLF;
     int VolumeRF;
+    int MuteMaster;
+    int MuteLF;
+    int MuteRF;
   };
 
 }

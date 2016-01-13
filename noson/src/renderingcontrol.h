@@ -30,8 +30,6 @@
 
 #include <stdint.h>
 
-#define CH_MASTER "Master"
-
 namespace NSROOT
 {
   class Subscription;
@@ -47,6 +45,8 @@ namespace NSROOT
     static const std::string ControlURL;
     static const std::string EventURL;
     static const std::string SCPDURL;
+
+    static const char* CH_MASTER;
 
     const std::string& GetName() const { return Name; }
 

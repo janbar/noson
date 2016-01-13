@@ -31,6 +31,8 @@ const std::string RenderingControl::ControlURL("/MediaRenderer/RenderingControl/
 const std::string RenderingControl::EventURL("/MediaRenderer/RenderingControl/Event");
 const std::string RenderingControl::SCPDURL("/xml/RenderingControl1.xml");
 
+const char* RenderingControl::CH_MASTER = "Master";
+
 RenderingControl::RenderingControl(const std::string& serviceHost, unsigned servicePort)
 : Service(serviceHost, servicePort)
 , m_eventHandler()
@@ -147,6 +149,21 @@ void RenderingControl::HandleEventMessage(EventMessagePtr msg)
         {
           if (string_to_int32((*++it).c_str(), &num) == 0)
             prop->VolumeRF = num;
+        }
+        else if (*it == "Mute/Master")
+        {
+          if (string_to_int32((*++it).c_str(), &num) == 0)
+            prop->MuteMaster = num;
+        }
+        else if (*it == "Mute/LF")
+        {
+          if (string_to_int32((*++it).c_str(), &num) == 0)
+            prop->MuteLF = num;
+        }
+        else if (*it == "Mute/RF")
+        {
+          if (string_to_int32((*++it).c_str(), &num) == 0)
+            prop->MuteRF = num;
         }
 
         ++it;

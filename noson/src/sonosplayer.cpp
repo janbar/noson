@@ -32,7 +32,8 @@
 using namespace NSROOT;
 
 Player::Player(const Zone& zone, EventHandler& eventHandler, void* CBHandle, EventCB eventCB)
-: m_uuid()
+: m_valid(false)
+, m_uuid()
 , m_host()
 , m_port(0)
 , m_eventHandler(eventHandler)
@@ -40,6 +41,9 @@ Player::Player(const Zone& zone, EventHandler& eventHandler, void* CBHandle, Eve
 , m_eventCB(eventCB)
 , m_eventSignaled(false)
 , m_eventMask(0)
+, m_AVTransport(0)
+, m_deviceProperties(0)
+, m_contentDirectory(0)
 {
   ZonePlayerPtr cinfo = zone.GetCoordinator();
   if (cinfo)
@@ -51,6 +55,7 @@ Player::Player(const Zone& zone, EventHandler& eventHandler, void* CBHandle, Eve
       m_uuid = cinfo->GetAttribut("uuid");
       m_host = uri.Host();
       m_port = uri.Port();
+      Init(zone);
     }
     else
       DBG(DBG_ERROR, "%s: invalid coordinator for zone '%s' (%s)\n", __FUNCTION__, zone.GetZoneName().c_str(), cinfo->GetAttribut("location").c_str());
@@ -60,7 +65,8 @@ Player::Player(const Zone& zone, EventHandler& eventHandler, void* CBHandle, Eve
 }
 
 Player::Player(const std::string& uuid, const std::string& host, unsigned port, EventHandler& eventHandler, void* CBHandle, EventCB eventCB)
-: m_uuid(uuid)
+: m_valid(false)
+, m_uuid(uuid)
 , m_host(host)
 , m_port(port)
 , m_eventHandler(eventHandler)
@@ -68,24 +74,11 @@ Player::Player(const std::string& uuid, const std::string& host, unsigned port, 
 , m_eventCB(eventCB)
 , m_eventSignaled(false)
 , m_eventMask(0)
+, m_AVTransport(0)
+, m_deviceProperties(0)
+, m_contentDirectory(0)
 {
-  unsigned subId = m_eventHandler.CreateSubscription(this);
-  m_eventHandler.SubscribeForEvent(subId, EVENT_HANDLER_STATUS);
-
-  m_AVTSubscription = Subscription(host, port, AVTransport::EventURL, eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
-  m_RCSSubscription = Subscription(host, port, RenderingControl::EventURL, eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
-  m_CDSubscription = Subscription(host, port, ContentDirectory::EventURL, eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
-
-  m_AVTransport = new AVTransport(m_host, m_port, m_eventHandler, m_AVTSubscription, this, CB_AVTransport);
-  m_renderingControl = new RenderingControl(m_host, m_port, m_eventHandler, m_RCSSubscription, this, CB_RenderingControl);
-  m_contentDirectory = new ContentDirectory(m_host, m_port, m_eventHandler, m_CDSubscription, this, CB_ContentDirectory);
-  m_deviceProperties = new DeviceProperties(m_host, m_port);
-
-  m_AVTSubscription.Start();
-  m_RCSSubscription.Start();
-  m_CDSubscription.Start();
-
-  m_queueURI.assign("x-rincon-queue:").append(m_uuid).append("#0");
+  Init(Zone());
 }
 
 Player::~Player()
@@ -93,14 +86,59 @@ Player::~Player()
   m_eventHandler.RevokeAllSubscriptions(this);
   SAFE_DELETE(m_contentDirectory);
   SAFE_DELETE(m_deviceProperties);
-  SAFE_DELETE(m_renderingControl);
   SAFE_DELETE(m_AVTransport);
+  for (RCSGroup::iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
+    SAFE_DELETE(it->second);
+}
+
+void Player::Init(const Zone& zone)
+{
+  unsigned subId = m_eventHandler.CreateSubscription(this);
+  m_eventHandler.SubscribeForEvent(subId, EVENT_HANDLER_STATUS);
+
+  if (zone.size() > 1)
+  {
+    for (Zone::const_iterator it = zone.begin(); it != zone.end(); ++it)
+    {
+      URIParser uri((*it)->GetAttribut("location"));
+      if (uri.Scheme() && uri.Host() && uri.Port())
+      {
+        Subscription sub = Subscription(uri.Host(), uri.Port(), RenderingControl::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
+        RenderingControl* rcs = new RenderingControl(uri.Host(), uri.Port(), m_eventHandler, sub, this, CB_RenderingControl);
+        m_RCSGroup.push_back(std::make_pair(sub, rcs));
+      }
+      else
+        DBG(DBG_ERROR, "%s: invalid location for player '%s'\n", __FUNCTION__, (*it)->c_str());
+    }
+  }
+  else
+  {
+    Subscription sub = Subscription(m_host, m_port, RenderingControl::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
+    RenderingControl* rcs = new RenderingControl(m_host, m_port, m_eventHandler, sub, this, CB_RenderingControl);
+    m_RCSGroup.push_back(std::make_pair(sub, rcs));
+  }
+
+  m_AVTSubscription = Subscription(m_host, m_port, AVTransport::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
+  m_CDSubscription = Subscription(m_host, m_port, ContentDirectory::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
+
+  m_AVTransport = new AVTransport(m_host, m_port, m_eventHandler, m_AVTSubscription, this, CB_AVTransport);
+  m_contentDirectory = new ContentDirectory(m_host, m_port, m_eventHandler, m_CDSubscription, this, CB_ContentDirectory);
+  m_deviceProperties = new DeviceProperties(m_host, m_port);
+
+  for (RCSGroup::iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
+    it->first.Start();
+  m_AVTSubscription.Start();
+  m_CDSubscription.Start();
+
+  m_queueURI.assign("x-rincon-queue:").append(m_uuid).append("#0");
+  m_valid = true;
 }
 
 void Player::RenewSubscriptions()
 {
+  for (RCSGroup::iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
+    it->first.AskRenewal();
   m_AVTSubscription.AskRenewal();
-  m_RCSSubscription.AskRenewal();
   m_CDSubscription.AskRenewal();
 }
 
@@ -117,14 +155,17 @@ unsigned char Player::LastEvents()
   return mask;
 }
 
+std::vector<RCSProperty> Player::GetRenderingProperty()
+{
+  std::vector<RCSProperty> list;
+  for (RCSGroup::const_iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
+    list.push_back(*(it->second->GetRenderingProperty().Get()));
+  return list;
+}
+
 AVTProperty Player::GetTransportProperty()
 {
   return *(m_AVTransport->GetAVTProperty().Get());
-}
-
-RCSProperty Player::GetRenderingProperty()
-{
-  return *(m_renderingControl->GetRenderingProperty().Get());
 }
 
 ContentProperty Player::GetContentProperty()
@@ -157,24 +198,60 @@ bool Player::GetMediaInfo(ElementList& vars)
   return m_AVTransport->GetMediaInfo(vars);
 }
 
-bool Player::GetVolume(uint8_t* value)
+bool Player::GetVolume(std::vector<uint8_t>& values)
 {
-  return m_renderingControl->GetVolume(value);
+  values.clear();
+  for (RCSGroup::const_iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
+  {
+    uint8_t value;
+    if (it->second->GetVolume(&value))
+      values.push_back(value);
+    else
+      return false;
+  }
+  return true;
 }
 
-bool Player::SetVolume(uint8_t value)
+bool Player::SetVolume(std::vector<uint8_t> values)
 {
-  return m_renderingControl->SetVolume(value);
+  std::vector<uint8_t>::const_iterator itv = values.begin();
+  RCSGroup::const_iterator itr = m_RCSGroup.begin();
+  while (itv != values.end() && itr != m_RCSGroup.end())
+  {
+    if (!itr->second->SetVolume(*itv))
+      return false;
+    ++itv;
+    ++itr;
+  }
+  return true;
 }
 
-bool Player::GetMute(uint8_t* value)
+bool Player::GetMute(std::vector<uint8_t>& values)
 {
-  return m_renderingControl->GetMute(value);
+  values.clear();
+  for (RCSGroup::const_iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
+  {
+    uint8_t value;
+    if (it->second->GetMute(&value))
+      values.push_back(value);
+    else
+      return false;
+  }
+  return true;
 }
 
-bool Player::SetMute(uint8_t value)
+bool Player::SetMute(std::vector<uint8_t> values)
 {
-  return m_renderingControl->SetMute(value);
+  std::vector<uint8_t>::const_iterator itv = values.begin();
+  RCSGroup::const_iterator itr = m_RCSGroup.begin();
+  while (itv != values.end() && itr != m_RCSGroup.end())
+  {
+    if (!itr->second->SetMute(*itv))
+      return false;
+    ++itv;
+    ++itr;
+  }
+  return true;
 }
 
 bool Player::SetCurrentURI(const DigitalItemPtr& item)
