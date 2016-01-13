@@ -200,16 +200,29 @@ unsigned Player::AddURIToQueue(const DigitalItemPtr& item, unsigned position)
   return m_AVTransport->AddURIToQueue(item->GetValue("res"), item->DIDL(), position);
 }
 
-unsigned Player::AddMultipleURIsToQueue(const std::vector<DigitalItemPtr>& items, const DigitalItemPtr& container)
+unsigned Player::AddMultipleURIsToQueue(const std::vector<DigitalItemPtr>& items)
 {
+  unsigned tno = 0;
   std::vector<std::string> uris;
   std::vector<std::string> metadatas;
-  for (std::vector<DigitalItemPtr>::const_iterator it = items.begin(); it != items.end(); ++it)
+  std::vector<DigitalItemPtr>::const_iterator it = items.begin();
+  while (it != items.end())
   {
-    uris.push_back((*it)->GetValue("res"));
-    metadatas.push_back((*it)->DIDL());
+    while (uris.size() < 16 && it != items.end())
+    {
+      uris.push_back((*it)->GetValue("res"));
+      metadatas.push_back((*it)->DIDL());
+      ++it;
+    }
+    unsigned r = m_AVTransport->AddMultipleURIsToQueue(uris, metadatas);
+    if (!r)
+      break;
+    if (!tno) // save first track number
+      tno = r;
+    uris.clear();
+    metadatas.clear();
   }
-  return m_AVTransport->AddMultipleURIsToQueue(uris, metadatas, container->GetValue("res"), container->DIDL());
+  return tno;
 }
 
 bool Player::RemoveAllTracksFromQueue()

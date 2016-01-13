@@ -259,8 +259,7 @@ unsigned AVTransport::AddURIToQueue(const std::string& uri, const std::string& m
   return 0;
 }
 
-unsigned AVTransport::AddMultipleURIsToQueue(const std::vector<std::string>& uris, const std::vector<std::string>& metadatas,
-        const std::string& containerUri, const std::string& containerMetadata)
+unsigned AVTransport::AddMultipleURIsToQueue(const std::vector<std::string>& uris, const std::vector<std::string>& metadatas)
 {
   char buf[11];
   memset(buf, 0, sizeof (buf));
@@ -268,16 +267,26 @@ unsigned AVTransport::AddMultipleURIsToQueue(const std::vector<std::string>& uri
   Element* elem;
   args.push_back(ElementPtr(new Element("InstanceID", "0")));
   args.push_back(ElementPtr(new Element("UpdateID", "0")));
+  uint32_to_string(uris.size(), buf);
+  args.push_back(ElementPtr(new Element("NumberOfURIs", buf)));
   elem = new Element("EnqueuedURIs", "");
   for (std::vector<std::string>::const_iterator it = uris.begin(); it != uris.end(); ++it)
-    elem->append(*it).append(" ");
+  {
+    if (it != uris.begin())
+      elem->append(" ");
+    elem->append(*it);
+  }
   args.push_back(ElementPtr(elem));
   elem = new Element("EnqueuedURIsMetaData", "");
   for (std::vector<std::string>::const_iterator it = metadatas.begin(); it != metadatas.end(); ++it)
-    elem->append(*it).append(" ");
+  {
+    if (it != metadatas.begin())
+      elem->append(" ");
+    elem->append(*it);
+  }
   args.push_back(ElementPtr(elem));
-  args.push_back(ElementPtr(new Element("ContainerURI", containerUri)));
-  args.push_back(ElementPtr(new Element("ContainerMetadata", containerMetadata)));
+  args.push_back(ElementPtr(new Element("ContainerURI", "")));
+  args.push_back(ElementPtr(new Element("ContainerMetadata", "")));
   args.push_back(ElementPtr(new Element("DesiredFirstTrackNumberEnqueued", "0")));
   args.push_back(ElementPtr(new Element("EnqueueAsNext", "0")));
   ElementList vars = Request("AddMultipleURIsToQueue", args);

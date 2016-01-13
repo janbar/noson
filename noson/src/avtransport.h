@@ -85,8 +85,8 @@ namespace NSROOT
 
     unsigned AddURIToQueue(const std::string& uri, const std::string& metadata, unsigned position);
 
-    unsigned AddMultipleURIsToQueue(const std::vector<std::string>& uris, const std::vector<std::string>& metadatas,
-            const std::string& containerUri, const std::string& containerMetadata);
+    // Max count of 16 URIs is allowed
+    unsigned AddMultipleURIsToQueue(const std::vector<std::string>& uris, const std::vector<std::string>& metadatas);
 
     bool ReorderTracksInQueue(unsigned startIndex, unsigned numTracks, unsigned insBefore, unsigned containerUpdateID);
 
