@@ -73,7 +73,7 @@ int main(int argc, char** argv)
        */
       SONOS::ZonePlayerList players = sonos.GetZonePlayerList();
       for (SONOS::ZonePlayerList::const_iterator it = players.begin(); it != players.end(); ++it)
-        fprintf(stderr, "found player '%s' at location %s\n", it->second->c_str(), it->second->GetAttribut("location").c_str());
+        fprintf(stderr, "found player '%s' at location %s\n", it->second->c_str(), it->second->GetLocation().c_str());
 
       if (sonos.IsConnected())
       {
