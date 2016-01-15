@@ -97,7 +97,7 @@ bool System::ConnectZone(const ZonePtr& zone, void* CBHandle, EventCB eventCB)
   if (!zone)
     return false;
   DBG(DBG_DEBUG, "%s: connect zone '%s'\n", __FUNCTION__, zone->GetZoneName().c_str());
-  PlayerPtr player(new Player(*zone, m_eventHandler, CBHandle, eventCB));
+  PlayerPtr player(new Player(zone, m_eventHandler, CBHandle, eventCB));
   if (player->IsValid())
   {
     m_connectedZone.player = player;

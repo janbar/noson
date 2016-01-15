@@ -50,8 +50,8 @@ namespace NSROOT
   {
   public:
 
-    Player(const Zone& zone, EventHandler& eventHandler, void* CBHandle = 0, EventCB eventCB = 0);
-    Player(const std::string& uuid, const std::string& host, unsigned port, EventHandler& eventHandler, void* CBHandle = 0, EventCB eventCB = 0);
+    Player(const ZonePtr& zone, EventHandler& eventHandler, void* CBHandle = 0, EventCB eventCB = 0);
+    Player(const ZonePlayerPtr& zonePlayer, EventHandler& eventHandler, void* CBHandle = 0, EventCB eventCB = 0);
     virtual ~Player();
 
     bool IsValid() const { return m_valid; }

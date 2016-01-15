@@ -31,7 +31,7 @@
 
 using namespace NSROOT;
 
-Player::Player(const Zone& zone, EventHandler& eventHandler, void* CBHandle, EventCB eventCB)
+Player::Player(const ZonePtr& zone, EventHandler& eventHandler, void* CBHandle, EventCB eventCB)
 : m_valid(false)
 , m_uuid()
 , m_host()
@@ -45,29 +45,34 @@ Player::Player(const Zone& zone, EventHandler& eventHandler, void* CBHandle, Eve
 , m_deviceProperties(0)
 , m_contentDirectory(0)
 {
-  ZonePlayerPtr cinfo = zone.GetCoordinator();
-  if (cinfo)
+  if (!zone)
+    DBG(DBG_ERROR, "%s: invalid zone\n", __FUNCTION__);
+  else
   {
-    if (cinfo->IsValid())
+    ZonePlayerPtr cinfo = zone->GetCoordinator();
+    if (cinfo)
     {
-      DBG(DBG_DEBUG, "%s: initialize player '%s' as coordinator (%s:%u)\n", __FUNCTION__, cinfo->c_str(), cinfo->GetHost().c_str(), cinfo->GetPort());
-      m_uuid = cinfo->GetUUID();
-      m_host = cinfo->GetHost();
-      m_port = cinfo->GetPort();
-      Init(zone);
+      if (cinfo->IsValid())
+      {
+        DBG(DBG_DEBUG, "%s: initialize player '%s' as coordinator (%s:%u)\n", __FUNCTION__, cinfo->c_str(), cinfo->GetHost().c_str(), cinfo->GetPort());
+        m_uuid = cinfo->GetUUID();
+        m_host = cinfo->GetHost();
+        m_port = cinfo->GetPort();
+        Init(*zone);
+      }
+      else
+        DBG(DBG_ERROR, "%s: invalid coordinator for zone '%s' (%s)\n", __FUNCTION__, zone->GetZoneName().c_str(), cinfo->GetLocation().c_str());
     }
     else
-      DBG(DBG_ERROR, "%s: invalid coordinator for zone '%s' (%s)\n", __FUNCTION__, zone.GetZoneName().c_str(), cinfo->GetLocation().c_str());
+      DBG(DBG_ERROR, "%s: zone '%s' hasn't any coordinator\n", __FUNCTION__, zone->GetZoneName().c_str());
   }
-  else
-    DBG(DBG_ERROR, "%s: zone '%s' hasn't any coordinator\n", __FUNCTION__, zone.GetZoneName().c_str());
 }
 
-Player::Player(const std::string& uuid, const std::string& host, unsigned port, EventHandler& eventHandler, void* CBHandle, EventCB eventCB)
+Player::Player(const ZonePlayerPtr& zonePlayer, EventHandler& eventHandler, void* CBHandle, EventCB eventCB)
 : m_valid(false)
-, m_uuid(uuid)
-, m_host(host)
-, m_port(port)
+, m_uuid()
+, m_host()
+, m_port(0)
 , m_eventHandler(eventHandler)
 , m_CBHandle(CBHandle)
 , m_eventCB(eventCB)
@@ -77,7 +82,18 @@ Player::Player(const std::string& uuid, const std::string& host, unsigned port, 
 , m_deviceProperties(0)
 , m_contentDirectory(0)
 {
-  Init(Zone());
+  if (zonePlayer && zonePlayer->IsValid())
+  {
+    DBG(DBG_DEBUG, "%s: initialize player '%s' (%s:%u)\n", __FUNCTION__, zonePlayer->c_str(), zonePlayer->GetHost().c_str(), zonePlayer->GetPort());
+    m_uuid = zonePlayer->GetUUID();
+    m_host = zonePlayer->GetHost();
+    m_port = zonePlayer->GetPort();
+    Zone fake;
+    fake.push_back(zonePlayer);
+    Init(fake);
+  }
+  else
+    DBG(DBG_ERROR, "%s: invalid zone player\n", __FUNCTION__);
 }
 
 Player::~Player()
@@ -95,25 +111,16 @@ void Player::Init(const Zone& zone)
   unsigned subId = m_eventHandler.CreateSubscription(this);
   m_eventHandler.SubscribeForEvent(subId, EVENT_HANDLER_STATUS);
 
-  if (zone.size() > 1)
+  for (Zone::const_iterator it = zone.begin(); it != zone.end(); ++it)
   {
-    for (Zone::const_iterator it = zone.begin(); it != zone.end(); ++it)
+    if ((*it)->IsValid())
     {
-      if ((*it)->IsValid())
-      {
-        Subscription sub = Subscription((*it)->GetHost(), (*it)->GetPort(), RenderingControl::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
-        RenderingControl* rcs = new RenderingControl((*it)->GetHost(), (*it)->GetPort(), m_eventHandler, sub, this, CB_RenderingControl);
-        m_RCSGroup.push_back(std::make_pair(sub, rcs));
-      }
-      else
-        DBG(DBG_ERROR, "%s: invalid location for player '%s'\n", __FUNCTION__, (*it)->c_str());
+      Subscription sub = Subscription((*it)->GetHost(), (*it)->GetPort(), RenderingControl::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
+      RenderingControl* rcs = new RenderingControl((*it)->GetHost(), (*it)->GetPort(), m_eventHandler, sub, this, CB_RenderingControl);
+      m_RCSGroup.push_back(std::make_pair(sub, rcs));
     }
-  }
-  else
-  {
-    Subscription sub = Subscription(m_host, m_port, RenderingControl::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
-    RenderingControl* rcs = new RenderingControl(m_host, m_port, m_eventHandler, sub, this, CB_RenderingControl);
-    m_RCSGroup.push_back(std::make_pair(sub, rcs));
+    else
+      DBG(DBG_ERROR, "%s: invalid location for player '%s'\n", __FUNCTION__, (*it)->c_str());
   }
 
   m_AVTSubscription = Subscription(m_host, m_port, AVTransport::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
