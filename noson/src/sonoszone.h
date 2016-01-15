@@ -37,8 +37,25 @@ namespace NSROOT
   class ZonePlayer : public Element
   {
   public:
-    ZonePlayer(const std::string& name) : Element("ZonePlayer", name) {}
+    ZonePlayer(const std::string& name);
     virtual ~ZonePlayer() {};
+
+    const std::string& GetUUID() { return GetAttribut("uuid"); }
+
+    const std::string& GetLocation() { return GetAttribut("location"); }
+
+    bool IsValid() { return ParseLocation(); }
+
+    const std::string& GetHost();
+
+    unsigned GetPort();
+
+  private:
+    bool m_URIparsed;
+    std::string m_host;
+    unsigned m_port;
+
+    bool ParseLocation();
   };
 
   class Zone;

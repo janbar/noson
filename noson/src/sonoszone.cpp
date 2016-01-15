@@ -20,8 +20,44 @@
  */
 
 #include "sonoszone.h"
+#include "private/uriparser.h"
 
 using namespace NSROOT;
+
+ZonePlayer::ZonePlayer(const std::string& name)
+: Element("ZonePlayer", name)
+, m_URIparsed(false)
+, m_host()
+, m_port(0)
+{
+}
+
+const std::string& ZonePlayer::GetHost()
+{
+  ParseLocation();
+  return m_host;
+}
+
+unsigned ZonePlayer::GetPort()
+{
+  ParseLocation();
+  return m_port;
+}
+
+bool ZonePlayer::ParseLocation()
+{
+  if (!m_URIparsed)
+  {
+    URIParser uri(GetLocation());
+    if (uri.Scheme() && uri.Host() && uri.Port())
+    {
+      m_host = uri.Host();
+      m_port = uri.Port();
+      m_URIparsed = true;
+    }
+  }
+  return m_URIparsed;
+}
 
 std::string Zone::GetZoneName() const
 {

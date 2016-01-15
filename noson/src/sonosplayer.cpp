@@ -48,17 +48,16 @@ Player::Player(const Zone& zone, EventHandler& eventHandler, void* CBHandle, Eve
   ZonePlayerPtr cinfo = zone.GetCoordinator();
   if (cinfo)
   {
-    URIParser uri(cinfo->GetAttribut("location"));
-    if (uri.Scheme() && uri.Host() && uri.Port())
+    if (cinfo->IsValid())
     {
-      DBG(DBG_DEBUG, "%s: initialize player '%s' as coordinator (%s:%u)\n", __FUNCTION__, cinfo->c_str(), uri.Host(), uri.Port());
-      m_uuid = cinfo->GetAttribut("uuid");
-      m_host = uri.Host();
-      m_port = uri.Port();
+      DBG(DBG_DEBUG, "%s: initialize player '%s' as coordinator (%s:%u)\n", __FUNCTION__, cinfo->c_str(), cinfo->GetHost().c_str(), cinfo->GetPort());
+      m_uuid = cinfo->GetUUID();
+      m_host = cinfo->GetHost();
+      m_port = cinfo->GetPort();
       Init(zone);
     }
     else
-      DBG(DBG_ERROR, "%s: invalid coordinator for zone '%s' (%s)\n", __FUNCTION__, zone.GetZoneName().c_str(), cinfo->GetAttribut("location").c_str());
+      DBG(DBG_ERROR, "%s: invalid coordinator for zone '%s' (%s)\n", __FUNCTION__, zone.GetZoneName().c_str(), cinfo->GetLocation().c_str());
   }
   else
     DBG(DBG_ERROR, "%s: zone '%s' hasn't any coordinator\n", __FUNCTION__, zone.GetZoneName().c_str());
@@ -100,11 +99,10 @@ void Player::Init(const Zone& zone)
   {
     for (Zone::const_iterator it = zone.begin(); it != zone.end(); ++it)
     {
-      URIParser uri((*it)->GetAttribut("location"));
-      if (uri.Scheme() && uri.Host() && uri.Port())
+      if ((*it)->IsValid())
       {
-        Subscription sub = Subscription(uri.Host(), uri.Port(), RenderingControl::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
-        RenderingControl* rcs = new RenderingControl(uri.Host(), uri.Port(), m_eventHandler, sub, this, CB_RenderingControl);
+        Subscription sub = Subscription((*it)->GetHost(), (*it)->GetPort(), RenderingControl::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
+        RenderingControl* rcs = new RenderingControl((*it)->GetHost(), (*it)->GetPort(), m_eventHandler, sub, this, CB_RenderingControl);
         m_RCSGroup.push_back(std::make_pair(sub, rcs));
       }
       else
