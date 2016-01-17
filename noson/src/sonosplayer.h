@@ -33,6 +33,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 namespace NSROOT
 {
@@ -45,6 +46,7 @@ namespace NSROOT
   class Player;
 
   typedef SHARED_PTR<Player> PlayerPtr;
+  typedef std::vector<SRProperty> SRPList;
 
   class Player : public EventSubscriber
   {
@@ -59,8 +61,7 @@ namespace NSROOT
     unsigned GetPort() const { return m_port; }
     void RenewSubscriptions();
     unsigned char LastEvents();
-    unsigned GetRCSCount() { return m_RCSGroup.size(); }
-    std::vector<RCSProperty> GetRenderingProperty();
+    SRPList GetRenderingProperty();
     AVTProperty GetTransportProperty();
     ContentProperty GetContentProperty();
 
@@ -70,10 +71,10 @@ namespace NSROOT
     bool GetPositionInfo(ElementList &vars);
     bool GetMediaInfo(ElementList &vars);
 
-    bool GetVolume(std::vector<uint8_t>& values);
-    bool SetVolume(std::vector<uint8_t> values);
-    bool GetMute(std::vector<uint8_t>& values);
-    bool SetMute(std::vector<uint8_t> values);
+    bool GetVolume(const std::string& uuid, uint8_t* value);
+    bool SetVolume(const std::string& uuid, uint8_t value);
+    bool GetMute(const std::string& uuid, uint8_t* value);
+    bool SetMute(const std::string& uuid, uint8_t value);
 
     bool SetCurrentURI(const DigitalItemPtr& item);
     bool SetCurrentURI(const std::string& uri, const std::string& title);
@@ -122,8 +123,18 @@ namespace NSROOT
     Subscription m_AVTSubscription;
     Subscription m_CDSubscription;
 
-    typedef std::vector<std::pair<Subscription, RenderingControl*> > RCSGroup;
-    RCSGroup m_RCSGroup;
+    class SubordinateRC
+    {
+    public:
+      std::string uuid;
+      std::string name;
+      Subscription subscription;
+      RenderingControl* renderingControl;
+      void FillSRProperty(SRProperty& srp) const;
+    };
+
+    typedef std::vector<SubordinateRC> RCTable;
+    RCTable m_RCTable;
 
     AVTransport*        m_AVTransport;
     DeviceProperties*   m_deviceProperties;

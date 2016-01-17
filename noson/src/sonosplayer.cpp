@@ -102,8 +102,16 @@ Player::~Player()
   SAFE_DELETE(m_contentDirectory);
   SAFE_DELETE(m_deviceProperties);
   SAFE_DELETE(m_AVTransport);
-  for (RCSGroup::iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
-    SAFE_DELETE(it->second);
+  for (RCTable::iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
+    SAFE_DELETE(it->renderingControl);
+}
+
+void Player::SubordinateRC::FillSRProperty(SRProperty& srp) const
+{
+  srp.uuid = uuid;
+  srp.subordinateName = name;
+  if (renderingControl)
+    srp.property = *(renderingControl->GetRenderingProperty().Get());
 }
 
 void Player::Init(const Zone& zone)
@@ -115,9 +123,12 @@ void Player::Init(const Zone& zone)
   {
     if ((*it)->IsValid())
     {
-      Subscription sub = Subscription((*it)->GetHost(), (*it)->GetPort(), RenderingControl::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
-      RenderingControl* rcs = new RenderingControl((*it)->GetHost(), (*it)->GetPort(), m_eventHandler, sub, this, CB_RenderingControl);
-      m_RCSGroup.push_back(std::make_pair(sub, rcs));
+      SubordinateRC rc;
+      rc.uuid = (*it)->GetUUID();
+      rc.name = **it;
+      rc.subscription = Subscription((*it)->GetHost(), (*it)->GetPort(), RenderingControl::EventURL, m_eventHandler.GetPort(), SUBSCRIPTION_TIMEOUT);
+      rc.renderingControl = new RenderingControl((*it)->GetHost(), (*it)->GetPort(), m_eventHandler, rc.subscription, this, CB_RenderingControl);
+      m_RCTable.push_back(rc);
     }
     else
       DBG(DBG_ERROR, "%s: invalid location for player '%s'\n", __FUNCTION__, (*it)->c_str());
@@ -130,8 +141,8 @@ void Player::Init(const Zone& zone)
   m_contentDirectory = new ContentDirectory(m_host, m_port, m_eventHandler, m_CDSubscription, this, CB_ContentDirectory);
   m_deviceProperties = new DeviceProperties(m_host, m_port);
 
-  for (RCSGroup::iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
-    it->first.Start();
+  for (RCTable::iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
+    it->subscription.Start();
   m_AVTSubscription.Start();
   m_CDSubscription.Start();
 
@@ -141,8 +152,8 @@ void Player::Init(const Zone& zone)
 
 void Player::RenewSubscriptions()
 {
-  for (RCSGroup::iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
-    it->first.AskRenewal();
+  for (RCTable::iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
+    it->subscription.AskRenewal();
   m_AVTSubscription.AskRenewal();
   m_CDSubscription.AskRenewal();
 }
@@ -160,11 +171,14 @@ unsigned char Player::LastEvents()
   return mask;
 }
 
-std::vector<RCSProperty> Player::GetRenderingProperty()
+SRPList Player::GetRenderingProperty()
 {
-  std::vector<RCSProperty> list;
-  for (RCSGroup::const_iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
-    list.push_back(*(it->second->GetRenderingProperty().Get()));
+  SRPList list;
+  for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
+  {
+    list.push_back(SRProperty());
+    it->FillSRProperty(list.back());
+  }
   return list;
 }
 
@@ -203,60 +217,44 @@ bool Player::GetMediaInfo(ElementList& vars)
   return m_AVTransport->GetMediaInfo(vars);
 }
 
-bool Player::GetVolume(std::vector<uint8_t>& values)
+bool Player::GetVolume(const std::string& uuid, uint8_t* value)
 {
-  values.clear();
-  for (RCSGroup::const_iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
+  for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
   {
-    uint8_t value;
-    if (it->second->GetVolume(&value))
-      values.push_back(value);
-    else
-      return false;
+    if (it->uuid == uuid)
+      return it->renderingControl->GetVolume(value);
   }
-  return true;
+  return false;
 }
 
-bool Player::SetVolume(std::vector<uint8_t> values)
+bool Player::SetVolume(const std::string& uuid, uint8_t value)
 {
-  std::vector<uint8_t>::const_iterator itv = values.begin();
-  RCSGroup::const_iterator itr = m_RCSGroup.begin();
-  while (itv != values.end() && itr != m_RCSGroup.end())
+  for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
   {
-    if (!itr->second->SetVolume(*itv))
-      return false;
-    ++itv;
-    ++itr;
+    if (it->uuid == uuid)
+      return it->renderingControl->SetVolume(value);
   }
-  return true;
+  return false;
 }
 
-bool Player::GetMute(std::vector<uint8_t>& values)
+bool Player::GetMute(const std::string& uuid, uint8_t* value)
 {
-  values.clear();
-  for (RCSGroup::const_iterator it = m_RCSGroup.begin(); it != m_RCSGroup.end(); ++it)
+  for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
   {
-    uint8_t value;
-    if (it->second->GetMute(&value))
-      values.push_back(value);
-    else
-      return false;
+    if (it->uuid == uuid)
+      return it->renderingControl->GetMute(value);
   }
-  return true;
+  return false;
 }
 
-bool Player::SetMute(std::vector<uint8_t> values)
+bool Player::SetMute(const std::string& uuid, uint8_t value)
 {
-  std::vector<uint8_t>::const_iterator itv = values.begin();
-  RCSGroup::const_iterator itr = m_RCSGroup.begin();
-  while (itv != values.end() && itr != m_RCSGroup.end())
+  for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
   {
-    if (!itr->second->SetMute(*itv))
-      return false;
-    ++itv;
-    ++itr;
+    if (it->uuid == uuid)
+      return it->renderingControl->SetMute(value);
   }
-  return true;
+  return false;
 }
 
 bool Player::SetCurrentURI(const DigitalItemPtr& item)
