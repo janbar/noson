@@ -171,6 +171,16 @@ unsigned char Player::LastEvents()
   return mask;
 }
 
+bool Player::RenderingPropertyEmpty()
+{
+  for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
+  {
+    if (it->renderingControl->Empty())
+      return true;
+  }
+  return false;
+}
+
 SRPList Player::GetRenderingProperty()
 {
   SRPList list;
@@ -180,6 +190,11 @@ SRPList Player::GetRenderingProperty()
     it->FillSRProperty(list.back());
   }
   return list;
+}
+
+bool Player::TransportPropertyEmpty()
+{
+  return m_AVTransport->Empty();
 }
 
 AVTProperty Player::GetTransportProperty()

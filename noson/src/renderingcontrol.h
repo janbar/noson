@@ -67,6 +67,8 @@ namespace NSROOT
     // Implements EventSubscriber
     virtual void HandleEventMessage(EventMessagePtr msg);
 
+    bool Empty() { return m_msgCount == 0; }
+
     Locked<RCSProperty>& GetRenderingProperty() { return m_property; }
 
   private:
@@ -74,6 +76,7 @@ namespace NSROOT
     Subscription m_subscription;
     void* m_CBHandle;
     EventCB m_eventCB;
+    unsigned m_msgCount;
 
     Locked<RCSProperty> m_property;
   };

@@ -61,7 +61,9 @@ namespace NSROOT
     unsigned GetPort() const { return m_port; }
     void RenewSubscriptions();
     unsigned char LastEvents();
+    bool RenderingPropertyEmpty();
     SRPList GetRenderingProperty();
+    bool TransportPropertyEmpty();
     AVTProperty GetTransportProperty();
     ContentProperty GetContentProperty();
 

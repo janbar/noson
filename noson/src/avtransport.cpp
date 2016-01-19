@@ -38,6 +38,7 @@ AVTransport::AVTransport(const std::string& serviceHost, unsigned servicePort)
 , m_subscription()
 , m_CBHandle(0)
 , m_eventCB(0)
+, m_msgCount(0)
 , m_property(AVTProperty())
 {
 }
@@ -48,6 +49,7 @@ AVTransport::AVTransport(const std::string& serviceHost, unsigned servicePort, E
 , m_subscription(subscription)
 , m_CBHandle(CBHandle)
 , m_eventCB(eventCB)
+, m_msgCount(0)
 , m_property(AVTProperty())
 {
   unsigned subId = m_eventHandler.CreateSubscription(this);
@@ -542,6 +544,7 @@ void AVTransport::HandleEventMessage(EventMessagePtr msg)
         ++it;
       }
       // Signal
+      ++m_msgCount;
       if (m_eventCB)
         m_eventCB(m_CBHandle);
     }

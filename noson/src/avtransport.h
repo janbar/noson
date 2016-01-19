@@ -110,6 +110,8 @@ namespace NSROOT
     // Implements EventSubscriber
     virtual void HandleEventMessage(EventMessagePtr msg);
 
+    bool Empty() { return m_msgCount == 0; }
+
     Locked<AVTProperty>& GetAVTProperty() { return m_property; }
 
   private:
@@ -117,6 +119,7 @@ namespace NSROOT
     Subscription m_subscription;
     void* m_CBHandle;
     EventCB m_eventCB;
+    unsigned m_msgCount;
     
     Locked<AVTProperty> m_property;
   };

@@ -39,6 +39,7 @@ RenderingControl::RenderingControl(const std::string& serviceHost, unsigned serv
 , m_subscription()
 , m_CBHandle(0)
 , m_eventCB(0)
+, m_msgCount(0)
 , m_property(RCSProperty())
 {
 }
@@ -49,6 +50,7 @@ RenderingControl::RenderingControl(const std::string& serviceHost, unsigned serv
 , m_subscription(subscription)
 , m_CBHandle(CBHandle)
 , m_eventCB(eventCB)
+, m_msgCount(0)
 , m_property(RCSProperty())
 {
   unsigned subId = m_eventHandler.CreateSubscription(this);
@@ -169,6 +171,7 @@ void RenderingControl::HandleEventMessage(EventMessagePtr msg)
         ++it;
       }
       // Signal
+      ++m_msgCount;
       if (m_eventCB)
         m_eventCB(m_CBHandle);
     }
