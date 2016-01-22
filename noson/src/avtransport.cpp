@@ -91,6 +91,16 @@ bool AVTransport::GetMediaInfo(ElementList& vars)
   return false;
 }
 
+bool AVTransport::GetRemainingSleepTimerDuration(ElementList& vars)
+{
+  ElementList args;
+  args.push_back(ElementPtr(new Element("InstanceID", "0")));
+  vars = Request("GetRemainingSleepTimerDuration", args);
+  if (!vars.empty() && vars[0]->compare("u:GetRemainingSleepTimerDurationResponse") == 0)
+    return true;
+  return false;
+}
+
 bool AVTransport::BecomeCoordinatorOfStandaloneGroup()
 {
   ElementList args;
@@ -434,6 +444,24 @@ bool AVTransport::ReorderTracksInSavedQueue(const std::string& SQObjectID, const
   args.push_back(ElementPtr(new Element("UpdateID", buf)));
   ElementList vars = Request("ReorderTracksInSavedQueue", args);
   if (!vars.empty() && vars[0]->compare("u:ReorderTracksInSavedQueueResponse") == 0)
+    return true;
+  return false;
+}
+
+bool AVTransport::ConfigureSleepTimer(unsigned seconds)
+{
+  if (seconds >= 24 * 3600)
+    return false;
+  char buf[9];
+  memset(buf, 0, sizeof (buf));
+  if (seconds)
+    sprintf(buf, "%.2u:%.2u:%.2u", (unsigned)(seconds / 3600),
+            (unsigned)((seconds % 3600) / 60), (unsigned)(seconds % 60));
+  ElementList args;
+  args.push_back(ElementPtr(new Element("InstanceID", "0")));
+  args.push_back(ElementPtr(new Element("NewSleepTimerDuration", buf)));
+  ElementList vars = Request("ConfigureSleepTimer", args);
+  if (!vars.empty() && vars[0]->compare("u:ConfigureSleepTimerResponse") == 0)
     return true;
   return false;
 }

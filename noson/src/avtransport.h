@@ -61,6 +61,8 @@ namespace NSROOT
 
     bool GetMediaInfo(ElementList& vars);
 
+    bool GetRemainingSleepTimerDuration(ElementList& vars);
+
     bool BecomeCoordinatorOfStandaloneGroup();
 
     bool SetPlayMode(PlayMode_t mode);
@@ -103,9 +105,10 @@ namespace NSROOT
     unsigned AddURIToSavedQueue(const std::string& SQObjectID, const std::string& uri, const std::string& metadata, unsigned containerUpdateID);
 
     // to reorder: provide new positions for moved tracks, i.e: trackList = "1,6,9" newPositionList = "2,8,3"
-    // to delete : provide range to keep in trackList, i.e: 1-5,7-8,10-15
+    // to delete : provide range to delete in trackList, i.e: 2,5,7-8,10-15
     bool ReorderTracksInSavedQueue(const std::string& SQObjectID, const std::string& trackList, const std::string& newPositionList, unsigned containerUpdateID);
 
+    bool ConfigureSleepTimer(unsigned seconds);
 
     // Implements EventSubscriber
     virtual void HandleEventMessage(EventMessagePtr msg);

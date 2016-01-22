@@ -232,6 +232,13 @@ bool Player::GetMediaInfo(ElementList& vars)
   return m_AVTransport->GetMediaInfo(vars);
 }
 
+bool Player::GetRemainingSleepTimerDuration(ElementList& vars)
+{
+  // RemainingSleepTimerDuration
+  // CurrentSleepTimerGeneration
+  return m_AVTransport->GetRemainingSleepTimerDuration(vars);
+}
+
 bool Player::GetVolume(const std::string& uuid, uint8_t* value)
 {
   for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
@@ -426,6 +433,11 @@ bool Player::Next()
 bool Player::Previous()
 {
   return m_AVTransport->Previous();
+}
+
+bool Player::ConfigureSleepTimer(unsigned seconds)
+{
+  return m_AVTransport->ConfigureSleepTimer(seconds);
 }
 
 ContentDirectory* Player::ContentDirectoryProvider(void* CBHandle, EventCB eventCB)

@@ -72,6 +72,7 @@ namespace NSROOT
     bool GetTransportInfo(ElementList& vars);
     bool GetPositionInfo(ElementList &vars);
     bool GetMediaInfo(ElementList &vars);
+    bool GetRemainingSleepTimerDuration(ElementList& vars);
 
     bool GetVolume(const std::string& uuid, uint8_t* value);
     bool SetVolume(const std::string& uuid, uint8_t value);
@@ -102,6 +103,8 @@ namespace NSROOT
     bool Next();
     bool Previous();
 
+    bool ConfigureSleepTimer(unsigned seconds);
+    
     ContentDirectory* ContentDirectoryProvider(void* CBHandle = 0, EventCB eventCB = 0);
 
     // Implements EventSubscriber
