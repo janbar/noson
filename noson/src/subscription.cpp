@@ -27,6 +27,7 @@
 #include "private/uriparser.h"
 #include "private/socket.h"
 #include "private/builtin.h"
+#include "private/debug.h"
 #include "sonossystem.h" // for definitions
 
 #define TIMEOUT_RETRY  1 // seconds
@@ -55,7 +56,9 @@ namespace NSROOT
     , m_bindingPort(bindingPort)
     , m_timeout(timeout)
     , m_configured(false)
+    , m_renewable(false)
     {
+      // Try to configure
       Configure();
     }
 
@@ -99,11 +102,12 @@ namespace NSROOT
     unsigned m_bindingPort;
     unsigned m_timeout;
     bool m_configured;
+    bool m_renewable;
     std::string m_myIP;
     OS::CEvent m_event;
 
     virtual void* Process();
-    void Configure();
+    bool Configure();
     bool SubscribeForEvent(bool renew = false);
     bool UnSubscribeForEvent();
   };
@@ -114,12 +118,12 @@ void* SubscriptionThreadImpl::Process()
   bool success = false;
   while (!IsStopped())
   {
-    if (m_configured && (success = SubscribeForEvent(success)))
+    // Reconfigure: IP may be leased for a time
+    if (Configure() && (success = SubscribeForEvent(success)))
       m_event.Wait(m_timeout * 900);
     else
     {
-      // reconfigure and wait before retry
-      Configure();
+      // wait before retry
       m_event.Wait(TIMEOUT_RETRY * 1000);
     }
   }
@@ -128,24 +132,35 @@ void* SubscriptionThreadImpl::Process()
   return NULL;
 }
 
-void SubscriptionThreadImpl::Configure()
+bool SubscriptionThreadImpl::Configure()
 {
   TcpSocket sock;
   sock.Connect(m_host.c_str(), m_port, 0);
-  m_myIP = sock.GetLocalIP(),
+  std::string myIP = sock.GetLocalIP();
   sock.Disconnect();
-  if (!m_myIP.empty())
-    m_configured = true;
-  else
-    m_configured = false;
+  if (!myIP.empty())
+  {
+    if (myIP == m_myIP)
+      m_renewable = true; // IP leasing is still valid
+    else
+      m_renewable = false; // IP has changed, therefore don't try to renew
+    m_myIP = myIP;
+    return m_configured = true;
+  }
+  m_myIP.clear();
+  return m_configured = false;
 }
 
 bool SubscriptionThreadImpl::SubscribeForEvent(bool renew)
 {
   WSRequest request(m_host, m_port);
   request.RequestService(m_url, HRM_SUBSCRIBE);
-  if (!m_SID.empty() && renew)
+  // is renewable ?
+  if (renew && m_renewable && !m_SID.empty())
+  {
+    DBG(DBG_DEBUG, "%s: renew subscription (%s)\n", __FUNCTION__, m_SID.c_str());
     request.SetHeader("SID", m_SID);
+  }
   else
   {
     char buf[11];
