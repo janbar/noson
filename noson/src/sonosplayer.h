@@ -69,6 +69,7 @@ namespace NSROOT
 
     bool RefreshShareIndex();
     bool GetZoneInfo(ElementList& vars);
+    bool GetZoneAttributes(ElementList& vars);
     bool GetTransportInfo(ElementList& vars);
     bool GetPositionInfo(ElementList &vars);
     bool GetMediaInfo(ElementList &vars);

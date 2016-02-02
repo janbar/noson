@@ -217,6 +217,11 @@ bool Player::GetZoneInfo(ElementList& vars)
   return m_deviceProperties->GetZoneInfo(vars);
 }
 
+bool Player::GetZoneAttributes(ElementList& vars)
+{
+  return m_deviceProperties->GetZoneAttributes(vars);
+}
+
 bool Player::GetTransportInfo(ElementList& vars)
 {
   return m_AVTransport->GetTransportInfo(vars);
