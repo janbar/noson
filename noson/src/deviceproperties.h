@@ -48,6 +48,8 @@ namespace NSROOT
     const std::string& GetSCPDURL() const { return SCPDURL; }
 
     bool GetZoneInfo(ElementList& vars);
+
+    bool GetZoneAttributes(ElementList& vars);
   };
 }
 

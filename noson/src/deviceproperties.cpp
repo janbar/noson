@@ -42,3 +42,12 @@ bool DeviceProperties::GetZoneInfo(ElementList& vars)
     return true;
   return false;
 }
+
+bool DeviceProperties::GetZoneAttributes(ElementList& vars)
+{
+  ElementList args;
+  vars = Request("GetZoneAttributes", args);
+  if (!vars.empty() && vars[0]->compare("u:GetZoneAttributesResponse") == 0)
+    return true;
+  return false;
+}
