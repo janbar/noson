@@ -20,7 +20,9 @@
  */
 
 #include "sonoszone.h"
+#include "deviceproperties.h"
 #include "private/uriparser.h"
+#include "private/wsrequestbroker.h" // for Tokenize
 
 using namespace NSROOT;
 
@@ -57,6 +59,24 @@ bool ZonePlayer::ParseLocation()
     }
   }
   return m_URIparsed;
+}
+
+const std::string& ZonePlayer::GetIconName()
+{
+  if (m_icon.empty())
+  {
+    ParseLocation();
+    DeviceProperties dp(m_host, m_port);
+    ElementList vars;
+    if (dp.GetZoneAttributes(vars))
+    {
+      std::string icon = vars.GetValue("CurrentIcon");
+      size_t p = icon.find_last_of(":");
+      if (p++ != std::string::npos)
+        m_icon = icon.substr(p);
+    }
+  }
+  return m_icon;
 }
 
 std::string Zone::GetZoneName() const

@@ -50,11 +50,14 @@ namespace NSROOT
 
     unsigned GetPort();
 
+    const std::string& GetIconName();
+
   private:
     bool m_URIparsed;
     std::string m_host;
     unsigned m_port;
-
+    std::string m_icon;
+    
     bool ParseLocation();
   };
 
