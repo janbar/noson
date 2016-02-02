@@ -301,7 +301,8 @@ bool System::GetTopology(const std::string& host, unsigned port)
   }
 
   OS::CLockGuard lock(*m_mutex);
-
+  m_zones.clear();
+  m_zonePlayers.clear();
   elem = elem->FirstChildElement();
   while (elem)
   {
