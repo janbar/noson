@@ -76,6 +76,8 @@ namespace NSROOT
 
     std::string GetZoneName() const;
 
+    std::string GetZoneShortName() const;
+
     ZonePlayerPtr GetCoordinator() const;
 
     void Revamp();

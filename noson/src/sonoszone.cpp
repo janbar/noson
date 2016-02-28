@@ -22,7 +22,7 @@
 #include "sonoszone.h"
 #include "deviceproperties.h"
 #include "private/uriparser.h"
-#include "private/wsrequestbroker.h" // for Tokenize
+#include "private/builtin.h"
 
 #include <algorithm>
 
@@ -92,6 +92,24 @@ std::string Zone::GetZoneName() const
         name.append(" + ");
       name.append(**it);
     }
+  return name;
+}
+
+std::string Zone::GetZoneShortName() const
+{
+  // Concat coordinator and subordinate count: zp1 + n
+  std::string name;
+  ZonePlayerPtr coordinator = GetCoordinator();
+  if (!coordinator)
+    return GetZoneName();
+  name.append(*coordinator);
+  if (size() > 1)
+  {
+    char buf[3];
+    memset(buf, 0, sizeof(buf));
+    uint8_to_string((uint8_t)(size() - 1), buf);
+    name.append(" + ").append(buf);
+  }
   return name;
 }
 
