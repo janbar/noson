@@ -24,6 +24,8 @@
 #include "private/uriparser.h"
 #include "private/wsrequestbroker.h" // for Tokenize
 
+#include <algorithm>
+
 using namespace NSROOT;
 
 ZonePlayer::ZonePlayer(const std::string& name)
@@ -99,4 +101,25 @@ ZonePlayerPtr Zone::GetCoordinator() const
     if (*it && (*it)->GetAttribut("coordinator") == "true")
       return *it;
   return ZonePlayerPtr();
+}
+
+void Zone::Revamp()
+{
+  std::vector<ZonePlayerPtr> tmp(this->begin(), this->end());
+  std::sort(tmp.begin(), tmp.end(), _compare);
+  ZonePlayerPtr coordinator(GetCoordinator());
+  this->clear();
+  std::string cuuid = "";
+  // push first the coordinator if any
+  if (coordinator)
+  {
+    cuuid = coordinator->GetUUID();
+    this->push_back(coordinator);
+  }
+  // push others in sorted order
+  for (std::vector<ZonePlayerPtr>::const_iterator it = tmp.begin(); it != tmp.end(); ++it)
+  {
+    if (cuuid.empty() || (*it)->GetUUID() != cuuid)
+      this->push_back(*it);
+  }
 }
