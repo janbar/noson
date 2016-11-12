@@ -156,6 +156,8 @@ file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/sonoszone.h
           DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/include/)
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/zonegrouptopology.h
           DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/include/)
+file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/musicservices.h
+          DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/include/)
 
 include_directories (
   ${CMAKE_CURRENT_BINARY_DIR}/include/.)
