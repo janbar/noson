@@ -89,6 +89,14 @@ if (ZLIB_FOUND)
 else ()
     set (HAVE_ZLIB 0)
 endif ()
+find_package(OpenSSL)
+
+if (OPENSSL_FOUND)
+    include_directories (${OPENSSL_INCLUDE_DIRS})
+    set (HAVE_OPENSSL 1)
+else ()
+    set (HAVE_OPENSSL 0)
+endif ()
 
 # Check what the inline keyword is.
 check_function_keywords ("inline")
@@ -191,7 +199,13 @@ set (NOSON_SOURCES
 
 ###############################################################################
 # add targets
-set (noson_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ZLIB_LIBRARIES})
+set (noson_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+if (ZLIB_FOUND)
+  list (APPEND noson_LIBRARIES ${ZLIB_LIBRARIES})
+endif ()
+if (OPENSSL_FOUND)
+  list (APPEND noson_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+endif ()
 if (WIN32)
   list (APPEND noson_LIBRARIES ws2_32)
 else ()

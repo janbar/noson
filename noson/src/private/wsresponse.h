@@ -67,9 +67,10 @@ namespace NSROOT
     bool m_contentChunked;
     size_t m_contentLength;
     size_t m_consumed;
-    char* m_chunkBuffer;
-    char* m_chunkPtr;
-    char* m_chunkEnd;
+    char* m_chunkBuffer;      ///< The chunk data buffer
+    char* m_chunkPtr;         ///< The next position to read data from the chunk
+    char* m_chunkEOR;         ///< The end of received data in the chunk
+    char* m_chunkEnd;         ///< The end of the chunk buffer
     Decompressor *m_decoder;
 
     typedef std::list<std::pair<std::string, std::string> > HeaderList;

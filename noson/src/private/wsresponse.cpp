@@ -20,7 +20,7 @@
  */
 
 #include "wsresponse.h"
-#include "socket.h"
+#include "securesocket.h"
 #include "debug.h"
 #include "cppdef.h"
 #include "compressor.h"
@@ -89,7 +89,7 @@ bool WSResponse::ReadHeaderLine(NetSocket *socket, const char *eol, std::string&
 }
 
 WSResponse::WSResponse(const WSRequest &request)
-: m_socket(new TcpSocket())
+: m_socket(NULL)
 , m_successful(false)
 , m_statusCode(0)
 , m_serverInfo()
@@ -102,10 +102,17 @@ WSResponse::WSResponse(const WSRequest &request)
 , m_consumed(0)
 , m_chunkBuffer(NULL)
 , m_chunkPtr(NULL)
+, m_chunkEOR(NULL)
 , m_chunkEnd(NULL)
 , m_decoder(NULL)
 {
-  if (m_socket->Connect(request.GetServer().c_str(), request.GetPort(), SOCKET_RCVBUF_MINSIZE))
+  if (request.IsSecureURI())
+    m_socket = SSLSessionFactory::Instance().NewSocket();
+  else
+    m_socket = new TcpSocket();
+  if (!m_socket)
+    DBG(DBG_ERROR, "%s: create socket failed\n", __FUNCTION__);
+  else if (m_socket->Connect(request.GetServer().c_str(), request.GetPort(), SOCKET_RCVBUF_MINSIZE))
   {
     m_socket->SetReadAttempt(6); // 60 sec to hang up
     if (SendRequest(request) && GetResponse())
@@ -139,7 +146,7 @@ bool WSResponse::SendRequest(const WSRequest &request)
 
   request.MakeMessage(msg);
   DBG(DBG_PROTO, "%s: %s\n", __FUNCTION__, msg.c_str());
-  if (!m_socket->SendMessage(msg.c_str(), msg.size()))
+  if (!m_socket->SendData(msg.c_str(), msg.size()))
   {
     DBG(DBG_ERROR, "%s: failed (%d)\n", __FUNCTION__, m_socket->GetErrNo());
     return false;
@@ -281,29 +288,35 @@ size_t WSResponse::ReadChunk(void *buf, size_t buflen)
   size_t s = 0;
   if (m_contentChunked)
   {
-    if (m_chunkPtr == NULL || m_chunkPtr >= m_chunkEnd)
+    // no more pending byte in chunk buffer
+    if (m_chunkPtr == NULL || m_chunkPtr >= m_chunkEOR)
     {
-      SAFE_DELETE_ARRAY(m_chunkBuffer);
-      m_chunkBuffer = m_chunkPtr = m_chunkEnd = NULL;
-      std::string strread;
-      size_t len = 0;
-      while (ReadHeaderLine(m_socket, "\r\n", strread, &len) && len == 0);
-      DBG(DBG_PROTO, "%s: chunked data (%s)\n", __FUNCTION__, strread.c_str());
-      std::string chunkStr("0x0");
-      uint32_t chunkSize = 0;
-      if (!strread.empty() && sscanf(chunkStr.append(strread).c_str(), "%x", &chunkSize) == 1 && chunkSize > 0)
+      // process next chunk if all bytes have been read from the chunk buffer
+      if (m_chunkEOR >= m_chunkEnd)
       {
-        if (!(m_chunkBuffer = new char[chunkSize]))
-          return 0;
-        m_chunkPtr = m_chunkBuffer;
-        m_chunkEnd = m_chunkBuffer + chunkSize;
-        if (m_socket->ReadResponse(m_chunkBuffer, chunkSize) != chunkSize)
-          return 0;
+        SAFE_DELETE_ARRAY(m_chunkBuffer);
+        m_chunkBuffer = m_chunkPtr = m_chunkEOR = m_chunkEnd = NULL;
+        std::string strread;
+        size_t len = 0;
+        while (ReadHeaderLine(m_socket, "\r\n", strread, &len) && len == 0);
+        DBG(DBG_PROTO, "%s: chunked data (%s)\n", __FUNCTION__, strread.c_str());
+        std::string chunkStr("0x0");
+        uint32_t chunkSize;
+        if (!strread.empty() && sscanf(chunkStr.append(strread).c_str(), "%x", &chunkSize) == 1 && chunkSize > 0)
+        {
+          if (!(m_chunkBuffer = new char[chunkSize]))
+            return 0;
+          m_chunkPtr = m_chunkEOR = m_chunkBuffer;
+          m_chunkEnd = m_chunkBuffer + chunkSize;
+        }
+        else
+          return 0; // that's the end of chunks
       }
-      else
-        return 0;
+      // ask for new data to fill in the chunk buffer
+      // fill at last read position and until to the end
+      m_chunkEOR += m_socket->ReceiveData(m_chunkEOR, m_chunkEnd - m_chunkEOR);
     }
-    if ((s = m_chunkEnd - m_chunkPtr) > buflen)
+    if ((s = m_chunkEOR - m_chunkPtr) > buflen)
       s = buflen;
     memcpy(buf, m_chunkPtr, s);
     m_chunkPtr += s;
@@ -315,7 +328,7 @@ size_t WSResponse::ReadChunk(void *buf, size_t buflen)
 int WSResponse::SocketStreamReader(void *hdl, void *buf, int sz)
 {
   WSResponse *resp = static_cast<WSResponse*>(hdl);
-  return (resp == NULL ? 0 : resp->m_socket->ReadResponse(buf, sz));
+  return (resp == NULL ? 0 : resp->m_socket->ReceiveData(buf, sz));
 }
 
 int WSResponse::ChunkStreamReader(void *hdl, void *buf, int sz)
@@ -333,11 +346,11 @@ size_t WSResponse::ReadContent(char* buf, size_t buflen)
     {
       // let read on unknown length
       if (!m_contentLength)
-        s = m_socket->ReadResponse(buf, buflen);
+        s = m_socket->ReceiveData(buf, buflen);
       else if (m_contentLength > m_consumed)
       {
         size_t len = m_contentLength - m_consumed;
-        s = m_socket->ReadResponse(buf, len > buflen ? buflen : len);
+        s = m_socket->ReceiveData(buf, len > buflen ? buflen : len);
       }
     }
     else if (m_contentEncoding == CE_GZIP || m_contentEncoding == CE_DEFLATE)

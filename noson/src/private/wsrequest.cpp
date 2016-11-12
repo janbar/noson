@@ -47,6 +47,22 @@ static void __form_urlencode(std::string& encoded, const char *str)
 WSRequest::WSRequest(const std::string& server, unsigned port)
 : m_server(server)
 , m_port(port)
+, m_secure_uri(false)
+, m_service_url()
+, m_service_method(HRM_GET)
+, m_charset(REQUEST_STD_CHARSET)
+, m_accept(CT_NONE)
+, m_contentType(CT_FORM)
+, m_contentData()
+{
+  if (port == 443)
+    m_secure_uri = true;
+}
+
+WSRequest::WSRequest(const std::string& server, unsigned port, bool secureURI)
+: m_server(server)
+, m_port(port)
+, m_secure_uri(secureURI)
 , m_service_url()
 , m_service_method(HRM_GET)
 , m_charset(REQUEST_STD_CHARSET)
@@ -110,6 +126,33 @@ void WSRequest::ClearContent()
 {
   m_contentData.clear();
   m_contentType = CT_FORM;
+}
+
+void WSRequest::MakeMessage(std::string& msg) const
+{
+  switch (m_service_method)
+  {
+  case HRM_GET:
+    MakeMessageGET(msg);
+    break;
+  case HRM_POST:
+    MakeMessagePOST(msg);
+    break;
+  case HRM_HEAD:
+    MakeMessageHEAD(msg);
+    break;
+  case HRM_SUBSCRIBE:
+    MakeMessageHEAD(msg, "SUBSCRIBE");
+    break;
+  case HRM_UNSUBSCRIBE:
+    MakeMessageHEAD(msg, "UNSUBSCRIBE");
+    break;
+  case HRM_NOTIFY:
+    MakeMessagePOST(msg, "NOTIFY");
+    break;
+  default:
+    break;
+  }
 }
 
 void WSRequest::MakeMessageGET(std::string& msg, const char* method) const
