@@ -57,6 +57,8 @@ WSRequest::WSRequest(const std::string& server, unsigned port)
 {
   if (port == 443)
     m_secure_uri = true;
+  // by default allow content encoding if possible
+  RequestAcceptEncoding(true);
 }
 
 WSRequest::WSRequest(const std::string& server, unsigned port, bool secureURI)
@@ -70,6 +72,8 @@ WSRequest::WSRequest(const std::string& server, unsigned port, bool secureURI)
 , m_contentType(CT_FORM)
 , m_contentData()
 {
+  // by default allow content encoding if possible
+  RequestAcceptEncoding(true);
 }
 
 WSRequest::~WSRequest()
