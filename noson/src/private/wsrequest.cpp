@@ -71,6 +71,19 @@ void WSRequest::RequestAccept(CT_t contentType)
   m_accept = contentType;
 }
 
+void WSRequest::RequestAcceptEncoding(bool yesno)
+{
+#if HAVE_ZLIB
+  if (yesno)
+    SetHeader("Accept-Encoding", "gzip, deflate");
+  else
+    SetHeader("Accept-Encoding", "");
+#else
+  (void)yesno;
+  SetHeader("Accept-Encoding", "");
+#endif
+}
+
 void WSRequest::SetContentParam(const std::string& param, const std::string& value)
 {
   if (m_contentType != CT_FORM)

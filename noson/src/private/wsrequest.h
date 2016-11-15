@@ -55,6 +55,7 @@ namespace NSROOT
 
     void RequestService(const std::string& url, HRM_t method = HRM_GET);
     void RequestAccept(CT_t contentType);
+    void RequestAcceptEncoding(bool yesno);
     void SetContentParam(const std::string& param, const std::string& value);
     void SetContentCustom(CT_t contentType, const char *content);
     void SetHeader(const std::string& field, const std::string& value);

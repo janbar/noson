@@ -23,6 +23,7 @@
 #include "socket.h"
 #include "debug.h"
 #include "cppdef.h"
+#include "compressor.h"
 
 #include <cstdlib>  // for atol
 #include <cstdio>
@@ -95,12 +96,14 @@ WSResponse::WSResponse(const WSRequest &request)
 , m_etag()
 , m_location()
 , m_contentType(CT_NONE)
+, m_contentEncoding(CE_NONE)
 , m_contentChunked(false)
 , m_contentLength(0)
 , m_consumed(0)
 , m_chunkBuffer(NULL)
 , m_chunkPtr(NULL)
 , m_chunkEnd(NULL)
+, m_decoder(NULL)
 {
   if (m_socket->Connect(request.GetServer().c_str(), request.GetPort(), SOCKET_RCVBUF_MINSIZE))
   {
@@ -125,6 +128,7 @@ WSResponse::WSResponse(const WSRequest &request)
 
 WSResponse::~WSResponse()
 {
+  SAFE_DELETE(m_decoder);
   SAFE_DELETE_ARRAY(m_chunkBuffer);
   SAFE_DELETE(m_socket);
 }
@@ -207,7 +211,8 @@ bool WSResponse::GetResponse()
       for (p = 0; p < token_len; ++p)
         token[p] = toupper(line[p]);
       token[token_len] = 0;
-      while ((value_len = len - (val - line)) && *(++val) == ' ');
+      value_len = len - (val - line + 1);
+      while (*(++val) == ' ' && value_len > 0) --value_len;
       m_headers.push_front(std::make_pair(token, ""));
     }
     else
@@ -242,11 +247,23 @@ bool WSResponse::GetResponse()
           if (memcmp(token, "CONTENT-LENGTH", token_len) == 0)
             m_contentLength = atol(val);
           break;
+        case 16:
+          if (memcmp(token, "CONTENT-ENCODING", token_len) == 0)
+          {
+            if (value_len > 6 && memcmp(val, "deflate", 7) == 0)
+              m_contentEncoding = CE_DEFLATE;
+            else if (value_len > 3 && memcmp(val, "gzip", 4) == 0)
+              m_contentEncoding = CE_GZIP;
+            else
+            {
+              m_contentEncoding = CE_UNKNOWN;
+              DBG(DBG_ERROR, "%s: unsupported content encoding (%s) %d\n", __FUNCTION__, val, value_len);
+            }
+          }
         case 17:
           if (memcmp(token, "TRANSFER-ENCODING", token_len) == 0)
           {
-            m_transferEncoding.append(val);
-            if (m_transferEncoding == "chunked")
+            if (value_len > 6 && memcmp(val, "chunked", 7) == 0)
               m_contentChunked = true;
           }
           break;
@@ -259,21 +276,10 @@ bool WSResponse::GetResponse()
   return ret;
 }
 
-size_t WSResponse::ReadContent(char* buf, size_t buflen)
+size_t WSResponse::ReadChunk(void *buf, size_t buflen)
 {
   size_t s = 0;
-  if (!m_contentChunked)
-  {
-    // let read on unknown length
-    if (!m_contentLength)
-      s = m_socket->ReadResponse(buf, buflen);
-    else if (m_contentLength > m_consumed)
-    {
-      size_t len = m_contentLength - m_consumed;
-      s = m_socket->ReadResponse(buf, len > buflen ? buflen : len);
-    }
-  }
-  else
+  if (m_contentChunked)
   {
     if (m_chunkPtr == NULL || m_chunkPtr >= m_chunkEnd)
     {
@@ -301,6 +307,74 @@ size_t WSResponse::ReadContent(char* buf, size_t buflen)
       s = buflen;
     memcpy(buf, m_chunkPtr, s);
     m_chunkPtr += s;
+    m_consumed += s;
+  }
+  return s;
+}
+
+int WSResponse::SocketStreamReader(void *hdl, void *buf, int sz)
+{
+  WSResponse *resp = static_cast<WSResponse*>(hdl);
+  return (resp == NULL ? 0 : resp->m_socket->ReadResponse(buf, sz));
+}
+
+int WSResponse::ChunkStreamReader(void *hdl, void *buf, int sz)
+{
+  WSResponse *resp = static_cast<WSResponse*>(hdl);
+  return (resp == NULL ? 0 : resp->ReadChunk(buf, sz));
+}
+
+size_t WSResponse::ReadContent(char* buf, size_t buflen)
+{
+  size_t s = 0;
+  if (!m_contentChunked)
+  {
+    if (m_contentEncoding == CE_NONE)
+    {
+      // let read on unknown length
+      if (!m_contentLength)
+        s = m_socket->ReadResponse(buf, buflen);
+      else if (m_contentLength > m_consumed)
+      {
+        size_t len = m_contentLength - m_consumed;
+        s = m_socket->ReadResponse(buf, len > buflen ? buflen : len);
+      }
+    }
+    else if (m_contentEncoding == CE_GZIP || m_contentEncoding == CE_DEFLATE)
+    {
+      if (m_decoder == NULL)
+        m_decoder = new Decompressor(&SocketStreamReader, this);
+      if (m_decoder->HasOutputData())
+        s = m_decoder->ReadOutput(buf, buflen);
+      else if (!m_decoder->IsCompleted())
+      {
+        if (m_decoder->HasStreamError())
+          DBG(DBG_ERROR, "%s: cannot read encoded stream\n", __FUNCTION__);
+        else if (m_decoder->HasBufferError())
+          DBG(DBG_ERROR, "%s: decoding failed\n", __FUNCTION__);
+      }
+    }
+  }
+  else
+  {
+    if (m_contentEncoding == CE_NONE)
+    {
+      s = ReadChunk(buf, buflen);
+    }
+    else
+    {
+      if (m_decoder == NULL)
+        m_decoder = new Decompressor(&ChunkStreamReader, this);
+      if (m_decoder->HasOutputData())
+        s = m_decoder->ReadOutput(buf, buflen);
+      else if (!m_decoder->IsCompleted())
+      {
+        if (m_decoder->HasStreamError())
+          DBG(DBG_ERROR, "%s: cannot read encoded stream\n", __FUNCTION__);
+        else if (m_decoder->HasBufferError())
+          DBG(DBG_ERROR, "%s: decoding failed\n", __FUNCTION__);
+      }
+    }
   }
   m_consumed += s;
   return s;

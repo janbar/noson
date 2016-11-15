@@ -82,6 +82,14 @@ else ()
     set (HAVE_GMTIME_R 0)
 endif ()
 
+find_package (ZLIB)
+if (ZLIB_FOUND)
+    include_directories (${ZLIB_INCLUDE_DIRS})
+    set (HAVE_ZLIB 1)
+else ()
+    set (HAVE_ZLIB 0)
+endif ()
+
 # Check what the inline keyword is.
 check_function_keywords ("inline")
 check_function_keywords ("__inline")
@@ -167,7 +175,8 @@ include_directories (
 file (GLOB SRC_FILES
   src/private/*.c
   src/private/*.cpp
-  src/*.cpp)
+  src/*.cpp
+  src/smapi/*.cpp)
 
 file (GLOB OS_SRC_FILES
   src/private/os/threads/threadpool.cpp)
@@ -182,7 +191,7 @@ set (NOSON_SOURCES
 
 ###############################################################################
 # add targets
-set (noson_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+set (noson_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${ZLIB_LIBRARIES})
 if (WIN32)
   list (APPEND noson_LIBRARIES ws2_32)
 else ()
