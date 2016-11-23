@@ -23,7 +23,7 @@
 #define	DIDLPARSER_H
 
 #include <local_config.h>
-#include "../digitalitem.h"
+#include "digitalitem.h"
 
 #include <vector>
 

@@ -28,7 +28,7 @@
 #include "private/cppdef.h"
 #include "private/debug.h"
 #include "private/uriparser.h"
-#include "private/didlparser.h"
+#include "didlparser.h"
 #include "sonossystem.h"
 
 using namespace NSROOT;

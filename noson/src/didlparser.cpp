@@ -20,9 +20,9 @@
  */
 
 #include "didlparser.h"
-#include "tinyxml2.h"
-#include "xmlname.h"
-#include "debug.h"
+#include "private/tinyxml2.h"
+#include "private/xmlname.h"
+#include "private/debug.h"
 
 using namespace NSROOT;
 
