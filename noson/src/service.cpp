@@ -25,6 +25,7 @@
 #include "private/debug.h"
 #include "private/cppdef.h"
 #include "private/tinyxml2.h"
+#include "private/xmlname.h"
 #include "private/os/threads/mutex.h"
 #include "sonosplayer.h"
 
@@ -106,8 +107,8 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
   }
   tinyxml2::XMLElement* elem; // an element
   // Check for response: s:Envelope/s:Body/{respTag}
-  if (!(elem = rootdoc.RootElement()) || !Element::XMLNameEqual(elem->Name(), "Envelope") ||
-          !(elem = elem->FirstChildElement()) || !Element::XMLNameEqual(elem->Name(), "Body") ||
+  if (!(elem = rootdoc.RootElement()) || !XMLName::XMLNameEqual(elem->Name(), "Envelope") ||
+          !(elem = elem->FirstChildElement()) || !XMLName::XMLNameEqual(elem->Name(), "Body") ||
           !(elem = elem->FirstChildElement()))
   {
     DBG(DBG_ERROR, "%s: invalid or not supported response\n", __FUNCTION__);
@@ -117,7 +118,7 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
     return vars;
   }
   vars.push_back(ElementPtr(new Element("TAG", elem->Name())));
-  if (Element::XMLNameEqual(vars[0]->c_str(), "Fault"))
+  if (XMLName::XMLNameEqual(vars[0]->c_str(), "Fault"))
   {
     tinyxml2::XMLElement* felem;
     if ((felem = elem->FirstChildElement("faultstring")) && felem->GetText())

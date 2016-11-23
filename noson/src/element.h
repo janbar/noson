@@ -107,35 +107,6 @@ namespace NSROOT
       return ret;
     }
 
-    // compare prefix of a qualified element name
-    static bool XMLPrefixEqual(const char* qname, const char* prefix)
-    {
-      unsigned n = 0;
-      const char* p = qname;
-      while (*p != '\0')
-        if (*(++p) == ':')
-        {
-          n = p - qname;
-          break;
-        }
-      return (strlen(prefix) == n && strncmp(qname, prefix, n) == 0);
-    }
-
-    // compare name of qualified element name
-    static bool XMLNameEqual(const char* qname, const char* name)
-    {
-      const char* p = qname;
-      while (*p != '\0')
-        ++p;
-      while (p > qname)
-        if (*(--p) == ':')
-        {
-          ++p;
-          break;
-        }
-      return (strcmp(p, name) == 0);
-    }
-
   private:
     std::string m_key;
     std::vector<Element> m_attrs;

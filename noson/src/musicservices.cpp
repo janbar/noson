@@ -24,6 +24,7 @@
 #include "private/debug.h"
 #include "private/cppdef.h"
 #include "private/tinyxml2.h"
+#include "private/xmlname.h"
 #include "private/wsrequest.h"
 #include "private/wsresponse.h"
 #include "private/os/threads/mutex.h"
@@ -259,7 +260,7 @@ bool MusicServices::ListAccounts()
   }
   tinyxml2::XMLElement* elem; // an element
   // Check for response: Services
-  if (!(elem = rootdoc.RootElement()) || !Element::XMLNameEqual(elem->Name(), "ZPSupportInfo")
+  if (!(elem = rootdoc.RootElement()) || !XMLName::XMLNameEqual(elem->Name(), "ZPSupportInfo")
           || !(elem = elem->FirstChildElement("Accounts")))
   {
     DBG(DBG_ERROR, "%s: invalid or not supported content\n", __FUNCTION__);
@@ -347,7 +348,7 @@ bool MusicServices::ParseAvailableServiceDescriptorList(const std::string& xml)
     tinyxml2::XMLElement* child = elem->FirstChildElement();
     while (child)
     {
-      if (Element::XMLNameEqual(child->Name(), "Policy"))
+      if (XMLName::XMLNameEqual(child->Name(), "Policy"))
       {
         const tinyxml2::XMLAttribute* cattr = child->FirstAttribute();
         uint32_to_string(++uid, sid);
@@ -359,7 +360,7 @@ bool MusicServices::ParseAvailableServiceDescriptorList(const std::string& xml)
         }
         service.push_back(policyPtr);
       }
-      if (Element::XMLNameEqual(child->Name(), "Presentation"))
+      if (XMLName::XMLNameEqual(child->Name(), "Presentation"))
       {
         tinyxml2::XMLElement* child2 = child->FirstChildElement();
         while (child2)

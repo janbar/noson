@@ -22,6 +22,7 @@
 #include "eventbroker.h"
 #include "wsstatus.h"
 #include "tinyxml2.h"
+#include "xmlname.h"
 #include "cppdef.h"
 #include "debug.h"
 
@@ -105,9 +106,9 @@ void EventBroker::Process()
     tinyxml2::XMLNode* node;    // a node
     tinyxml2::XMLDocument doc;  // a document
     const char* str;
-    if ((root = rootdoc.RootElement()) && XMLNameEqual(root->Name(), "propertyset"))
+    if ((root = rootdoc.RootElement()) && XMLName::XMLNameEqual(root->Name(), "propertyset"))
     {
-      if ((node = root->FirstChild()) && XMLNameEqual(node->Value(), "property"))
+      if ((node = root->FirstChild()) && XMLName::XMLNameEqual(node->Value(), "property"))
       {
         // Check prior for embedded doc 'Event': propertyset/property/LastChange
         if ((elem = node->FirstChildElement("LastChange")))
@@ -180,7 +181,7 @@ void EventBroker::Process()
               DBG(DBG_PROTO, "%s: %s = %s\n", __FUNCTION__, name.c_str(), str);
             }
             node = node->NextSibling();
-          } while (node && XMLNameEqual(node->Value(), "property"));
+          } while (node && XMLName::XMLNameEqual(node->Value(), "property"));
         }
       }
     }
@@ -227,18 +228,4 @@ void EventBroker::Process()
   resp.append("\r\n\r\n");
   m_sockPtr->SendData(resp.c_str(), resp.size());
   m_sockPtr->Disconnect();
-}
-
-bool EventBroker::XMLNameEqual(const char* qname, const char* name)
-{
-  const char* p = qname;
-  while (*p != '\0')
-    ++p;
-  while (p > qname)
-    if (*(--p) == ':')
-    {
-      ++p;
-      break;
-    }
-  return (strcmp(p, name) == 0);
 }

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2015 Jean-Luc Barriere
+ *      Copyright (C) 2016 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -19,33 +19,39 @@
  *
  */
 
-#ifndef EVENTBROKER_H
-#define	EVENTBROKER_H
+#ifndef XMLNAME_H
+#define XMLNAME_H
 
 #include <local_config.h>
-#include "os/threads/threadpool.h"
-#include "wsrequestbroker.h"
-#include "socket.h"
-#include "../eventhandler.h"
-#include "../sharedptr.h"
+
+#define XMLNAME_MAXLEN  63
 
 namespace NSROOT
 {
 
-  class EventBroker : public OS::CWorker
+  class XMLName
   {
   public:
-    EventBroker(EventHandler::EventHandlerThread* handler, SHARED_PTR<TcpSocket>& sockPtr);
-    virtual ~EventBroker();
-    virtual void Process();
+    XMLName(const char* qname);
+    virtual ~XMLName() {}
+
+    // compare prefix of a qualified element name
+    static bool XMLPrefixEqual(const char* qname, const char* prefix);
+
+    // compare name of qualified element name
+    static bool XMLNameEqual(const char* qname, const char* name);
+
+    const char* Prefix() const { return m_prefix; }
+    const char* Name() const { return m_name; }
 
   private:
-    EventHandler::EventHandlerThread* m_handler;
-    SHARED_PTR<TcpSocket> m_sockPtr;
-    char* m_buffer;
+    char m_prefix[XMLNAME_MAXLEN + 1];
+    char m_name[XMLNAME_MAXLEN + 1];
+    int m_prefixLen;
+    int m_nameLen;
   };
+
 }
 
-
-#endif	/* EVENTBROKER_H */
+#endif /* XMLNAME_H */
 

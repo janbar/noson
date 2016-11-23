@@ -23,6 +23,7 @@
 #include "private/builtin.h"
 #include "private/debug.h"
 #include "private/tinyxml2.h"
+#include "private/xmlname.h"
 
 using namespace NSROOT;
 
@@ -132,7 +133,7 @@ bool ZoneGroupTopology::ParseZoneGroupState(const std::string& xml)
   }
   tinyxml2::XMLElement* elem; // an element
   // Check for response: ZPSupportInfo
-  if (!(elem = rootdoc.RootElement()) || !Element::XMLNameEqual(elem->Name(), "ZoneGroups"))
+  if (!(elem = rootdoc.RootElement()) || !XMLName::XMLNameEqual(elem->Name(), "ZoneGroups"))
   {
     DBG(DBG_ERROR, "%s: invalid or not supported content\n", __FUNCTION__);
     tinyxml2::XMLPrinter out;
@@ -162,7 +163,7 @@ bool ZoneGroupTopology::ParseZoneGroupState(const std::string& xml)
     tinyxml2::XMLElement* child = elem->FirstChildElement();
     while (child)
     {
-      if (Element::XMLNameEqual(child->Name(), "ZoneGroupMember"))
+      if (XMLName::XMLNameEqual(child->Name(), "ZoneGroupMember"))
       {
         const tinyxml2::XMLAttribute* cattr = child->FirstAttribute();
         Element zoneGroupMember(child->Name());
