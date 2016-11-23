@@ -27,6 +27,7 @@
 
 #include <string>
 #include <vector>
+#include <cstring>
 
 namespace NSROOT
 {
@@ -46,13 +47,15 @@ namespace NSROOT
       return nil;
     }
 
-    std::string XML() const
+    std::string XML(std::string ns = std::string()) const
     {
       std::string ret;
-      ret.append("<").append(m_key);
+      if (!ns.empty())
+        ns.append(":");
+      ret.append("<").append(ns).append(m_key);
       for (std::vector<Element>::const_iterator it = m_attrs.begin(); it != m_attrs.end(); ++it)
         ret.append(" ").append(it->m_key).append("=\"").append(it->XMLEncoded()).append("\"");
-      ret.append(">").append(XMLEncoded()).append("</").append(m_key).append(">");
+      ret.append(">").append(XMLEncoded()).append("</").append(ns).append(m_key).append(">");
       return ret;
     }
 
@@ -102,6 +105,35 @@ namespace NSROOT
           ret.push_back(*it);
       }
       return ret;
+    }
+
+    // compare prefix of a qualified element name
+    static bool XMLPrefixEqual(const char* qname, const char* prefix)
+    {
+      unsigned n = 0;
+      const char* p = qname;
+      while (*p != '\0')
+        if (*(++p) == ':')
+        {
+          n = p - qname;
+          break;
+        }
+      return (strlen(prefix) == n && strncmp(qname, prefix, n) == 0);
+    }
+
+    // compare name of qualified element name
+    static bool XMLNameEqual(const char* qname, const char* name)
+    {
+      const char* p = qname;
+      while (*p != '\0')
+        ++p;
+      while (p > qname)
+        if (*(--p) == ':')
+        {
+          ++p;
+          break;
+        }
+      return (strcmp(p, name) == 0);
     }
 
   private:

@@ -41,15 +41,15 @@ bool DIDLParser::Parse()
   if (doc.Parse(m_document) != tinyxml2::XML_SUCCESS)
     return false;
   const tinyxml2::XMLElement* elem;
-  if ((elem = doc.RootElement()) && elem->Name() && strncmp(elem->Name(), "DIDL-Lite", 9) == 0)
+  if ((elem = doc.RootElement()) && Element::XMLNameEqual(elem->Name(), "DIDL-Lite"))
   {
     elem = elem->FirstChildElement();
     while (elem)
     {
       const char* val;
       struct { const char* id; const char* parentID; bool restricted; } ref;
-      if ((strncmp(elem->Name(), "item", 4) == 0 ||
-              strncmp(elem->Name(), "container", 9) == 0) &&
+      if ((Element::XMLNameEqual(elem->Name(), "item") ||
+              Element::XMLNameEqual(elem->Name(), "container")) &&
               (ref.id = elem->Attribute("id")) &&
               (ref.parentID = elem->Attribute("parentID")) &&
               (val = elem->Attribute("restricted")))

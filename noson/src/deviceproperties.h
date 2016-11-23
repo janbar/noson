@@ -50,6 +50,8 @@ namespace NSROOT
     bool GetZoneInfo(ElementList& vars);
 
     bool GetZoneAttributes(ElementList& vars);
+
+    bool GetHouseholdID(ElementList& vars);
   };
 }
 

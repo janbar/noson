@@ -44,6 +44,7 @@ namespace NSROOT
     SHARED_PTR<TcpSocket> m_sockPtr;
     char* m_buffer;
 
+    static bool XMLNameEqual(const char* qname, const char* name);
   };
 }
 
