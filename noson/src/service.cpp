@@ -105,7 +105,7 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
     DBG(DBG_ERROR, "%s: parse xml failed\n", __FUNCTION__);
     return vars;
   }
-  tinyxml2::XMLElement* elem; // an element
+  const tinyxml2::XMLElement* elem; // an element
   // Check for response: s:Envelope/s:Body/{respTag}
   if (!(elem = rootdoc.RootElement()) || !XMLName::XMLNameEqual(elem->Name(), "Envelope") ||
           !(elem = elem->FirstChildElement()) || !XMLName::XMLNameEqual(elem->Name(), "Body") ||
@@ -118,14 +118,13 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
     return vars;
   }
   vars.push_back(ElementPtr(new Element("TAG", elem->Name())));
-  if (XMLName::XMLNameEqual(vars[0]->c_str(), "Fault"))
+  if (XMLName::XMLNameEqual(vars.back()->c_str(), "Fault"))
   {
-    tinyxml2::XMLElement* felem;
+    const tinyxml2::XMLElement* felem;
     if ((felem = elem->FirstChildElement("faultstring")) && felem->GetText())
     {
-      ElementPtr var(new Element(felem->Name(), felem->GetText()));
-      vars.push_back(var);
-      if (var->compare("UPnPError") == 0 &&
+      vars.push_back(ElementPtr(new Element(felem->Name(), felem->GetText())));
+      if (vars.back()->compare("UPnPError") == 0 &&
               (felem = elem->FirstChildElement("detail")) &&
               (felem = felem->FirstChildElement()) &&
               (felem = felem->FirstChildElement("errorCode")) &&
@@ -136,14 +135,13 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
   }
   else
   {
-    elem = elem->FirstChildElement();
+    elem = elem->FirstChildElement(NULL);
     while (elem)
     {
       if (elem->GetText())
       {
-        ElementPtr var(new Element(elem->Name(), elem->GetText()));
-        vars.push_back(var);
-        DBG(DBG_PROTO, "%s: %s = %s\n", __FUNCTION__, var->GetKey().c_str(), var->c_str());
+        vars.push_back(ElementPtr(new Element(elem->Name(), elem->GetText())));
+        DBG(DBG_PROTO, "%s: %s = %s\n", __FUNCTION__, vars.back()->GetKey().c_str(), vars.back()->c_str());
       }
       elem = elem->NextSiblingElement(NULL);
     }

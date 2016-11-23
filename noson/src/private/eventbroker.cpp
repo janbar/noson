@@ -101,9 +101,9 @@ void EventBroker::Process()
     msg.subject.push_back(rb.GetParsedNamedEntry("SEQ"));
 
     // Parse document
-    tinyxml2::XMLElement* root; // root element
-    tinyxml2::XMLElement* elem; // an element
-    tinyxml2::XMLNode* node;    // a node
+    const tinyxml2::XMLElement* root; // root element
+    const tinyxml2::XMLElement* elem; // an element
+    const tinyxml2::XMLNode* node;    // a node
     tinyxml2::XMLDocument doc;  // a document
     const char* str;
     if ((root = rootdoc.RootElement()) && XMLName::XMLNameEqual(root->Name(), "propertyset"))

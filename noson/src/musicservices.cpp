@@ -258,7 +258,7 @@ bool MusicServices::ListAccounts()
     DBG(DBG_ERROR, "%s: parse xml failed\n", __FUNCTION__);
     return false;
   }
-  tinyxml2::XMLElement* elem; // an element
+  const tinyxml2::XMLElement* elem; // an element
   // Check for response: Services
   if (!(elem = rootdoc.RootElement()) || !XMLName::XMLNameEqual(elem->Name(), "ZPSupportInfo")
           || !(elem = elem->FirstChildElement("Accounts")))
@@ -280,7 +280,7 @@ bool MusicServices::ListAccounts()
       item->SetAttribut(attr->Name(), attr->Value());
       attr = attr->Next();
     }
-    tinyxml2::XMLElement* child = elem->FirstChildElement(NULL);
+    const tinyxml2::XMLElement* child = elem->FirstChildElement(NULL);
     while (child)
     {
       if (child->GetText())
@@ -319,7 +319,7 @@ bool MusicServices::ParseAvailableServiceDescriptorList(const std::string& xml)
     DBG(DBG_ERROR, "%s: parse xml failed\n", __FUNCTION__);
     return false;
   }
-  tinyxml2::XMLElement* elem; // an element
+  const tinyxml2::XMLElement* elem; // an element
   // Check for response: Services
   if (!(elem = rootdoc.RootElement()) || strncmp(elem->Name(), "Services", 8) != 0)
   {
@@ -345,7 +345,7 @@ bool MusicServices::ParseAvailableServiceDescriptorList(const std::string& xml)
     }
     DBG(DBG_DEBUG, "%s: service '%s' (%s)\n", __FUNCTION__, service.GetValue("Name").c_str(), service.GetValue("Id").c_str());
     // browse childs
-    tinyxml2::XMLElement* child = elem->FirstChildElement();
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
     while (child)
     {
       if (XMLName::XMLNameEqual(child->Name(), "Policy"))
@@ -362,7 +362,7 @@ bool MusicServices::ParseAvailableServiceDescriptorList(const std::string& xml)
       }
       if (XMLName::XMLNameEqual(child->Name(), "Presentation"))
       {
-        tinyxml2::XMLElement* child2 = child->FirstChildElement();
+        const tinyxml2::XMLElement* child2 = child->FirstChildElement();
         while (child2)
         {
           const tinyxml2::XMLAttribute* cattr = child2->FirstAttribute();

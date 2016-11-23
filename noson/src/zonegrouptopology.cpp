@@ -131,7 +131,7 @@ bool ZoneGroupTopology::ParseZoneGroupState(const std::string& xml)
     DBG(DBG_ERROR, "%s: parse xml failed\n", __FUNCTION__);
     return false;
   }
-  tinyxml2::XMLElement* elem; // an element
+  const tinyxml2::XMLElement* elem; // an element
   // Check for response: ZPSupportInfo
   if (!(elem = rootdoc.RootElement()) || !XMLName::XMLNameEqual(elem->Name(), "ZoneGroups"))
   {
@@ -160,7 +160,7 @@ bool ZoneGroupTopology::ParseZoneGroupState(const std::string& xml)
     const std::string& cuuid = zoneGroup.GetAttribut("Coordinator");
     DBG(DBG_INFO, "%s: new group '%s' with coordinator '%s'\n", __FUNCTION__, zone->GetGroup().c_str(), cuuid.c_str());
     // browse childs
-    tinyxml2::XMLElement* child = elem->FirstChildElement();
+    const tinyxml2::XMLElement* child = elem->FirstChildElement();
     while (child)
     {
       if (XMLName::XMLNameEqual(child->Name(), "ZoneGroupMember"))
