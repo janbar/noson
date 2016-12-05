@@ -328,7 +328,15 @@ int WSResponse::SocketStreamReader(void *hdl, void *buf, int sz)
   WSResponse *resp = static_cast<WSResponse*>(hdl);
   if (resp == NULL)
     return 0;
-  size_t s = resp->m_socket->ReceiveData(buf, sz);
+  size_t s = 0;
+  // let read on unknown length
+  if (!resp->m_contentLength)
+    s = resp->m_socket->ReceiveData(buf, sz);
+  else if (resp->m_contentLength > resp->m_consumed)
+  {
+    size_t len = resp->m_contentLength - resp->m_consumed;
+    s = resp->m_socket->ReceiveData(buf, len > (size_t)sz ? (size_t)sz : len);
+  }
   resp->m_consumed += s;
   return s;
 }
