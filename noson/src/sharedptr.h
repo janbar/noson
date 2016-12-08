@@ -74,15 +74,6 @@ namespace NSROOT
       return *this;
     }
 
-#if CXX_STANDARD >= 201103L
-    shared_ptr& operator=(shared_ptr&& s)
-    {
-      if (this != &s)
-        swap(s);
-      return *this;
-    }
-#endif
-
     ~shared_ptr()
     {
       reset();
