@@ -387,7 +387,7 @@ size_t WSResponse::ReadContent(char* buf, size_t buflen)
     {
       s = ReadChunk(buf, buflen);
     }
-    else
+    else if (m_contentEncoding == CE_GZIP || m_contentEncoding == CE_DEFLATE)
     {
       if (m_decoder == NULL)
         m_decoder = new Decompressor(&ChunkStreamReader, this);
