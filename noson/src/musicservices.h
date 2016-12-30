@@ -86,15 +86,19 @@ namespace NSROOT
     ElementPtr GetPresentationMap() const;
 
     static void ServiceType(const std::string& id, std::string& type);
+
     const std::string& GetServiceType() const;
+    const std::string& GetServiceDesc() const;
     SMAccountPtr GetAccount() const;
     const std::string& GetAgent() const;
+
 
   private:
     std::string m_agent;    ///< The agent string to announce in API call
     SMAccountPtr m_account; ///< The account relates this service
     ElementList m_vars;
-    std::string m_type;     ///< The type id of this service
+    std::string m_type;     ///< The type id to use for this service
+    std::string m_desc;     ///< The sonos descriptor to use for this service
   };
 
   typedef shared_ptr<SMService> SMServicePtr;

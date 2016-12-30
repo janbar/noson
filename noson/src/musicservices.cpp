@@ -66,6 +66,8 @@ SMService::SMService(const std::string& agent, const SMAccountPtr& account, cons
 , m_vars(vars)
 {
   ServiceType(GetId(), m_type);
+  // make the sonos descriptor
+  m_desc.assign("SA_RINCON").append(m_type).append("_").append(account->GetUserName());
 }
 
 const std::string& SMService::GetId() const
@@ -140,6 +142,11 @@ void SMService::ServiceType(const std::string& id, std::string& type)
 const std::string& SMService::GetServiceType() const
 {
   return m_type;
+}
+
+const std::string& SMService::GetServiceDesc() const
+{
+  return m_desc;
 }
 
 SMAccountPtr SMService::GetAccount() const
