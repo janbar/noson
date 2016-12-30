@@ -50,14 +50,14 @@ SMAccount::~SMAccount()
 SMAccount::OACredentials SMAccount::GetOACredentials() const
 {
   OS::CLockGuard lock(*m_mutex);
-  return std::make_pair(GetAttribut("OADevID"), GetAttribut("Key"));
+  return OACredentials(GetAttribut("OADevID"), GetAttribut("Key"));
 }
 
-void SMAccount::SetOACredentials(OACredentials auth)
+void SMAccount::SetOACredentials(const OACredentials& auth)
 {
   OS::CLockGuard lock(*m_mutex);
-  SetAttribut("OADevID", auth.first);
-  SetAttribut("Key", auth.second);
+  SetAttribut("OADevID", auth.id);
+  SetAttribut("Key", auth.key);
 }
 
 SMService::SMService(const std::string& agent, const SMAccountPtr& account, const ElementList& vars)
@@ -176,11 +176,17 @@ bool MusicServices::GetSessionId(const std::string& serviceId, const std::string
 SMServiceList MusicServices::GetEnabledServices()
 {
   SMServiceList list;
-  ElementList vars;
-  if ((ListAvailableServices(vars)) && ParseAvailableServiceDescriptorList(vars.GetValue("AvailableServiceDescriptorList")))
+  // load services
+  if (!LoadAvailableServices())
+    DBG(DBG_ERROR, "%s: query services failed\n");
+  else
   {
-    if (!ListAccounts())
+    // load accounts
+    if (!LoadAccounts())
       DBG(DBG_ERROR, "%s: query accounts failed\n");
+
+    // Fill the list of enabled services.
+    // Service is enabled when an account is available for the service type or authentication is anonymous.
     for (std::list<ElementList>::const_iterator it = m_services.begin(); it != m_services.end(); ++it)
     {
       std::string serviceType;
@@ -214,7 +220,7 @@ bool MusicServices::ListAvailableServices(ElementList& vars)
   return false;
 }
 
-bool MusicServices::ListAccounts()
+bool MusicServices::LoadAccounts()
 {
   WSRequest request(m_host, m_port);
   request.RequestService("/status/accounts");
@@ -310,8 +316,12 @@ SMAccountList MusicServices::GetAccountsForService(const std::string& serviceTyp
   return list;
 }
 
-bool MusicServices::ParseAvailableServiceDescriptorList(const std::string& xml)
+bool MusicServices::LoadAvailableServices()
 {
+  ElementList vars;
+  if (!ListAvailableServices(vars))
+    return false;
+  const std::string& xml = vars.GetValue("AvailableServiceDescriptorList");
   tinyxml2::XMLDocument rootdoc;
   // Parse xml content
   if (rootdoc.Parse(xml.c_str(), xml.size()) != tinyxml2::XML_SUCCESS)

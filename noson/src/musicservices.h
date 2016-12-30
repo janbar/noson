@@ -47,9 +47,18 @@ namespace NSROOT
     const std::string& GetMetadata() const { return GetAttribut("MD"); }
     const std::string& GetNickname() const { return GetAttribut("NN"); }
 
-    typedef std::pair<std::string, std::string> OACredentials;
+    struct OACredentials
+    {
+      OACredentials(const std::string& _id, const std::string& _key)
+      : id(_id)
+      , key(_key)
+      {}
+      const std::string id;
+      const std::string key;
+    };
+
     OACredentials GetOACredentials() const;
-    void SetOACredentials(OACredentials auth);
+    void SetOACredentials(const OACredentials& auth);
 
   private:
     OS::CMutex* m_mutex;
@@ -110,20 +119,52 @@ namespace NSROOT
 
     const std::string& GetSCPDURL() const { return SCPDURL; }
 
+    /**
+     * Retrieves session info for a service
+     * @param serviceId The id of the service
+     * @param username The user name for the service
+     * @param vars (out) The elements of the returned session
+     * @return succeeded
+     */
     bool GetSessionId(const std::string& serviceId, const std::string& username, ElementList& vars);
 
+    /**
+     * Returns the list of enabled services
+     * @return The service list
+     */
     SMServiceList GetEnabledServices();
 
   private:
+    /**
+     * Query service ListAvailableServices
+     * @param vars (out) Response elements
+     * @return succeeded
+     */
     bool ListAvailableServices(ElementList& vars);
 
     std::string m_agent;                ///< The announced agent of sonos device
     SMAccountList m_accounts;           ///< The known accounts
     std::list<ElementList> m_services;  ///< The available services
 
-    bool ListAccounts();
+    /**
+     * Load existing accounts from sonos player.
+     * Account list and agent string will be filled from the response of request to /status/accounts.
+     * @return succeeded
+     */
+    bool LoadAccounts();
+
+    /**
+     * Returns the list of accounts available for a service type.
+     * @param serviceType The service type
+     * @return The account list
+     */
     SMAccountList GetAccountsForService(const std::string& serviceType) const;
-    bool ParseAvailableServiceDescriptorList(const std::string& xml);
+
+    /**
+     * Load available services from sonos player.
+     * @return succeeded
+     */
+    bool LoadAvailableServices();
   };
 }
 
