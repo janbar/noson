@@ -193,13 +193,13 @@ SMServiceList MusicServices::GetEnabledServices()
       DBG(DBG_ERROR, "%s: query accounts failed\n");
 
     // Fill the list of enabled services.
-    // Service is enabled when an account is available for the service type or authentication is anonymous.
+    // Service is enabled when an account is available for the service type.
+    // Otherwise 'TuneIn' is special case as it is always enabled and no account exists for it.
     for (std::list<ElementList>::const_iterator it = m_services.begin(); it != m_services.end(); ++it)
     {
       std::string serviceType;
       SMService::ServiceType(it->GetValue("Id"), serviceType);
-      ElementList::const_iterator policy = it->FindKey("Policy");
-      if (policy != it->end() && (*policy)->GetAttribut("Auth") == "Anonymous")
+      if (serviceType == "65031") /* TuneIn */
       {
         SMAccountPtr ac(new SMAccount());
         ac->SetAttribut("Type", serviceType);
