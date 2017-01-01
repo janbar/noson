@@ -28,6 +28,7 @@
 #include "private/cppdef.h"
 #include "private/debug.h"
 #include "private/uriparser.h"
+#include "private/tokenizer.h"
 #include "didlparser.h"
 #include "sonossystem.h"
 
@@ -133,6 +134,9 @@ Player::Player(const ZonePlayerPtr& zonePlayer)
     m_deviceProperties = new DeviceProperties(m_host, m_port);
     m_musicServices = new MusicServices(m_host, m_port);
 
+    // fill avaialable music services
+    m_smservices = m_musicServices->GetEnabledServices();
+
     m_queueURI.assign("x-rincon-queue:").append(m_uuid).append("#0");
     m_valid = true;
   }
@@ -186,6 +190,9 @@ void Player::Init(const Zone& zone)
   m_contentDirectory = new ContentDirectory(m_host, m_port, m_eventHandler, m_CDSubscription, this, CB_ContentDirectory);
   m_deviceProperties = new DeviceProperties(m_host, m_port);
   m_musicServices = new MusicServices(m_host, m_port);
+
+  // fill avaialable music services
+  m_smservices = m_musicServices->GetEnabledServices();
 
   for (RCTable::iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
     it->subscription.Start();
@@ -611,4 +618,52 @@ void Player::HandleEventMessage(EventMessagePtr msg)
     // @TODO: handle status
     DBG(DBG_DEBUG, "%s: %s\n", __FUNCTION__, msg->subject[0].c_str());
   }
+}
+
+SMServiceList Player::GetAvailableServices()
+{
+  return m_smservices;
+}
+
+SMServicePtr Player::GetServiceForMedia(const std::string& mediaUri)
+{
+  SMServicePtr svc;
+  URIParser parser(mediaUri);
+  if (!parser.Scheme() || !parser.Path())
+  {
+    DBG(DBG_ERROR, "%s: invalid uri (%s)\n", __FUNCTION__, mediaUri.c_str());
+    return svc;
+  }
+  const char* p = strchr(parser.Path(), '?');
+  if (p)
+  {
+    std::vector<std::string> args;
+    tokenize(++p, "&", args, true);
+    std::string sid;
+    std::string sn;
+    for (std::vector<std::string>::const_iterator ita = args.begin(); ita != args.end(); ++ita)
+    {
+      std::vector<std::string> tokens;
+      tokenize(*ita, "=", tokens);
+      if (tokens.size() != 2)
+        break;
+      if (tokens[0] == "sid")
+        sid.assign(tokens[1]);
+      else if (tokens[0] == "sn")
+        sn.assign(tokens[1]);
+    }
+    if (!sid.empty())
+    {
+      if (sn.empty())
+        sn.assign("0"); // trying fake account
+
+      // loop in services
+      for (SMServiceList::iterator its = m_smservices.begin(); its != m_smservices.end(); ++its)
+        if ((*its)->GetId() == sid && (*its)->GetAccount()->GetSerialNum() == sn)
+          return *its;
+
+      DBG(DBG_WARN, "%s: not found a valid service for this uri (%s)\n", __FUNCTION__, mediaUri.c_str());
+    }
+  }
+  return svc;
 }
