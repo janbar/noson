@@ -29,6 +29,8 @@ const char* NSROOT::ProtocolTable[Protocol_unknown + 1] = {
   "x-rincon-mp3radio",
   "x-rincon-playlist",
   "x-sonos-htastream",
+  "x-sonos-http",
+  "x-sonosapi-stream",
   "x-file-cifs",
   "x-rincon",
   "http-get",
@@ -38,10 +40,5 @@ const char* NSROOT::ProtocolTable[Protocol_unknown + 1] = {
 
 const char* NSROOT::ServiceDescTable[ServiceDesc_unknown + 1] = {
   "RINCON_AssociatedZPUDN",
-  ""
-};
-
-const char* NSROOT::NetServiceDescTable[NetService_unknown + 1] = {
-  "SA_RINCON65031_",
   ""
 };

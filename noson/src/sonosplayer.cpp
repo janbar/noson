@@ -376,10 +376,10 @@ bool Player::SetMute(const std::string& uuid, uint8_t value)
 
 bool Player::SetCurrentURI(const DigitalItemPtr& item)
 {
-  // Check for radio service tuneIN
-  if (item->GetObjectID().compare(0, 4, "R:0/") == 0)
+  SMServicePtr svc = GetServiceForMedia(item->GetValue("res"));
+  if (svc)
   {
-    ElementPtr var(new Element("desc", NetServiceDescTable[NetService_TuneIN]));
+    ElementPtr var(new Element("desc", svc->GetServiceDesc()));
     var->SetAttribut("id", "cdudn");
     var->SetAttribut("nameSpace", DIDL_XMLNS_RINC);
     item->SetProperty(var);
@@ -509,16 +509,17 @@ bool Player::AddURIToFavorites(const DigitalItemPtr& item, const std::string& de
   obj.SetProperty(item->GetProperty(DIDL_QNAME_UPNP "class"));
   obj.SetProperty(item->GetProperty(DIDL_QNAME_DC "title"));
   // make desc
-  if (System::CanQueueItem(item))
+  SMServicePtr svc = GetServiceForMedia(item->GetValue("res"));
+  if (svc)
   {
-    ElementPtr desc(new Element("desc", "RINCON_AssociatedZPUDN"));
+    ElementPtr desc(new Element("desc", svc->GetServiceDesc()));
     desc->SetAttribut("id", "cdudn");
     desc->SetAttribut("nameSpace", DIDL_XMLNS_RINC);
     obj.SetProperty(desc);
   }
   else
   {
-    ElementPtr desc(new Element("desc", NetServiceDescTable[NetService_TuneIN]));
+    ElementPtr desc(new Element("desc", ServiceDescTable[ServiceDesc_default]));
     desc->SetAttribut("id", "cdudn");
     desc->SetAttribut("nameSpace", DIDL_XMLNS_RINC);
     obj.SetProperty(desc);
