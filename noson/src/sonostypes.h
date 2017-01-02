@@ -77,6 +77,14 @@ namespace NSROOT
 
   typedef enum
   {
+    ServiceDesc_default,
+    ServiceDesc_unknown,
+  } ServiceDesc_t;
+
+  extern const char* ServiceDescTable[ServiceDesc_unknown + 1];
+
+  typedef enum
+  {
     NetService_TuneIN,
     NetService_unknown,
   } NetService_t;

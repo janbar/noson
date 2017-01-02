@@ -36,6 +36,11 @@ const char* NSROOT::ProtocolTable[Protocol_unknown + 1] = {
   ""
 };
 
+const char* NSROOT::ServiceDescTable[ServiceDesc_unknown + 1] = {
+  "RINCON_AssociatedZPUDN",
+  ""
+};
+
 const char* NSROOT::NetServiceDescTable[NetService_unknown + 1] = {
   "SA_RINCON65031_",
   ""
