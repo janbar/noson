@@ -26,6 +26,7 @@
 #include "service.h"
 
 #include <list>
+#include <vector>
 
 namespace NSROOT
 {
@@ -146,29 +147,12 @@ namespace NSROOT
      */
     bool ListAvailableServices(ElementList& vars);
 
-    std::string m_agent;                ///< The announced agent of sonos device
-    SMAccountList m_accounts;           ///< The known accounts
-    std::list<ElementList> m_services;  ///< The available services
+    bool ParseAvailableServices(const ElementList& vars, std::vector<ElementList>& data);
 
-    /**
-     * Load existing accounts from sonos player.
-     * Account list and agent string will be filled from the response of request to /status/accounts.
-     * @return succeeded
-     */
-    bool LoadAccounts();
+    bool LoadAccounts(SMAccountList& accounts, std::string& agentStr);
 
-    /**
-     * Returns the list of accounts available for a service type.
-     * @param serviceType The service type
-     * @return The account list
-     */
-    SMAccountList GetAccountsForService(const std::string& serviceType) const;
+    static SMAccountList GetAccountsForService(const SMAccountList& accounts, const std::string& serviceType);
 
-    /**
-     * Load available services from sonos player.
-     * @return succeeded
-     */
-    bool LoadAvailableServices();
   };
 }
 
