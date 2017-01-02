@@ -210,8 +210,8 @@ SMServiceList MusicServices::GetEnabledServices()
       else
       {
         SMAccountList la = GetAccountsForService(serviceType);
-        if (!la.empty())
-          list.push_back(SMServicePtr(new SMService(m_agent, la.front(), *it)));
+        for (SMAccountList::iterator ita = la.begin(); ita != la.end(); ++ita)
+          list.push_back(SMServicePtr(new SMService(m_agent, *ita, *it)));
       }
     }
   }
