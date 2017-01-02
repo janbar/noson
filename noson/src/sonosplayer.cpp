@@ -196,6 +196,33 @@ void Player::Init(const Zone& zone)
   m_valid = true;
 }
 
+void Player::CB_AVTransport(void* handle)
+{
+  Player* _handle = static_cast<Player*>(handle);
+  Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
+  *_mask |= SVCEvent_TransportChanged;
+  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
+    _handle->m_eventCB(_handle->m_CBHandle);
+}
+
+void Player::CB_RenderingControl(void* handle)
+{
+  Player* _handle = static_cast<Player*>(handle);
+  Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
+  *_mask |= SVCEvent_RenderingControlChanged;
+  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
+    _handle->m_eventCB(_handle->m_CBHandle);
+}
+
+void Player::CB_ContentDirectory(void* handle)
+{
+  Player* _handle = static_cast<Player*>(handle);
+  Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
+  *_mask |= SVCEvent_ContentDirectoryChanged;
+  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
+    _handle->m_eventCB(_handle->m_CBHandle);
+}
+
 void Player::RenewSubscriptions()
 {
   for (RCTable::iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
@@ -584,31 +611,4 @@ void Player::HandleEventMessage(EventMessagePtr msg)
     // @TODO: handle status
     DBG(DBG_DEBUG, "%s: %s\n", __FUNCTION__, msg->subject[0].c_str());
   }
-}
-
-void Player::CB_AVTransport(void* handle)
-{
-  Player* _handle = static_cast<Player*>(handle);
-  Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
-  *_mask |= SVCEvent_TransportChanged;
-  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
-    _handle->m_eventCB(_handle->m_CBHandle);
-}
-
-void Player::CB_RenderingControl(void* handle)
-{
-  Player* _handle = static_cast<Player*>(handle);
-  Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
-  *_mask |= SVCEvent_RenderingControlChanged;
-  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
-    _handle->m_eventCB(_handle->m_CBHandle);
-}
-
-void Player::CB_ContentDirectory(void* handle)
-{
-  Player* _handle = static_cast<Player*>(handle);
-  Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
-  *_mask |= SVCEvent_ContentDirectoryChanged;
-  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
-    _handle->m_eventCB(_handle->m_CBHandle);
 }
