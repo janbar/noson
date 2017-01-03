@@ -166,6 +166,7 @@ const std::string& SMService::GetAgent() const
 
 MusicServices::MusicServices(const std::string& serviceHost, unsigned servicePort)
 : Service(serviceHost, servicePort)
+, m_version("")
 {
 }
 
@@ -182,6 +183,8 @@ bool MusicServices::GetSessionId(const std::string& serviceId, const std::string
 
 SMServiceList MusicServices::GetEnabledServices()
 {
+  // hold version's lock until return
+  Locked<std::string>::pointer versionPtr = m_version.Get();
   SMServiceList list;
   // load services
   ElementList vars;
@@ -190,6 +193,8 @@ SMServiceList MusicServices::GetEnabledServices()
     DBG(DBG_ERROR, "%s: query services failed\n");
   else
   {
+    // store new value of version
+    versionPtr->assign(vars.GetValue("AvailableServiceListVersion"));
     // load accounts
     SMAccountList accounts; // it is filled with retrieved accounts from the sonos device
     std::string agent; // it is filled with the SERVER tag from http response header
@@ -220,6 +225,7 @@ SMServiceList MusicServices::GetEnabledServices()
       }
     }
   }
+  DBG(DBG_DEBUG, "%s: version (%s)\n", __FUNCTION__, versionPtr->c_str());
   return list;
 }
 

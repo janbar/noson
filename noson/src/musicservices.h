@@ -24,6 +24,7 @@
 
 #include <local_config.h>
 #include "service.h"
+#include "locked.h"
 
 #include <list>
 #include <vector>
@@ -139,7 +140,11 @@ namespace NSROOT
      */
     SMServiceList GetEnabledServices();
 
+    Locked<std::string>& GetVersion() { return m_version; }
+
   private:
+    Locked<std::string> m_version;  ///< Current version
+
     /**
      * Query service ListAvailableServices
      * @param vars (out) Response elements
