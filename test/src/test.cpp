@@ -130,6 +130,9 @@ int main(int argc, char** argv)
         for (auto&& item : playerPtr->GetAvailableServices())
        	{
             fprintf(stderr, "MusicService: %s : %s , %s\n", item->GetName().c_str(), item->GetServiceType().c_str(), (item->GetPresentationMap() ? item->GetPresentationMap()->GetAttribut("Uri").c_str() : "No presentation map"));
+            fprintf(stderr, "            : %s\n", SONOS::System::GetLogoForService(item, "square").c_str());
+            fprintf(stderr, "            : %s\n", SONOS::System::GetLogoForService(item, "small").c_str());
+            fprintf(stderr, "            : %s\n", SONOS::System::GetLogoForService(item, "x-large").c_str());
             if (item->GetName() == tstServiceName)
             {
               fprintf(stderr, "Trying service %s ...\n", item->GetName().c_str());
