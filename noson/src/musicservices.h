@@ -94,7 +94,6 @@ namespace NSROOT
     SMAccountPtr GetAccount() const;
     const std::string& GetAgent() const;
 
-
   private:
     std::string m_agent;    ///< The agent string to announce in API call
     SMAccountPtr m_account; ///< The account relates this service
