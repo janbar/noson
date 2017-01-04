@@ -25,6 +25,12 @@
 #include <string>
 #include <cstdlib>
 
+#define PRINT(a) fprintf(stderr, a)
+#define PRINT1(a,b) fprintf(stderr, a, b)
+#define PRINT2(a,b,c) fprintf(stderr, a, b, c)
+#define PRINT3(a,b,c,d) fprintf(stderr, a, b, c, d)
+#define PRINT4(a,b,c,d,e) fprintf(stderr, a, b, c, d, e)
+
 void handleEventCB(void* handle)
 {
   fprintf(stderr, "#########################\n");
@@ -48,14 +54,6 @@ int main(int argc, char** argv)
   std::string search = "Q:0";
   if (argc > 2)
     search.assign(argv[2]);
-  std::string tstServiceName;
-  std::string tstServiceMediaId;
-  if (argc > 3)
-    tstServiceName.assign(argv[3]);
-  if (argc > 4)
-    tstServiceMediaId.assign(argv[4]);
-  else
-    tstServiceMediaId.assign("root");
 
   SONOS::DBGLevel(3); // debug/proto
 
@@ -64,7 +62,7 @@ int main(int argc, char** argv)
     SONOS::System sonos(0, handleEventCB);
     if (sonos.Discover())
     {
-      fprintf(stderr, "Discovered !!!\n");
+      PRINT("Discovered !!!\n");
 
       /*
        * Print Zones list and connect to
@@ -84,7 +82,7 @@ int main(int argc, char** argv)
       SONOS::ZonePlayerList players = sonos.GetZonePlayerList();
       for (SONOS::ZonePlayerList::const_iterator it = players.begin(); it != players.end(); ++it)
       {
-        fprintf(stderr, "found player '%s' at location %s [%s]\n", it->second->c_str(), it->second->GetLocation().c_str(),
+        PRINT3("found player '%s' at location %s [%s]\n", it->second->c_str(), it->second->GetLocation().c_str(),
                 it->second->GetIconName().c_str());
       }
 
@@ -95,18 +93,18 @@ int main(int argc, char** argv)
         SONOS::ElementList vars;
         playerPtr->GetTransportInfo(vars);
         for(int i = 0; i < vars.size(); ++i)
-          fprintf(stderr, "TransportInfo: %s : %s\n", vars[i]->GetKey().c_str(), vars[i]->c_str());
+          PRINT2("TransportInfo: %s : %s\n", vars[i]->GetKey().c_str(), vars[i]->c_str());
 
         SONOS::ContentDirectory mycontent(playerPtr->GetHost(), playerPtr->GetPort());
         SONOS::ContentList bdir(mycontent, search);
-        fprintf(stderr, "UpdateID: %u\n", bdir.GetUpdateID());
-        fprintf(stderr, "Item count: %u\n", bdir.size());
+        PRINT1("UpdateID: %u\n", bdir.GetUpdateID());
+        PRINT1("Item count: %u\n", bdir.size());
         SONOS::ContentList::iterator it = bdir.begin();
         int i = 0;
         while (it != bdir.end())
         {
-          fprintf(stderr, "Item %d: [%d] [%s] [%s]\n", ++i, (*it)->IsItem(), (*it)->GetValue("dc:title").c_str(), (*it)->GetObjectID().c_str());
-          fprintf(stderr, "       : %s\n", (*it)->GetValue("res").c_str());
+          PRINT4("Item %d: [%d] [%s] [%s]\n", ++i, (*it)->IsItem(), (*it)->GetValue("dc:title").c_str(), (*it)->GetObjectID().c_str());
+          PRINT1("       : %s\n", (*it)->GetValue("res").c_str());
           ++it;
         }
 
@@ -114,42 +112,15 @@ int main(int argc, char** argv)
          * Using class ContentBrowser to browse content ...
          *
         SONOS::ContentBrowser bdir2(mycontent, search);
-        fprintf(stderr, "Item count: %u\n", bdir2.total());
+        PRINT1("Item count: %u\n", bdir2.total());
         unsigned s = bdir2.index();
         while (s < bdir2.total() && bdir2.Browse(s, 100))
         {
           for (unsigned i = 0; i < bdir2.count(); ++i)
-            fprintf(stderr, "Item %d: [%d] [%s]\n", i, bdir2.table()[i]->IsItem(), bdir2.table()[i]->GetValue("dc:title").c_str());
+            PRINT3("Item %d: [%d] [%s]\n", i, bdir2.table()[i]->IsItem(), bdir2.table()[i]->GetValue("dc:title").c_str());
           s += bdir2.count();
         }
         */
-
-        /*
-         * Music services
-         */
-        for (auto&& item : playerPtr->GetAvailableServices())
-       	{
-            fprintf(stderr, "MusicService: %s : %s , %s\n", item->GetName().c_str(), item->GetServiceType().c_str(), (item->GetPresentationMap() ? item->GetPresentationMap()->GetAttribut("Uri").c_str() : "No presentation map"));
-            fprintf(stderr, "            : %s\n", SONOS::System::GetLogoForService(item, "square").c_str());
-            fprintf(stderr, "            : %s\n", SONOS::System::GetLogoForService(item, "small").c_str());
-            fprintf(stderr, "            : %s\n", SONOS::System::GetLogoForService(item, "x-large").c_str());
-            if (item->GetName() == tstServiceName)
-            {
-              fprintf(stderr, "Trying service %s ...\n", item->GetName().c_str());
-              SONOS::SMAPI sm(playerPtr);
-              sm.Init(item);
-              SONOS::SMAPIMetadata meta;
-              SONOS::DBGLevel(4);
-              sm.GetMetadata(tstServiceMediaId, 0, 50, false, meta);
-              //sm.GetMediaMetadata(tstServiceMediaId, meta);
-              //sm.Search("stations", "jazz", 0, 10, meta);
-              SONOS::DBGLevel(3);
-              for (auto&& digi : meta.GetItems())
-              {
-                fprintf(stderr, "%s\n", digi->DIDL().c_str());
-              }
-            }
-        }
       }
     }
   }
