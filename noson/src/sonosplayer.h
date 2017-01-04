@@ -152,6 +152,7 @@ namespace NSROOT
     // Music services
     SMServiceList GetAvailableServices();
     SMServicePtr GetServiceForMedia(const std::string& mediaUri);
+    std::string MakeItemIdForMedia(const std::string& mediaUri);
 
   private:
     bool m_valid;
