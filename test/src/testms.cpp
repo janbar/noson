@@ -55,9 +55,9 @@ int main(int argc, char** argv)
   std::string tstServiceName;
   std::string tstServiceMediaId;
   if (argc > 2)
-    tstServiceName.assign(argv[3]);
+    tstServiceName.assign(argv[2]);
   if (argc > 3)
-    tstServiceMediaId.assign(argv[4]);
+    tstServiceMediaId.assign(argv[3]);
   else
     tstServiceMediaId.assign("root");
 
@@ -108,17 +108,15 @@ int main(int argc, char** argv)
               sm.GetMediaMetadata(tstServiceMediaId, meta);
             //sm.Search("stations", "jazz", 0, 10, meta);
             SONOS::DBGLevel(2);
-            for (auto&& digi : meta.GetItems())
+            for (auto&& data : meta.GetItems())
             {
-              PRINT1("%s\n", digi->DIDL().c_str());
+              if (data.uriMetadata)
+                PRINT1("%s\n", data.uriMetadata->DIDL().c_str());
+              else
+                PRINT1("%s\n", data.item->DIDL().c_str());
             }
           }
         }
-
-        PRINT1("Item Id for media: %s\n", playerPtr->MakeItemIdForMedia("x-sonos-http:t_01234567?sid=38&sn=3").c_str());
-        PRINT1("Item Id for media: %s\n", playerPtr->MakeItemIdForMedia("x-file-cifs://NAS/share/music/artist/title/12%20artist%20-%20Samba%20De%20Uma%20Nota%20So.flac").c_str());
-        PRINT1("Item Id for media: %s\n", playerPtr->MakeItemIdForMedia("file:///music/artist/title/12%20artist%20-%20Samba%20De%20Uma%20Nota%20So.flac").c_str());
-        PRINT1("Item Id for media: %s\n", playerPtr->MakeItemIdForMedia("http://www.tv-radio.com/station/le_mouv_mp3/le_mouv_mp3-128k.m3u").c_str());
       }
     }
   }

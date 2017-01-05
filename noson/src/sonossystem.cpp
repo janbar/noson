@@ -197,10 +197,23 @@ bool System::CanQueueItem(const DigitalItemPtr& item)
 {
   if (item)
   {
+    // check parent
     const std::string& parent = item->GetParentID();
     if (    parent.compare(0, 2, "A:") == 0 ||
             parent.compare(0, 3, "SQ:") == 0)
       return true;
+
+    // check protocol from tag <res>
+    URIParser parser(item->GetValue("res"));
+    if (parser.Scheme())
+    {
+      if (strcmp(ProtocolTable[Protocol_xSonosHttp], parser.Scheme()) == 0)
+        return true;
+      if (strcmp(ProtocolTable[Protocol_xFileCifs], parser.Scheme()) == 0)
+        return true;
+      if (strcmp(ProtocolTable[Protocol_file], parser.Scheme()) == 0)
+        return true;
+    }
   }
   return false;
 }

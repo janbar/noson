@@ -379,11 +379,16 @@ bool Player::SetCurrentURI(const DigitalItemPtr& item)
   SMServicePtr svc = GetServiceForMedia(item->GetValue("res"));
   if (svc)
   {
+    DigitalItem _item(DigitalItem::Type_unknown, DigitalItem::SubType_unknown);
+    item->Clone(_item);
     ElementPtr var(new Element("desc", svc->GetServiceDesc()));
     var->SetAttribut("id", "cdudn");
     var->SetAttribut("nameSpace", DIDL_XMLNS_RINC);
-    item->SetProperty(var);
+    _item.SetProperty(var);
+    DBG(DBG_DEBUG, "%s: %s\n%s\n", __FUNCTION__, _item.GetValue("res").c_str(), _item.DIDL().c_str());
+    return m_AVTransport->SetCurrentURI(_item.GetValue("res"), _item.DIDL());
   }
+  DBG(DBG_DEBUG, "%s: %s\n%s\n", __FUNCTION__, item->GetValue("res").c_str(), item->DIDL().c_str());
   return m_AVTransport->SetCurrentURI(item->GetValue("res"), item->DIDL());
 }
 
@@ -402,6 +407,7 @@ bool Player::PlayStream(const std::string& streamURL, const std::string& title)
     ElementPtr res(new Element("res", val));
     res->SetAttribut("protocolInfo", protocolInfo);
     item->SetProperty(res);
+    DBG(DBG_DEBUG, "%s: %s\n%s\n", __FUNCTION__, item->GetValue("res").c_str(), item->DIDL().c_str());
     return SetCurrentURI(item) && m_AVTransport->Play();
   }
   return false;
@@ -420,6 +426,7 @@ bool Player::PlayQueue(bool start)
 
 unsigned Player::AddURIToQueue(const DigitalItemPtr& item, unsigned position)
 {
+  DBG(DBG_DEBUG, "%s: %s\n%s\n", __FUNCTION__, item->GetValue("res").c_str(), item->DIDL().c_str());
   return m_AVTransport->AddURIToQueue(item->GetValue("res"), item->DIDL(), position);
 }
 
@@ -475,6 +482,7 @@ bool Player::CreateSavedQueue(const std::string& title)
 
 unsigned Player::AddURIToSavedQueue(const std::string& SQObjectID, const DigitalItemPtr& item, unsigned containerUpdateID)
 {
+  //@FIXME service item has to be reworked
   if (GetServiceForMedia(item->GetValue("res")))
     return 0;
   return m_AVTransport->AddURIToSavedQueue(SQObjectID, item->GetValue("res"), item->DIDL(), containerUpdateID);
@@ -669,40 +677,4 @@ SMServicePtr Player::GetServiceForMedia(const std::string& mediaUri)
     }
   }
   return svc;
-}
-
-std::string Player::MakeItemIdForMedia(const std::string& mediaUri)
-{
-  URIParser parser(mediaUri);
-  if (!parser.Scheme() || !parser.Path())
-  {
-    DBG(DBG_ERROR, "%s: invalid uri (%s)\n", __FUNCTION__, mediaUri.c_str());
-    return "";
-  }
-  std::string id;
-  const char* p = strchr(parser.Path(), '?');
-  if (p && strstr(p, "sid="))
-  {
-    //@FIXME don't know what this string means, but it is required to add item in saved queued
-    id.append("00030000").append(parser.Path(), p - parser.Path());
-  }
-  else
-  {
-    id.append(parser.Scheme()).append(":");
-    if (parser.Host())
-    {
-      id.append("//").append(parser.Host());
-      if (parser.Port())
-      {
-        char buf[10];
-        uint32_to_string(parser.Port(), buf);
-        id.append(":").append(buf);
-      }
-    }
-    if (!parser.IsRelative())
-      id.append("/");
-    id.append(parser.Path());
-  }
-
-  return id;
 }
