@@ -74,15 +74,7 @@ SMAPIItemList SMAPIMetadata::GetItems()
 
     // initialize the item
     SMAPIItem data;
-    const std::string& itemDisplayType = media.GetAttribut("displayType");
-    if (itemDisplayType == "List")
-      data.displayType = SMAPIItem::List;
-    else if (itemDisplayType == "Hero")
-      data.displayType = SMAPIItem::Hero;
-    else if (itemDisplayType == "Editorial")
-      data.displayType = SMAPIItem::Editorial;
-    else
-      data.displayType = SMAPIItem::Grid;
+    data.displayType = SMAPIItem::Grid;
 
     if (itemType == "track")
       data.item.reset(new DigitalItem(DigitalItem::Type_item, DigitalItem::SubType_audioItem));
@@ -95,11 +87,11 @@ SMAPIItemList SMAPIMetadata::GetItems()
     else if (itemType == "album")
       data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_album));
     else if (itemType == "albumList")
-      data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_album));
+      data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_storageFolder));
     else if (itemType == "artist")
       data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_person));
     else if (itemType == "artistTrackList")
-      data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_person));
+      data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_playlistContainer));
     else if (itemType == "genre")
       data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_genre));
     else if (itemType == "playlist")
@@ -113,17 +105,22 @@ SMAPIItemList SMAPIMetadata::GetItems()
     {
     // container
     case DigitalItem::SubType_playlistContainer:
+      data.item->SetProperty(DIDL_QNAME_DC "title", media.GetAttribut("title"));
+      data.item->SetProperty(DIDL_QNAME_UPNP "albumArtURI", media.GetAttribut("albumArtURI"));
+      data.item->SetProperty(DIDL_QNAME_RINC "description", media.GetAttribut("summary"));
+      data.displayType = SMAPIItem::List;
+      break;
     case DigitalItem::SubType_storageFolder:
       data.item->SetProperty(DIDL_QNAME_DC "title", media.GetAttribut("title"));
       data.item->SetProperty(DIDL_QNAME_UPNP "albumArtURI", media.GetAttribut("albumArtURI"));
       data.item->SetProperty(DIDL_QNAME_RINC "description", media.GetAttribut("summary"));
-
       break;
     case DigitalItem::SubType_album:
       data.item->SetProperty(DIDL_QNAME_DC "title", media.GetAttribut("title"));
       data.item->SetProperty(DIDL_QNAME_UPNP "albumArtURI", media.GetAttribut("albumArtURI"));
       data.item->SetProperty(DIDL_QNAME_DC "creator", media.GetAttribut("author"));
       data.item->SetProperty(DIDL_QNAME_DC "contributor", media.GetAttribut("artist"));
+      data.displayType = SMAPIItem::List;
       break;
     case DigitalItem::SubType_genre:
       data.item->SetProperty(DIDL_QNAME_DC "title", media.GetAttribut("title"));
@@ -158,6 +155,15 @@ SMAPIItemList SMAPIMetadata::GetItems()
 
     data.item->SetObjectID(media.GetAttribut("id"));
     data.item->SetParentID(m_root);
+
+    // overriding default display type
+    const std::string& itemDisplayType = media.GetAttribut("displayType");
+    if (itemDisplayType == "List")
+      data.displayType = SMAPIItem::List;
+    else if (itemDisplayType == "Hero")
+      data.displayType = SMAPIItem::Hero;
+    else if (itemDisplayType == "Editorial")
+      data.displayType = SMAPIItem::Editorial;
 
     if (media.GetAttribut("canPlay") == "true")
     {
