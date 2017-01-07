@@ -5,18 +5,10 @@ language: cpp
 
 os:
   - linux
-  - osx
 
 compiler:
   - gcc
   - clang
-
-matrix:
-  exclude:
-     - os: osx
-       compiler: gcc
-     - os: linux
-       compiler: clang
 
   fast_finish: true
 
