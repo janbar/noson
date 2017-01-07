@@ -65,12 +65,13 @@ SMAPIItemList SMAPIMetadata::GetItems()
   SMAPIItemList list;
   if (!m_valid)
     return list;
-  unsigned c = 0;
+  unsigned count = 0;
   for (ElementList::const_iterator it = m_list.begin(); it != m_list.end(); ++it)
   {
     const Element& media = **it;
     const std::string& itemType = media.GetAttribut("itemType");
-    DBG(DBG_PROTO, "%s: [%u] %s (%s)\n", __FUNCTION__, c++, media.GetKey().c_str(), itemType.c_str());
+    const std::string& mimeType = media.GetAttribut("mimeType");
+    DBG(DBG_PROTO, "%s: [%u] %s (%s)(%s)\n", __FUNCTION__, count++, media.GetKey().c_str(), itemType.c_str(), mimeType.c_str());
 
     // initialize the item
     SMAPIItem data;
@@ -80,10 +81,10 @@ SMAPIItemList SMAPIMetadata::GetItems()
       data.item.reset(new DigitalItem(DigitalItem::Type_item, DigitalItem::SubType_audioItem));
     else if (itemType == "stream")
       data.item.reset(new DigitalItem(DigitalItem::Type_item, DigitalItem::SubType_audioItem));
-    else if (itemType == "show")
-      data.item.reset(new DigitalItem(DigitalItem::Type_item, DigitalItem::SubType_audioItem));
     else if (itemType == "program")
       data.item.reset(new DigitalItem(DigitalItem::Type_item, DigitalItem::SubType_audioItem));
+    else if (itemType == "show")
+      data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_playlistContainer));
     else if (itemType == "album")
       data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_album));
     else if (itemType == "albumList")
@@ -186,22 +187,44 @@ SMAPIItemList SMAPIMetadata::GetItems()
       }
       else if (itemType == "track")
       {
-        // clone the item as skeleton for uri metadata
-        data.uriMetadata.reset(new DigitalItem(DigitalItem::Type_unknown, DigitalItem::SubType_unknown));
-        data.item->Clone(*(data.uriMetadata));
-        // tag <res>
-        std::string rval(ProtocolTable[Protocol_xSonosHttp]);
-        rval.append(":").append(data.item->GetObjectID()).append("?sid=").append(m_service->GetId());
-        rval.append("&sn=").append(m_service->GetAccount()->GetSerialNum());
-        ElementPtr res(new Element("res", rval));
-        data.uriMetadata->SetProperty(res);
-        // tag <desc>
-        ElementPtr desc(new Element("desc", m_service->GetServiceDesc()));
-        desc->SetAttribut("id", "cdudn");
-        desc->SetAttribut("nameSpace", DIDL_XMLNS_RINC);
-        data.uriMetadata->SetProperty(desc);
-        data.uriMetadata->SetObjectID(std::string("00032020").append(data.item->GetObjectID()));
-        data.uriMetadata->SetParentID(std::string("0004206c").append(data.item->GetParentID()));
+        if (mimeType == "audio/vnd.radiotime")
+        {
+          // clone the item as skeleton for uri metadata
+          data.uriMetadata.reset(new DigitalItem(DigitalItem::Type_unknown, DigitalItem::SubType_unknown));
+          data.item->Clone(*(data.uriMetadata));
+          // tag <res>
+          std::string rval(ProtocolTable[Protocol_xSonosApiRTRecent]);
+          rval.append(":").append(data.item->GetObjectID()).append("?sid=").append(m_service->GetId());
+          rval.append("&sn=").append(m_service->GetAccount()->GetSerialNum());
+          ElementPtr res(new Element("res", rval));
+          data.uriMetadata->SetProperty(res);
+          // tag <desc>
+          ElementPtr desc(new Element("desc", m_service->GetServiceDesc()));
+          desc->SetAttribut("id", "cdudn");
+          desc->SetAttribut("nameSpace", DIDL_XMLNS_RINC);
+          data.uriMetadata->SetProperty(desc);
+          data.uriMetadata->SetObjectID(std::string("F00032020").append(data.item->GetObjectID()));
+          data.uriMetadata->SetParentID(std::string("F000b2064").append(data.item->GetParentID()));
+        }
+        else
+        {
+          // clone the item as skeleton for uri metadata
+          data.uriMetadata.reset(new DigitalItem(DigitalItem::Type_unknown, DigitalItem::SubType_unknown));
+          data.item->Clone(*(data.uriMetadata));
+          // tag <res>
+          std::string rval(ProtocolTable[Protocol_xSonosHttp]);
+          rval.append(":").append(data.item->GetObjectID()).append("?sid=").append(m_service->GetId());
+          rval.append("&sn=").append(m_service->GetAccount()->GetSerialNum());
+          ElementPtr res(new Element("res", rval));
+          data.uriMetadata->SetProperty(res);
+          // tag <desc>
+          ElementPtr desc(new Element("desc", m_service->GetServiceDesc()));
+          desc->SetAttribut("id", "cdudn");
+          desc->SetAttribut("nameSpace", DIDL_XMLNS_RINC);
+          data.uriMetadata->SetProperty(desc);
+          data.uriMetadata->SetObjectID(std::string("00032020").append(data.item->GetObjectID()));
+          data.uriMetadata->SetParentID(std::string("0004206c").append(data.item->GetParentID()));
+        }
       }
       else if (itemType == "program")
       {
