@@ -27,6 +27,7 @@
 #include "private/wsresponse.h"
 #include "private/os/threads/timeout.h"
 #include "private/debug.h"
+#include "private/builtin.h"
 #include "private/uriparser.h"
 #include "private/tinyxml2.h"
 #include "private/os/threads/mutex.h"
@@ -216,6 +217,48 @@ bool System::CanQueueItem(const DigitalItemPtr& item)
     }
   }
   return false;
+}
+
+std::string System::MakeItemIdFromMediaUri(const std::string& mediaUri)
+{
+  URIParser parser(mediaUri);
+  if (!parser.Scheme() || !parser.Path())
+  {
+    DBG(DBG_ERROR, "%s: invalid uri (%s)\n", __FUNCTION__, mediaUri.c_str());
+    return "";
+  }
+  // check is service item
+  std::string itemId;
+  const char* p = strchr(parser.Path(), '?');
+  if (p && strstr(p, "sid="))
+  {
+    std::string tmp(parser.Path(), p - parser.Path());
+    std::string id = tmp.substr(0, tmp.find_last_of("."));
+    // schema x-sonosapi-rtrecent for podcast
+    if (strcmp(ProtocolTable[Protocol_xSonosApiRTRecent], parser.Scheme()) == 0)
+      itemId.append("F00032020").append(id);
+    // other scheme for a track
+    else
+      itemId.append("00032020").append(id);
+  }
+  else
+  {
+    itemId.append(parser.Scheme()).append(":");
+    if (parser.Host())
+    {
+      itemId.append("//").append(parser.Host());
+      if (parser.Port())
+      {
+        char buf[10];
+        uint32_to_string(parser.Port(), buf);
+        itemId.append(":").append(buf);
+      }
+    }
+    if (!parser.IsRelative())
+      itemId.append("/");
+    itemId.append(parser.Path());
+  }
+  return itemId;
 }
 
 std::string System::GetLogoForService(const SMServicePtr& service, const std::string& placement)
