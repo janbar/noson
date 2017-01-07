@@ -520,8 +520,10 @@ bool Player::AddURIToFavorites(const DigitalItemPtr& item, const std::string& de
   favorite->SetProperty(DIDL_QNAME_RINC "description", description.empty() ? album.empty() ? creator : album : description);
   // make r:resMD
   DigitalItem obj(DigitalItem::Type_item, DigitalItem::SubType_unknown);
-  obj.SetObjectID(item->GetObjectID());
-  obj.SetParentID(item->GetParentID());
+  // make the sonos itemId for this resource
+  std::string objId = System::MakeItemIdFromMediaUri(item->GetValue("res"));
+  obj.SetObjectID(objId);
+  obj.SetParentID(objId);
   obj.SetRestricted(item->GetRestricted());
   obj.SetProperty(item->GetProperty(DIDL_QNAME_UPNP "class"));
   obj.SetProperty(item->GetProperty(DIDL_QNAME_DC "title"));

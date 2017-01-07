@@ -208,15 +208,31 @@ bool System::CanQueueItem(const DigitalItemPtr& item)
     URIParser parser(item->GetValue("res"));
     if (parser.Scheme())
     {
-      if (strcmp(ProtocolTable[Protocol_xSonosHttp], parser.Scheme()) == 0)
+      if (strcmp(ProtocolTable[Protocol_file], parser.Scheme()) == 0)
         return true;
       if (strcmp(ProtocolTable[Protocol_xFileCifs], parser.Scheme()) == 0)
         return true;
-      if (strcmp(ProtocolTable[Protocol_file], parser.Scheme()) == 0)
+      if (strcmp(ProtocolTable[Protocol_xSonosHttp], parser.Scheme()) == 0)
+        return true;
+      if (strcmp(ProtocolTable[Protocol_xSonosSpotify], parser.Scheme()) == 0)
+        return true;
+      if (strcmp(ProtocolTable[Protocol_xSonosApiRTRecent], parser.Scheme()) == 0)
+        return true;
+      if (strcmp(ProtocolTable[Protocol_xRinconCpcontainer], parser.Scheme()) == 0)
         return true;
     }
   }
   return false;
+}
+
+bool System::IsItemFromService(const DigitalItemPtr& item)
+{
+  if (!item)
+    return false;
+  const std::string& desc = item->GetValue("desc");
+  if (desc.empty() || desc == ServiceDescTable[ServiceDesc_default])
+    return false;
+  return true;
 }
 
 std::string System::MakeItemIdFromMediaUri(const std::string& mediaUri)
@@ -241,23 +257,27 @@ std::string System::MakeItemIdFromMediaUri(const std::string& mediaUri)
     else
       itemId.append("00032020").append(id);
   }
-  else
+  else if (strcmp(ProtocolTable[Protocol_xRinconPlaylist], parser.Scheme()) == 0)
   {
-    itemId.append(parser.Scheme()).append(":");
-    if (parser.Host())
+    if (!parser.Fragment())
     {
-      itemId.append("//").append(parser.Host());
-      if (parser.Port())
-      {
-        char buf[10];
-        uint32_to_string(parser.Port(), buf);
-        itemId.append(":").append(buf);
-      }
+      DBG(DBG_ERROR, "%s: invalid uri (%s)\n", __FUNCTION__, mediaUri.c_str());
+      return "";
     }
-    if (!parser.IsRelative())
-      itemId.append("/");
-    itemId.append(parser.Path());
+    itemId.assign(parser.Fragment());
   }
+  else if (strcmp(ProtocolTable[Protocol_file], parser.Scheme()) == 0 && strcmp("jffs/settings/savedqueues.rsq", parser.Path()) == 0)
+  {
+    if (!parser.Fragment())
+    {
+      DBG(DBG_ERROR, "%s: invalid uri (%s)\n", __FUNCTION__, mediaUri.c_str());
+      return "";
+    }
+    itemId.assign("SQ:").append(parser.Fragment());
+  }
+  else
+    itemId.assign(mediaUri);
+
   return itemId;
 }
 
