@@ -480,18 +480,18 @@ bool Player::CreateSavedQueue(const std::string& title)
 
 unsigned Player::AddURIToSavedQueue(const std::string& SQObjectID, const DigitalItemPtr& item, unsigned containerUpdateID)
 {
+  DigitalItem _item(DigitalItem::Type_unknown, DigitalItem::SubType_unknown);
+  item->Clone(_item);
+  _item.SetObjectID(System::MakeItemIdFromMediaUri(_item.GetValue("res")));
+  _item.SetParentID("");
+
   SMServicePtr svc = GetServiceForMedia(item->GetValue("res"));
-  if (svc)
+  if (svc && item->GetValue("desc").empty())
   {
-    DigitalItem _item(DigitalItem::Type_unknown, DigitalItem::SubType_unknown);
-    item->Clone(_item);
     ElementPtr var(new Element("desc", svc->GetServiceDesc()));
     var->SetAttribut("id", "cdudn");
     var->SetAttribut("nameSpace", DIDL_XMLNS_RINC);
     _item.SetProperty(var);
-    _item.SetObjectID(System::MakeItemIdFromMediaUri(_item.GetValue("res")));
-    _item.SetParentID("");
-    return m_AVTransport->AddURIToSavedQueue(SQObjectID, _item.GetValue("res"), _item.DIDL(), containerUpdateID);
   }
   return m_AVTransport->AddURIToSavedQueue(SQObjectID, item->GetValue("res"), item->DIDL(), containerUpdateID);
 }
@@ -521,10 +521,8 @@ bool Player::AddURIToFavorites(const DigitalItemPtr& item, const std::string& de
   favorite->SetProperty(DIDL_QNAME_RINC "description", description.empty() ? album.empty() ? creator : album : description);
   // make r:resMD
   DigitalItem obj(DigitalItem::Type_item, DigitalItem::SubType_unknown);
-  // make the sonos itemId for this resource
-  std::string objId = System::MakeItemIdFromMediaUri(item->GetValue("res"));
-  obj.SetObjectID(objId);
-  obj.SetParentID(objId);
+  obj.SetObjectID(System::MakeItemIdFromMediaUri(item->GetValue("res")));
+  obj.SetParentID("");
   obj.SetRestricted(item->GetRestricted());
   obj.SetProperty(item->GetProperty(DIDL_QNAME_UPNP "class"));
   obj.SetProperty(item->GetProperty(DIDL_QNAME_DC "title"));
