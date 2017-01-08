@@ -642,11 +642,15 @@ void Player::HandleEventMessage(EventMessagePtr msg)
 
 SMServiceList Player::GetAvailableServices()
 {
-  //@FIXME OpenAuth doesn't work, so reject service uses it
   SMServiceList list;
   for (SMServiceList::iterator it = m_smservices.begin(); it != m_smservices.end(); ++it)
-    if ((*it)->GetAccount()->GetOACredentials().devId.empty())
+  {
+    //@FIXME AppLink not supported, so reject service uses it
+    const std::string& auth = (*it)->GetPolicy()->GetAttribut("Auth");
+    if ((*it)->GetContainerType() == "MService" &&
+            (auth == "Anonymous" || auth == "UserId" || auth == "DeviceLink"))
       list.push_back(*it);
+  }
   return list;
 }
 
