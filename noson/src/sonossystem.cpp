@@ -216,6 +216,8 @@ bool System::CanQueueItem(const DigitalItemPtr& item)
         return true;
       if (strcmp(ProtocolTable[Protocol_xSonosSpotify], parser.Scheme()) == 0)
         return true;
+      if (strcmp(ProtocolTable[Protocol_xSonosMms], parser.Scheme()) == 0)
+        return true;
       if (strcmp(ProtocolTable[Protocol_xSonosApiRTRecent], parser.Scheme()) == 0)
         return true;
       if (strcmp(ProtocolTable[Protocol_xRinconCpcontainer], parser.Scheme()) == 0)
