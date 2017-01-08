@@ -376,8 +376,9 @@ bool Player::SetMute(const std::string& uuid, uint8_t value)
 
 bool Player::SetCurrentURI(const DigitalItemPtr& item)
 {
+  // Fix items from 'My radios' haven't required tag desc
   SMServicePtr svc = GetServiceForMedia(item->GetValue("res"));
-  if (svc)
+  if (svc && item->GetValue("desc").empty())
   {
     DigitalItem _item(DigitalItem::Type_unknown, DigitalItem::SubType_unknown);
     item->Clone(_item);
@@ -527,15 +528,8 @@ bool Player::AddURIToFavorites(const DigitalItemPtr& item, const std::string& de
   obj.SetRestricted(item->GetRestricted());
   obj.SetProperty(item->GetProperty(DIDL_QNAME_UPNP "class"));
   obj.SetProperty(item->GetProperty(DIDL_QNAME_DC "title"));
-  // make desc
-  SMServicePtr svc = GetServiceForMedia(item->GetValue("res"));
-  if (svc)
-  {
-    ElementPtr desc(new Element("desc", svc->GetServiceDesc()));
-    desc->SetAttribut("id", "cdudn");
-    desc->SetAttribut("nameSpace", DIDL_XMLNS_RINC);
-    obj.SetProperty(desc);
-  }
+  if (!item->GetValue("desc").empty())
+    obj.SetProperty(item->GetProperty("desc"));
   else
   {
     ElementPtr desc(new Element("desc", ServiceDescTable[ServiceDesc_default]));
