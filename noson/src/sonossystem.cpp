@@ -232,9 +232,15 @@ bool System::IsItemFromService(const DigitalItemPtr& item)
   if (!item)
     return false;
   const std::string& desc = item->GetValue("desc");
-  if (desc.empty() || desc == ServiceDescTable[ServiceDesc_default])
+  if (desc.empty())
+  {
+    if (item->GetValue("res").find("sid=") != std::string::npos)
+      return true;
     return false;
-  return true;
+  }
+  if (desc != ServiceDescTable[ServiceDesc_default])
+    return true;
+  return false;
 }
 
 std::string System::GetLogoForService(const SMServicePtr& service, const std::string& placement)
