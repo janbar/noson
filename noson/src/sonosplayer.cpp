@@ -522,7 +522,12 @@ bool Player::AddURIToFavorites(const DigitalItemPtr& item, const std::string& de
     obj.SetProperty(item->GetProperty("desc"));
   else
   {
-    ElementPtr desc(new Element("desc", ServiceDescTable[ServiceDesc_default]));
+    ElementPtr desc(new Element("desc"));
+    SMServicePtr svc = GetServiceForMedia(item->GetValue("res"));
+    if (svc)
+      desc->assign(svc->GetServiceDesc());
+    else
+      desc->assign(ServiceDescTable[ServiceDesc_default]);
     desc->SetAttribut("id", "cdudn");
     desc->SetAttribut("nameSpace", DIDL_XMLNS_RINC);
     obj.SetProperty(desc);
