@@ -481,11 +481,7 @@ bool Player::CreateSavedQueue(const std::string& title)
 
 unsigned Player::AddURIToSavedQueue(const std::string& SQObjectID, const DigitalItemPtr& item, unsigned containerUpdateID)
 {
-  DigitalItem _item(DigitalItem::Type_unknown, DigitalItem::SubType_unknown);
-  item->Clone(_item);
-  _item.SetObjectID(GetItemIdFromUriMetadata(item)); // get a valid item id
-  _item.SetParentID("");
-  return m_AVTransport->AddURIToSavedQueue(SQObjectID, _item.GetValue("res"), _item.DIDL(), containerUpdateID);
+  return m_AVTransport->AddURIToSavedQueue(SQObjectID, item->GetValue("res"), item->DIDL(), containerUpdateID);
 }
 
 bool Player::ReorderTracksInSavedQueue(const std::string& SQObjectID, const std::string& trackList, const std::string& newPositionList, unsigned containerUpdateID)
