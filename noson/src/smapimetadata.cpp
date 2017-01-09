@@ -24,6 +24,7 @@
 #include "private/builtin.h"
 #include "private/tinyxml2.h"
 #include "private/xmldict.h"
+#include "private/urlencoder.h"
 #include "didlparser.h"
 #include "sonostypes.h"
 
@@ -156,7 +157,8 @@ SMAPIItemList SMAPIMetadata::GetItems()
       data.item->SetProperty(DIDL_QNAME_UPNP "albumArtURI", media.GetAttribut("albumArtURI"));
     }
 
-    std::string itemId = UrlEncode(media.GetAttribut("id"));
+    // according to sonos rule item ID is encoded as url
+    std::string itemId = urlencode(media.GetAttribut("id"));
     data.item->SetObjectID(itemId); // encode id
     data.item->SetParentID(m_root);
 
@@ -356,23 +358,6 @@ SMAPIItemList SMAPIMetadata::GetItems()
     list.push_back(data);
   }
   return list;
-}
-
-std::string SMAPIMetadata::UrlEncode(const std::string& str)
-{
-  std::string out;
-  out.reserve(2 * str.length());
-  for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
-  {
-    if (isalnum(*it) || *it == '-' || *it == '_' || *it == '.' || *it == '~')
-      out.push_back(*it);
-    else {
-      char buf[4];
-      sprintf(buf, "%%%.2x", (unsigned char)(*it));
-      out.append(buf);
-    }
-  }
-  return out;
 }
 
 bool SMAPIMetadata::ParseMessage(const std::string& data)
