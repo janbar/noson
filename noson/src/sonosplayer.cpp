@@ -31,6 +31,7 @@
 #include "private/tokenizer.h"
 #include "didlparser.h"
 #include "sonossystem.h"
+#include "smapimetadata.h"
 
 using namespace NSROOT;
 
@@ -482,18 +483,9 @@ unsigned Player::AddURIToSavedQueue(const std::string& SQObjectID, const Digital
 {
   DigitalItem _item(DigitalItem::Type_unknown, DigitalItem::SubType_unknown);
   item->Clone(_item);
-  _item.SetObjectID(System::MakeItemIdFromMediaUri(_item.GetValue("res")));
+  _item.SetObjectID(GetItemIdFromUriMetadata(item)); // get a valid item id
   _item.SetParentID("");
-
-  SMServicePtr svc = GetServiceForMedia(item->GetValue("res"));
-  if (svc && item->GetValue("desc").empty())
-  {
-    ElementPtr var(new Element("desc", svc->GetServiceDesc()));
-    var->SetAttribut("id", "cdudn");
-    var->SetAttribut("nameSpace", DIDL_XMLNS_RINC);
-    _item.SetProperty(var);
-  }
-  return m_AVTransport->AddURIToSavedQueue(SQObjectID, item->GetValue("res"), item->DIDL(), containerUpdateID);
+  return m_AVTransport->AddURIToSavedQueue(SQObjectID, _item.GetValue("res"), _item.DIDL(), containerUpdateID);
 }
 
 bool Player::ReorderTracksInSavedQueue(const std::string& SQObjectID, const std::string& trackList, const std::string& newPositionList, unsigned containerUpdateID)
@@ -521,7 +513,7 @@ bool Player::AddURIToFavorites(const DigitalItemPtr& item, const std::string& de
   favorite->SetProperty(DIDL_QNAME_RINC "description", description.empty() ? album.empty() ? creator : album : description);
   // make r:resMD
   DigitalItem obj(DigitalItem::Type_item, DigitalItem::SubType_unknown);
-  obj.SetObjectID(System::MakeItemIdFromMediaUri(item->GetValue("res")));
+  obj.SetObjectID(GetItemIdFromUriMetadata(item)); // get a valid item id
   obj.SetParentID("");
   obj.SetRestricted(item->GetRestricted());
   obj.SetProperty(item->GetProperty(DIDL_QNAME_UPNP "class"));
@@ -687,4 +679,41 @@ SMServicePtr Player::GetServiceForMedia(const std::string& mediaUri)
     }
   }
   return svc;
+}
+
+std::string Player::GetItemIdFromUriMetadata(const DigitalItemPtr& uriMetadata)
+{
+  if (!uriMetadata)
+    return "";
+  // the id should be here for many cases
+  const std::string& itemId = uriMetadata->GetObjectID();
+
+  if (itemId.compare(0, 2, "Q:") == 0)
+  {
+    const std::string& uri = uriMetadata->GetValue("res");
+    URIParser parser(uri);
+    if (!parser.Scheme() || !parser.Path())
+    {
+      DBG(DBG_ERROR, "%s: invalid uri (%s)\n", __FUNCTION__, itemId.c_str());
+      return "";
+    }
+
+    // check for library item
+    if (strcmp(ProtocolTable[Protocol_xFileCifs], parser.Scheme()) == 0)
+      return std::string("S://").append(parser.Host()).append("/").append(parser.Path());
+
+    // check for service item
+    SMServicePtr service = GetServiceForMedia(uri);
+    if (service)
+    {
+      DigitalItemPtr meta;
+      DigitalItemPtr fake(new DigitalItem(DigitalItem::Type_item, DigitalItem::SubType_audioItem));
+      std::string path(parser.Path());
+      path = path.substr(0, path.find('?')); // remove all from args
+      fake->SetObjectID(path.substr(0, path.find_last_of('.'))); // remove mime extension
+      SMAPIMetadata::MakeUriMetadata(service, SMAPIMetadata::track, fake, meta);
+      return meta->GetObjectID();
+    }
+  }
+  return itemId;
 }
