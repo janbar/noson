@@ -104,7 +104,7 @@ int main(int argc, char** argv)
         while (it != bdir.end())
         {
           PRINT4("Item %d: [%d] [%s] [%s]\n", ++i, (*it)->IsItem(), (*it)->GetValue("dc:title").c_str(), (*it)->GetObjectID().c_str());
-          PRINT1("       : %s\n", (*it)->GetValue("res").c_str());
+          PRINT2("       : %s, %s\n", (*it)->GetValue("res").c_str(), (*it)->GetProperty("res")->GetAttribut("protocolInfo").c_str());
           ++it;
         }
 
