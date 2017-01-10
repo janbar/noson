@@ -129,10 +129,10 @@ SMAPIItemList SMAPIMetadata::GetItems()
       itemType = playlist;
       data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_playlistContainer));
     }
-    else if (media.GetKey() == "mediaCollection")
+    else if (mediaType == "streamList")
     {
-      itemType = mediaCollection;
-      data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_storageFolder));
+      itemType = streamList;
+      data.item.reset(new DigitalItem(DigitalItem::Type_container, DigitalItem::SubType_playlistContainer));
     }
     else
       data.item.reset(new DigitalItem(DigitalItem::Type_item, DigitalItem::SubType_unknown));
