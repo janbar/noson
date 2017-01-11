@@ -58,8 +58,9 @@ namespace NSROOT
 
     typedef enum {
       track, stream, program,
-      show, album, albumList, artist, artistTrackList, genre, playlist, streamList,
-      search, favorites, favorite, collection, container, audiobook,
+      show, album, albumList, artist, artistTrackList, genre, playlist,
+      streamList, trackList, search, favorites, collection, container,
+      favorite, audiobook,
       other,
     } ItemType;
 
