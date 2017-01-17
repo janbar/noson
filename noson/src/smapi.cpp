@@ -287,7 +287,7 @@ bool SMAPI::makeSoapHeader()
     m_soapHeader.append("<deviceId>").append(m_deviceSerialNumber).append("</deviceId>");
     m_soapHeader.append("<deviceProvider>" DEVICE_PROVIDER "</deviceProvider>");
     m_soapHeader.append("<loginToken>");
-    m_soapHeader.append("<token>").append(auth.token).append("</token>");
+    m_soapHeader.append("<token>").append(auth.token.empty() ? auth.devId : auth.token).append("</token>");
     m_soapHeader.append("<key>").append(auth.key).append("</key>");
     m_soapHeader.append("<householdId>").append(m_deviceHouseholdID).append("</householdId>");
     m_soapHeader.append("</loginToken>");
