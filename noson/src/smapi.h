@@ -81,7 +81,7 @@ namespace NSROOT
      */
     bool Search(const std::string& searchId, const std::string& term, int index, int count, SMAPIMetadata& metadata);
 
-    bool AuthTokenExpired() { return m_authTokenExpired; }
+    bool AuthTokenExpired() const { return m_authTokenExpired; }
 
     /**
      * Initialize device link request.

@@ -237,10 +237,6 @@ bool SMAPI::GetDeviceAuthToken(SMOAKeyring::OAuth& auth)
   auth = SMOAKeyring::OAuth();
   if (!m_authLinkTimeout || !m_authLinkTimeout->TimeLeft())
     return false;
-  // wait 3 sec before retrying
-  OS::CTimeout timeout(3000);
-  while (timeout.TimeLeft())
-    sleep(1);
 
   SMAccount::OACredentials oa = m_service->GetAccount()->GetOACredentials();
   ElementList vars;
