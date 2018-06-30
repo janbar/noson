@@ -3,7 +3,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=${prefix}/include
 
-Name: conos
+Name: noson
 Description: C++ library to control sonos player
 Version: @VERSION@
 Libs: -L${libdir} -lnoson
