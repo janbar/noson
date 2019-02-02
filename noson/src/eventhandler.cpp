@@ -41,6 +41,7 @@ using namespace NSROOT;
 
 EventHandler::EventHandlerThread::EventHandlerThread(unsigned bindingPort)
 : m_port(bindingPort)
+, m_requestBroker(NULL)
 {
 }
 
@@ -350,7 +351,7 @@ void *BasicEventHandler::Process()
         SHARED_PTR<TcpSocket> sockPtr(new TcpSocket);
         if (!m_socket->AcceptConnection(*sockPtr))
         {
-          DBG(DBG_DEBUG, "%s: accept failed (%d)\n", __FUNCTION__, m_socket->GetErrNo());
+          DBG(DBG_ERROR, "%s: accept failed (%d)\n", __FUNCTION__, m_socket->GetErrNo());
           AnnounceStatus(EVENTHANDLER_FAILED);
           break;
         }

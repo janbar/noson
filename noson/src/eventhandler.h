@@ -23,6 +23,7 @@
 
 #include "local_config.h"
 #include "sharedptr.h"
+#include "requestbroker.h"
 
 #include <string>
 #include <vector>
@@ -57,7 +58,7 @@ namespace NSROOT
   class EventSubscriber
   {
   public:
-    virtual ~EventSubscriber() {};
+    virtual ~EventSubscriber() {}
     virtual void HandleEventMessage(EventMessagePtr msg) = 0;
   };
 
@@ -71,6 +72,7 @@ namespace NSROOT
     void Stop() { if (m_imp) m_imp->Stop(); }
     std::string GetAddress() const { return m_imp ? m_imp->GetAddress() : ""; }
     unsigned GetPort() const { return m_imp ? m_imp->GetPort(): 0; }
+    void RegisterRequestBroker(RequestBroker* rb) { if (m_imp) m_imp->RegisterRequestBroker(rb); }
     bool IsRunning() { return m_imp ? m_imp->IsRunning() : false; }
 
     unsigned CreateSubscription(EventSubscriber *sub) { return m_imp ? m_imp->CreateSubscription(sub) : 0; }
@@ -84,8 +86,8 @@ namespace NSROOT
     public:
       EventHandlerThread(unsigned bindingPort);
       virtual ~EventHandlerThread();
-      virtual std::string GetAddress() const { return m_listenerAddress; }
-      virtual unsigned GetPort() const { return m_port; }
+      std::string GetAddress() const { return m_listenerAddress; }
+      unsigned GetPort() const { return m_port; }
       virtual bool Start() = 0;
       virtual void Stop() = 0;
       virtual bool IsRunning() = 0;
@@ -95,9 +97,17 @@ namespace NSROOT
       virtual void RevokeAllSubscriptions(EventSubscriber *sub) = 0;
       virtual void DispatchEvent(const EventMessage& msg) = 0;
 
+      /**
+       * @brief Register the callback to handle any other requests than supported by the event broker.
+       * @param rb the pointer to the request broker instance or null
+       */
+      void RegisterRequestBroker(RequestBroker* rb) { m_requestBroker = rb; }
+      RequestBroker* GetRequestBroker() { return m_requestBroker; }
+
     protected:
       std::string m_listenerAddress;
       unsigned m_port;
+      RequestBroker* m_requestBroker;
     };
 
     typedef SHARED_PTR<EventHandlerThread> EventHandlerThreadPtr;

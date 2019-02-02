@@ -83,6 +83,9 @@ namespace NSROOT
 
     bool DestroyAlarm(const std::string& id);
 
+    // Customized request broker
+    void RegisterRequestBroker(RequestBroker* rb);
+
     // helpers
     static bool ExtractObjectFromFavorite(const DigitalItemPtr& favorite, DigitalItemPtr& item);
     static bool CanQueueItem(const DigitalItemPtr& item);

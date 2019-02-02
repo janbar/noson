@@ -171,6 +171,8 @@ file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/alarmclock.h
           DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/public/noson)
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/alarm.h
           DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/public/noson)
+file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/requestbroker.h
+          DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/public/noson)
 
 file (GLOB PUBLIC_HEADER_FILES
   ${CMAKE_CURRENT_BINARY_DIR}/public/noson/*.h)
