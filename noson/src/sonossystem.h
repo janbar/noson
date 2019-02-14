@@ -84,7 +84,9 @@ namespace NSROOT
     bool DestroyAlarm(const std::string& id);
 
     // Customized request broker
-    void RegisterRequestBroker(RequestBroker* rb);
+    void RegisterRequestBroker(RequestBrokerPtr rb);
+    void UnregisterRequestBroker(const std::string& name);
+    RequestBrokerPtr GetRequestBroker(const std::string& name);
 
     // helpers
     static bool ExtractObjectFromFavorite(const DigitalItemPtr& favorite, DigitalItemPtr& item);
@@ -115,6 +117,16 @@ namespace NSROOT
      * @param sn The serial of account
      */
     static void DeleteServiceOAuth(const std::string& type, const std::string& sn);
+
+    /**
+     * Check the PulseAudio feature.
+     * @return true if the feature is enabled
+     */
+#ifdef HAVE_PULSEAUDIO
+    static bool HavePulseAudio() { return true; }
+#else
+    static bool HavePulseAudio() { return false; }
+#endif
 
   private:
     mutable OS::CMutex* m_mutex;

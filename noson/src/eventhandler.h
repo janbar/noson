@@ -24,6 +24,7 @@
 #include "local_config.h"
 #include "sharedptr.h"
 #include "requestbroker.h"
+#include "locked.h"
 
 #include <string>
 #include <vector>
@@ -72,8 +73,12 @@ namespace NSROOT
     void Stop() { if (m_imp) m_imp->Stop(); }
     std::string GetAddress() const { return m_imp ? m_imp->GetAddress() : ""; }
     unsigned GetPort() const { return m_imp ? m_imp->GetPort(): 0; }
-    void RegisterRequestBroker(RequestBroker* rb) { if (m_imp) m_imp->RegisterRequestBroker(rb); }
     bool IsRunning() { return m_imp ? m_imp->IsRunning() : false; }
+
+    void RegisterRequestBroker(RequestBrokerPtr rb) { if (m_imp) m_imp->RegisterRequestBroker(rb); }
+    void UnregisterRequestBroker(const std::string& name) { if (m_imp) m_imp->UnregisterRequestBroker(name); }
+    RequestBrokerPtr GetRequestBroker(const std::string& name) { return m_imp ? m_imp->GetRequestBroker(name) : RequestBrokerPtr(); }
+    std::vector<RequestBrokerPtr> AllRequestBroker() { return m_imp ? m_imp->AllRequestBroker() : std::vector<RequestBrokerPtr>(); }
 
     unsigned CreateSubscription(EventSubscriber *sub) { return m_imp ? m_imp->CreateSubscription(sub) : 0; }
     bool SubscribeForEvent(unsigned subid, EVENT_t event) { return m_imp ? m_imp->SubscribeForEvent(subid, event) : false; }
@@ -98,16 +103,17 @@ namespace NSROOT
       virtual void DispatchEvent(const EventMessage& msg) = 0;
 
       /**
-       * @brief Register the callback to handle any other requests than supported by the event broker.
+       * @brief Configure a callback to handle any other requests than supported by the event broker.
        * @param rb the pointer to the request broker instance or null
        */
-      void RegisterRequestBroker(RequestBroker* rb) { m_requestBroker = rb; }
-      RequestBroker* GetRequestBroker() { return m_requestBroker; }
+      virtual void RegisterRequestBroker(RequestBrokerPtr rb) = 0;
+      virtual void UnregisterRequestBroker(const std::string& name) = 0;
+      virtual RequestBrokerPtr GetRequestBroker(const std::string& name) = 0;
+      virtual std::vector<RequestBrokerPtr> AllRequestBroker() = 0;
 
     protected:
       std::string m_listenerAddress;
       unsigned m_port;
-      RequestBroker* m_requestBroker;
     };
 
     typedef SHARED_PTR<EventHandlerThread> EventHandlerThreadPtr;

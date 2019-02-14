@@ -4,6 +4,11 @@
 
 using namespace NSROOT;
 
+RequestBroker::RequestBroker()
+: m_aborted(false)
+{
+}
+
 RequestBroker::~RequestBroker() { }
 
 bool RequestBroker::Reply(void *handle, const char *data, size_t size)
@@ -12,4 +17,16 @@ bool RequestBroker::Reply(void *handle, const char *data, size_t size)
   if (socket)
     return socket->SendData(data, size);
   return false;
+}
+
+RequestBroker::Resource::Resource()
+: uri()
+, title()
+, contentType("application/octet-stream")
+, description()
+, iconUri()
+, sourceUrl()
+, data(nullptr)
+, dataSize(0)
+{
 }

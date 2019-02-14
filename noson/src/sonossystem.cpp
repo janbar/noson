@@ -224,9 +224,19 @@ bool System::DestroyAlarm(const std::string& id)
   return m_alarmClock->DestroyAlarm(id);
 }
 
-void System::RegisterRequestBroker(RequestBroker *rb)
+void System::RegisterRequestBroker(RequestBrokerPtr rb)
 {
   m_eventHandler.RegisterRequestBroker(rb);
+}
+
+void System::UnregisterRequestBroker(const std::string& name)
+{
+  m_eventHandler.UnregisterRequestBroker(name);
+}
+
+RequestBrokerPtr System::GetRequestBroker(const std::string &name)
+{
+  return m_eventHandler.GetRequestBroker(name);
 }
 
 bool System::ExtractObjectFromFavorite(const DigitalItemPtr& favorite, DigitalItemPtr& item)
