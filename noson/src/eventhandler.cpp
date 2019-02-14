@@ -198,7 +198,7 @@ BasicEventHandler::BasicEventHandler(unsigned bindingPort)
 , m_socket(new TcpServerSocket)
 , m_RBList(RBList())
 {
-  m_threadpool.SetMaxSize(5);
+  m_threadpool.SetMaxSize(8);
   m_threadpool.SetKeepAlive(60000);
   m_threadpool.Start();
 }
