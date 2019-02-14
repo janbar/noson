@@ -162,7 +162,7 @@ void PulseStreamer::streamSink(void * handle)
     if (Reply(handle, resp.c_str(), resp.length()))
     {
       char buf[4008];
-      int r;
+      int r = 0;
       while (!IsAborted() && (r = ai.read(buf + 5, 4000, PULSESTREAMER_TIMEOUT)) > 0)
       {
         char str[6];
