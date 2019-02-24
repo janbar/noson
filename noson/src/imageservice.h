@@ -21,6 +21,8 @@
 #include "requestbroker.h"
 #include "locked.h"
 
+#include <map>
+
 #define IMAGESERVICE_CNAME   "images"
 
 namespace NSROOT
