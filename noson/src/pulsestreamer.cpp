@@ -20,14 +20,17 @@
 #include "pasource.h"
 #include "audiostream.h"
 #include "flacencoder.h"
-#include "private/debug.h"
 #include "requestbroker.h"
+#include "imageservice.h"
+#include "data/datareader.h"
+#include "private/debug.h"
 #include "private/socket.h"
 
 #include <cstring>
 
 #define PULSESTREAMER_URI       "/music/track.flac?id=pulse"
-#define PULSESTREAMER_ICON_URI  "/images/pulseaudio.png?id=2"
+/* Important: It MUST match with the static declaration from datareader.cpp */
+#define PULSESTREAMER_ICON      "/pulseaudio.png"
 #define PULSESTREAMER_CONTENT   "audio/flac"
 #define PULSESTREAMER_DESC      "Audio stream from %s"
 #define PULSESTREAMER_TIMEOUT   10000
@@ -37,20 +40,31 @@
 
 using namespace NSROOT;
 
-PulseStreamer::PulseStreamer()
+PulseStreamer::PulseStreamer(RequestBroker * imageService /*= nullptr*/)
 : SONOS::RequestBroker()
 , m_resources()
 , m_sinkIndex(0)
 , m_playbackCount(0)
 {
+  // delegate image download to imageService
+  ResourcePtr img(nullptr);
+  if (imageService)
+    img = imageService->RegisterResource(PULSESTREAMER_CNAME,
+                                         "Icon for " PULSESTREAMER_CNAME,
+                                         PULSESTREAMER_ICON,
+                                         DataReader::Instance());
+
+  // declare the static resource
   ResourcePtr ptr = ResourcePtr(new Resource());
-  ptr->title = PULSESTREAMER_CNAME;
   ptr->uri = PULSESTREAMER_URI;
-  ptr->contentType = PULSESTREAMER_CONTENT;
-  ptr->iconUri = PULSESTREAMER_ICON_URI;
+  ptr->title = PULSESTREAMER_CNAME;
   ptr->description = PULSESTREAMER_DESC;
+  ptr->contentType = PULSESTREAMER_CONTENT;
+  if (img)
+    ptr->iconUri.assign(img->uri).append("?id=" LIBVERSION);
   m_resources.push_back(ptr);
 }
+
 
 bool PulseStreamer::HandleRequest(void* handle, const char* uri)
 {
@@ -65,6 +79,7 @@ bool PulseStreamer::HandleRequest(void* handle, const char* uri)
 
 RequestBroker::ResourcePtr PulseStreamer::GetResource(const std::string& title)
 {
+  (void)title;
   return m_resources.front();
 }
 
@@ -73,9 +88,15 @@ RequestBroker::ResourceList PulseStreamer::GetResourceList()
   return m_resources;
 }
 
-RequestBroker::ResourcePtr PulseStreamer::RegisterResource(const std::string& sourceUrl)
+RequestBroker::ResourcePtr PulseStreamer::RegisterResource(const std::string& title,
+                                                           const std::string& description,
+                                                           const std::string& path,
+                                                           StreamReader * delegate)
 {
-  (void)sourceUrl;
+  (void)title;
+  (void)description;
+  (void)path;
+  (void)delegate;
   return ResourcePtr();
 }
 

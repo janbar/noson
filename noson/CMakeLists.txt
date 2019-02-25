@@ -202,6 +202,8 @@ file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/iodevice.h
           DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/streambuffer.h
           DESTINATION ${noson_PUBLIC_DIR})
+file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/streamreader.h
+        DESTINATION ${noson_PUBLIC_DIR})
 if(HAVE_FLAC)
   file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/flacencoder.h
             DESTINATION ${noson_PUBLIC_DIR})
@@ -230,6 +232,8 @@ file (GLOB SRC_FILES
 )
 
 list (APPEND SRC_FILES
+  src/data/datareader.cpp
+  src/data/datareader.h
   src/alarmclock.cpp
   src/alarmclock.h
   src/alarm.cpp
@@ -286,6 +290,7 @@ list (APPEND SRC_FILES
   src/sonoszone.h
   src/streambuffer.cpp
   src/streambuffer.h
+  src/streamreader.h
   src/subscription.cpp
   src/subscription.h
   src/zonegrouptopology.cpp

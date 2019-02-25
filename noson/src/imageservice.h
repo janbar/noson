@@ -32,13 +32,16 @@ class ImageService : public RequestBroker
 {
 public:
   ImageService();
-  ~ImageService() { }
+  ~ImageService() override { }
   virtual bool HandleRequest(void* handle, const char* uri) override;
 
   const char * CommonName() override { return IMAGESERVICE_CNAME; }
   RequestBroker::ResourcePtr GetResource(const std::string& title) override;
   RequestBroker::ResourceList GetResourceList() override;
-  RequestBroker::ResourcePtr RegisterResource(const std::string& sourceUrl) override;
+  RequestBroker::ResourcePtr RegisterResource(const std::string& title,
+                                              const std::string& description,
+                                              const std::string& path,
+                                              StreamReader * delegate) override;
   void UnregisterResource(const std::string& uri) override;
 
 private:
@@ -49,7 +52,6 @@ private:
 
   void Reply500(void * handle);
   void Reply400(void * handle);
-  static void LoadInternalResources(ResourceMap& map);
 };
 
 }
