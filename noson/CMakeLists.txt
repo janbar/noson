@@ -119,8 +119,12 @@ else ()
 endif ()
 
 # About streamer
-find_package(FLAC)
-find_package(FLAC++)
+if (NOT FLAC_FOUND)
+    find_package(FLAC)
+endif ()
+if (NOT FLAC++_FOUND)
+    find_package(FLAC++)
+endif ()
 find_package(Pulse)
 find_package(Pulse-simple)
 
