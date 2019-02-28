@@ -198,6 +198,7 @@ BasicEventHandler::BasicEventHandler(unsigned bindingPort)
 , m_socket(new TcpServerSocket)
 , m_RBList(RBList())
 {
+  m_listenerAddress = "127.0.0.1"; // IPv4 localhost
   m_threadpool.SetMaxSize(8);
   m_threadpool.SetKeepAlive(60000);
   m_threadpool.Start();
@@ -395,7 +396,6 @@ void *BasicEventHandler::Process()
   }
   if (bound)
   {
-    m_listenerAddress = "127.0.0.1"; // IPv4 localhost
     AnnounceStatus(EVENTHANDLER_STARTED);
     while (!OS::CThread::IsStopped())
     {
@@ -420,7 +420,6 @@ void *BasicEventHandler::Process()
       }
     }
     AnnounceStatus(EVENTHANDLER_STOPPED);
-    m_listenerAddress.clear();
   }
   else
   {

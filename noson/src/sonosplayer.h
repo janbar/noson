@@ -168,7 +168,7 @@ namespace NSROOT
     // Helpers
     std::string GetItemIdFromUriMetadata(const DigitalItemPtr& uriMetadata);
     Protocol_t GetURIProtocol(const std::string& uri);
-
+    const std::string& GetControllerUri() const { return m_controllerUri; }
 
   private:
     bool m_valid;

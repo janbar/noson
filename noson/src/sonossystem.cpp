@@ -62,6 +62,10 @@ System::System(void* CBHandle, EventCB eventCB)
   m_eventHandler.SubscribeForEvent(m_subId, EVENT_HANDLER_STATUS);
   if (!m_eventHandler.Start())
     DBG(DBG_ERROR, "%s: starting event handler failed\n", __FUNCTION__);
+  else
+    m_systemLocalUri.assign(ProtocolTable[Protocol_http])
+        .append("://").append(m_eventHandler.GetAddress())
+        .append(":").append(std::to_string(m_eventHandler.GetPort()));
 }
 
 System::~System()
