@@ -305,7 +305,12 @@ bool System::IsItemFromService(const DigitalItemPtr& item)
   const std::string& desc = item->GetValue("desc");
   if (desc.empty())
   {
-    if (item->GetValue("res").find("sid=") != std::string::npos)
+    const std::string& res = item->GetValue("res");
+    // any source with parameter 'sid'
+    if (res.find("sid=") != std::string::npos)
+      return true;
+    // any source supplied by remote server
+    if (res.compare(0, 4, "http") == 0)
       return true;
     return false;
   }

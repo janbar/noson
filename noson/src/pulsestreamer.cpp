@@ -28,7 +28,7 @@
 
 #include <cstring>
 
-#define PULSESTREAMER_URI       "/music/track.flac?id=pulse"
+#define PULSESTREAMER_URI       "/music/pulse.flac"
 /* Important: It MUST match with the static declaration from datareader.cpp */
 #define PULSESTREAMER_ICON      "/pulseaudio.png"
 #define PULSESTREAMER_CONTENT   "audio/flac"
@@ -85,7 +85,10 @@ RequestBroker::ResourcePtr PulseStreamer::GetResource(const std::string& title)
 
 RequestBroker::ResourceList PulseStreamer::GetResourceList()
 {
-  return m_resources;
+  ResourceList list;
+  for (ResourceList::iterator it = m_resources.begin(); it != m_resources.end(); ++it)
+    list.push_back((*it));
+  return list;
 }
 
 RequestBroker::ResourcePtr PulseStreamer::RegisterResource(const std::string& title,
@@ -162,7 +165,10 @@ void PulseStreamer::streamSink(void * handle)
   std::string deviceName = GetPASink();
 
   if (deviceName.empty())
+  {
+    DBG(DBG_WARN, "%s: no sink available", __FUNCTION__);
     Reply500(handle);
+  }
   else if (m_playbackCount.Load() > PULSESTREAMER_MAX_PB)
     Reply429(handle);
   else

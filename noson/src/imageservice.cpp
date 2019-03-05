@@ -18,6 +18,7 @@
 #include "imageservice.h"
 #include "private/debug.h"
 #include "data/datareader.h"
+#include "filepicreader.h"
 
 #include <map>
 #include <cstring>
@@ -25,6 +26,7 @@
 /* Important: It MUST match with the static declaration from datareader.cpp */
 #define IMAGESERVICE_FAVICON  "/favicon.ico"
 #define IMAGESERVICE_IMAGES   "/images/"
+#define RESOURCE_FILEPICTURE  "filePicture"
 
 using namespace NSROOT;
 
@@ -33,12 +35,17 @@ ImageService::ImageService()
 , m_resources()
 {
   // initialize the static resource for favicon
-  ResourcePtr ptr(new Resource());
-  ptr->uri = IMAGESERVICE_FAVICON;
-  ptr->title = "favicon";
-  ptr->sourcePath = IMAGESERVICE_FAVICON;
-  ptr->delegate = DataReader::Instance();
-  m_resources.insert(std::make_pair(ptr->uri, ptr));
+  {
+    ResourcePtr ptr(new Resource());
+    ptr->uri = IMAGESERVICE_FAVICON;
+    ptr->title = "favicon";
+    ptr->sourcePath = IMAGESERVICE_FAVICON;
+    ptr->delegate = DataReader::Instance();
+    m_resources.insert(std::make_pair(ptr->uri, ptr));
+  }
+
+  // register the picture extractor for local media file
+  RegisterResource(RESOURCE_FILEPICTURE, "The file picture reader", "/file", FilePicReader::Instance());
 }
 
 bool ImageService::HandleRequest(void* handle, const char* uri)
@@ -107,7 +114,7 @@ void ImageService::ReplyContent(void * handle, const std::string& uri)
   {
     const RequestBroker::ResourcePtr& res = it->second;
     StreamReader::STREAM * stream = res->delegate->OpenStream(RequestBroker::buildDelegateUrl(*res, uri));
-    if (stream)
+    if (stream && stream->contentLength)
     {
       // override content type with stream type
       const char * contentType = stream->contentType != nullptr ? stream->contentType : res->contentType.c_str();
@@ -124,6 +131,10 @@ void ImageService::ReplyContent(void * handle, const std::string& uri)
           Reply(handle, stream->data, stream->size);
       }
       res->delegate->CloseStream(stream);
+    }
+    else if (stream)
+    {
+      Reply404(handle);
     }
     else
     {
@@ -147,6 +158,16 @@ void ImageService::Reply400(void* handle)
 {
   std::string resp;
   resp.append("HTTP/1.1 400 Bad Request\r\n")
+      .append("Server: Linux UPnP/1.0 Noson/1.0 (ACR_noson)\r\n")
+      .append("Connection: close\r\n")
+      .append("\r\n");
+  Reply(handle, resp.c_str(), resp.length());
+}
+
+void ImageService::Reply404(void* handle)
+{
+  std::string resp;
+  resp.append("HTTP/1.1 404 Not Found\r\n")
       .append("Server: Linux UPnP/1.0 Noson/1.0 (ACR_noson)\r\n")
       .append("Connection: close\r\n")
       .append("\r\n");

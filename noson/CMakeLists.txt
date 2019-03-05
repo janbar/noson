@@ -208,6 +208,8 @@ file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/streambuffer.h
           DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/streamreader.h
         DESTINATION ${noson_PUBLIC_DIR})
+file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/filestreamer.h
+        DESTINATION ${noson_PUBLIC_DIR})
 if(HAVE_FLAC)
   file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/flacencoder.h
             DESTINATION ${noson_PUBLIC_DIR})
@@ -261,6 +263,10 @@ list (APPEND SRC_FILES
   src/element.h
   src/eventhandler.cpp
   src/eventhandler.h
+  src/filepicreader.cpp
+  src/filepicreader.h
+  src/filestreamer.cpp
+  src/filestreamer.h
   src/imageservice.cpp
   src/imageservice.h
   src/intrinsic.cpp

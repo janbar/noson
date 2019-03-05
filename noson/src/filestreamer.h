@@ -15,27 +15,29 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef IMAGESERVICE_H
-#define IMAGESERVICE_H
+#ifndef FILESTREAMER_H
+#define FILESTREAMER_H
 
 #include "requestbroker.h"
 #include "locked.h"
 
-#include <map>
+#include <string>
+#include <vector>
 
-#define IMAGESERVICE_CNAME   "images"
+#define FILESTREAMER_CNAME      "file"
+#define FILESTREAMER_PARAM_PATH "path"
 
 namespace NSROOT
 {
 
-class ImageService : public RequestBroker
+class FileStreamer : public RequestBroker
 {
 public:
-  ImageService();
-  ~ImageService() override { }
+  FileStreamer();
+  ~FileStreamer() override { }
   virtual bool HandleRequest(void* handle, const char* uri) override;
 
-  const char * CommonName() override { return IMAGESERVICE_CNAME; }
+  const char * CommonName() override { return FILESTREAMER_CNAME; }
   RequestBroker::ResourcePtr GetResource(const std::string& title) override;
   RequestBroker::ResourceList GetResourceList() override;
   RequestBroker::ResourcePtr RegisterResource(const std::string& title,
@@ -45,17 +47,47 @@ public:
   void UnregisterResource(const std::string& uri) override;
 
 private:
-  typedef std::map<std::string, ResourcePtr> ResourceMap;
-  ResourceMap m_resources;
+  ResourceList m_resources;
 
-  void ReplyContent(void * handle, const std::string& uri);
+  // count current running playback
+  LockedNumber<int> m_playbackCount;
+
+  typedef struct {
+    const char * codec;
+    const char * suffix;
+    const char * mime;
+  } codec_type;
+
+  static codec_type codecTypeTab[];
+  static int codecTypeTabSize;
+
+  enum FileType {
+    Mime_flac = 0,
+    Mime_mpeg,
+  };
+
+  typedef struct {
+    const char * mime;
+    bool (*probe)(const std::string& filePath);
+  } file_type;
+
+  static file_type fileTypeTab[];
+  static int fileTypeTabSize;
+
+  static void readParameters(const std::string& streamUrl, std::vector<std::string>& params);
+  static std::string getParamValue(const std::vector<std::string>& params, const std::string& name);
+  static bool probe(const std::string& filePath, const std::string& mimeType);
+  static bool probeFLAC(const std::string& filePath);
+  static bool probeMPEG(const std::string& filePath);
+  void streamFile(void * handle, const std::string& filePath, const std::string& mimeType);
+
 
   void Reply500(void * handle);
   void Reply400(void * handle);
-  void Reply404(void * handle);
+  void Reply429(void * handle);
 };
 
 }
 
-#endif /* IMAGESERVICE_H */
+#endif /* FILESTREAMER_H */
 
