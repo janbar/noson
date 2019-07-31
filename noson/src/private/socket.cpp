@@ -70,17 +70,17 @@ namespace NSROOT
 
   struct SocketAddress
   {
-    char data[sizeof(sockaddr_in6)];
+    sockaddr_storage data;
     socklen_t sa_len;
 
     SocketAddress() { Clear(AF_UNSPEC); }
     SocketAddress(int family) { Clear(family); }
     inline sockaddr* sa() { return (sockaddr*)&data; }
-    inline int sa_family() { return ((sockaddr*)&data)->sa_family; }
+    inline int sa_family() { return data.ss_family; }
     void Clear(int family)
     {
       memset(&data, 0, sizeof(data));
-      ((sockaddr*)&data)->sa_family = family;
+      data.ss_family = family;
       sa_len = (family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6));
     }
   };
