@@ -490,7 +490,7 @@ const char* TcpSocket::GetMyHostName()
 TcpServerSocket::TcpServerSocket()
 : m_socket(INVALID_SOCKET_VALUE)
 , m_errno(0)
-, m_maxconnections(5)
+, m_requestQueueSize(0)
 {
   m_addr = new(SocketAddress);
 }
@@ -572,18 +572,18 @@ bool TcpServerSocket::Bind(unsigned port)
   return true;
 }
 
-bool TcpServerSocket::ListenConnection(int maxConnections /*= SOCKET_CONNECTION_REQUESTS*/)
+bool TcpServerSocket::ListenConnection(int queueSize /*= SOCKET_CONNECTION_REQUESTS*/)
 {
   if (!IsValid())
     return false;
 
-  if (listen(m_socket, maxConnections))
+  if (listen(m_socket, queueSize))
   {
     m_errno = LASTERROR;
     DBG(DBG_ERROR, "%s: listen failed (%d)\n", __FUNCTION__, m_errno);
     return false;
   }
-  m_maxconnections = maxConnections;
+  m_requestQueueSize = queueSize;
   return true;
 }
 
