@@ -151,6 +151,7 @@ void ImageService::ReplyContent(handle * handle)
     }
     else if (stream)
     {
+      res->delegate->CloseStream(stream);
       Reply404(handle);
     }
     else
