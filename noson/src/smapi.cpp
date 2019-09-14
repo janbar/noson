@@ -596,7 +596,9 @@ ElementList SMAPI::DoCall(const std::string& action, const ElementList& args)
   WSRequest request(*m_uri, HRM_POST);
   request.SetUserAgent(m_service->GetAgent());
   if (!m_locale.empty())
-    request.SetHeader("Accept-Language", std::string(m_locale).append(", en-US;q=0.9"));
+    request.SetHeader("Accept-Language", std::string(m_locale).append(",en-US;q=0.9,en;q=0.5"));
+  else
+    request.SetHeader("Accept-Language", "en-US,en;q=0.9");
   request.SetHeader("SOAPAction", soapaction);
   request.SetContentCustom(CT_XML, content.c_str());
   WSResponse response(request);
