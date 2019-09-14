@@ -94,7 +94,7 @@ bool SMAPI::Init(const SMServicePtr& smsvc, const std::string& locale)
   m_service = smsvc;
   if (!m_service)
     return false;
-  m_locale.assign(locale);
+  m_locale.assign(toLocale(locale));
   string_to_uint32(smsvc->GetCapabilities().c_str(), &m_capabilities);
   tz_t tz;
   m_tz.assign(time_tz(time(0), &tz)->tz_str);
@@ -761,4 +761,25 @@ ElementList SMAPI::Request(const std::string& action, const ElementList& args)
     }
   }
   return vars;
+}
+
+std::string SMAPI::toLocale(const std::string& locale)
+{
+  int part = 0;
+  std::string ret;
+  for (std::string::const_iterator it = locale.cbegin(); it != locale.cend(); ++it)
+  {
+    if (isalpha(*it))
+    {
+      if (part == 0)
+        ret.push_back((char)tolower(*it));
+      else
+        ret.push_back((char)toupper(*it));
+    }
+    else if (0 == part++)
+      ret.push_back('-');
+    else
+      break;
+  }
+  return ret;
 }
