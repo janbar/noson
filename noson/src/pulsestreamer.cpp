@@ -81,8 +81,8 @@ bool PulseStreamer::HandleRequest(handle * handle)
       case RequestBroker::Method_HEAD:
       {
         std::string resp;
-        resp.assign(RequestBroker::MakeResponseHeader(Status_OK))
-            .append("Content-type: audio/flac\r\n")
+        resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
+            .append("Content-Type: audio/flac\r\n")
             .append("\r\n");
         RequestBroker::Reply(handle, resp.c_str(), resp.length());
         return true;
@@ -198,8 +198,8 @@ void PulseStreamer::streamSink(handle * handle)
 
     std::string resp;
     resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
-        .append("Content-type: audio/flac\r\n")
-        .append("Transfer-encoding: chunked\r\n")
+        .append("Content-Type: audio/flac\r\n")
+        .append("Transfer-Encoding: chunked\r\n")
         .append("\r\n");
 
     if (RequestBroker::Reply(handle, resp.c_str(), resp.length()))
