@@ -29,7 +29,6 @@
 #include "subscription.h"
 #include "element.h"
 #include "locked.h"
-#include "musicservices.h"
 
 #include <string>
 #include <vector>
@@ -41,8 +40,6 @@ namespace NSROOT
   class DeviceProperties;
   class RenderingControl;
   class ContentDirectory;
-  class MusicServices;
-  class Subscription;
 
   class Player;
 
@@ -161,6 +158,9 @@ namespace NSROOT
     DigitalItemPtr MakeFileStreamItem(const std::string& filePath, const std::string& codec, const std::string& title, const std::string& album,
                                       const std::string& author, const std::string& duration, bool hasArt);
 
+    // Content directory
+    ContentProperty GetContentProperty();
+
   private:
     bool m_valid;
     ZonePtr m_zone;
@@ -175,6 +175,7 @@ namespace NSROOT
     // Services API
     DeviceProperties*   m_deviceProperties;
     AVTransport*        m_AVTransport;
+    ContentDirectory*   m_contentDirectory;
 
     // The name and address of this controller
     std::string m_controllerLocalUri;
@@ -184,6 +185,7 @@ namespace NSROOT
 
     // Services subscriptions
     Subscription m_AVTSubscription;
+    Subscription m_CDSubscription;
 
     class SubordinateRC
     {
@@ -204,6 +206,7 @@ namespace NSROOT
     // event callback
     static void CB_AVTransport(void* handle);
     static void CB_RenderingControl(void* handle);
+    static void CB_ContentDirectory(void* handle);
 
     // prevent copy
     Player(const Player&);
