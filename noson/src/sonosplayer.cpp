@@ -225,6 +225,7 @@ void Player::CB_ContentDirectory(void* handle)
 
 void Player::RevokeSubscription()
 {
+  m_CDSubscription.Stop();
   m_AVTSubscription.Stop();
   for (RCTable::iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
     it->subscription.Stop();
@@ -235,6 +236,7 @@ void Player::RenewSubscriptions()
   for (RCTable::iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
     it->subscription.AskRenewal();
   m_AVTSubscription.AskRenewal();
+  m_CDSubscription.AskRenewal();
 }
 
 unsigned char Player::LastEvents()
