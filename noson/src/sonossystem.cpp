@@ -89,6 +89,7 @@ System::~System()
   SAFE_DELETE(m_deviceProperties);
   SAFE_DELETE(m_groupTopology);
   SAFE_DELETE(m_cbzgt);
+  m_eventHandler.RevokeAllSubscriptions(this);
   SAFE_DELETE(m_mutex);
 }
 
@@ -257,7 +258,13 @@ bool System::IsConnected() const
 
 void System::HandleEventMessage(EventMessagePtr msg)
 {
-  (void)msg;
+  if (!msg)
+    return;
+  if (msg->event == EVENT_HANDLER_STATUS)
+  {
+    // @TODO: handle status
+    DBG(DBG_DEBUG, "%s: %s\n", __FUNCTION__, msg->subject[0].c_str());
+  }
 }
 
 AlarmList System::GetAlarmList() const

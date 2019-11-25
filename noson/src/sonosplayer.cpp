@@ -105,7 +105,6 @@ Player::Player(const ZonePlayerPtr& zonePlayer)
 
 Player::~Player()
 {
-  m_eventHandler.RevokeAllSubscriptions(this);
   SAFE_DELETE(m_contentDirectory);
   SAFE_DELETE(m_AVTransport);
   SAFE_DELETE(m_deviceProperties);
@@ -151,9 +150,6 @@ bool Player::Init(System* system)
   m_controllerUri.assign(ProtocolTable[Protocol_http])
       .append("://").append(m_controllerHost)
       .append(":").append(std::to_string(m_eventHandler.GetPort()));
-
-  unsigned subId = m_eventHandler.CreateSubscription(this);
-  m_eventHandler.SubscribeForEvent(subId, EVENT_HANDLER_STATUS);
 
   // initialize subordinates
   for (Zone::const_iterator it = m_zone->begin(); it != m_zone->end(); ++it)
@@ -720,17 +716,6 @@ bool Player::PlayDigitalIN()
   std::string uri(ProtocolTable[Protocol_xSonosHtaStream]);
   uri.append(":").append(m_uuid).append(":spdif");
   return m_AVTransport->SetCurrentURI(uri, "") && m_AVTransport->Play();
-}
-
-void Player::HandleEventMessage(EventMessagePtr msg)
-{
-  if (!msg)
-    return;
-  if (msg->event == EVENT_HANDLER_STATUS)
-  {
-    // @TODO: handle status
-    DBG(DBG_DEBUG, "%s: %s\n", __FUNCTION__, msg->subject[0].c_str());
-  }
 }
 
 Protocol_t Player::GetURIProtocol(const std::string& uri)

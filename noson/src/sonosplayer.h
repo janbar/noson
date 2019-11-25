@@ -47,7 +47,7 @@ namespace NSROOT
   typedef SHARED_PTR<Player> PlayerPtr;
   typedef std::vector<SRProperty> SRPList;
 
-  class Player : public EventSubscriber
+  class Player
   {
   public:
 
@@ -144,9 +144,6 @@ namespace NSROOT
 
     bool PlayLineIN();
     bool PlayDigitalIN();
-
-    // Implements EventSubscriber
-    virtual void HandleEventMessage(EventMessagePtr msg);
 
     // Helpers
     Protocol_t GetURIProtocol(const std::string& uri);
