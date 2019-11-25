@@ -76,7 +76,6 @@ namespace NSROOT
     unsigned GetPort() const { return m_devicePort; }
     ZonePtr GetZone() const { return m_zone; }
 
-    void RenewSubscriptions();
     unsigned char LastEvents();
     bool RenderingPropertyEmpty();
     SRPList GetRenderingProperty();
@@ -185,15 +184,12 @@ namespace NSROOT
 
     // Services subscriptions
     SubscriptionPoolPtr m_subscriptionPool;
-    Subscription m_AVTSubscription;
-    Subscription m_CDSubscription;
 
     class SubordinateRC
     {
     public:
       std::string uuid;
       std::string name;
-      Subscription subscription;
       RenderingControl* renderingControl;
       void FillSRProperty(SRProperty& srp) const;
     };
