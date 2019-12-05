@@ -1,8 +1,10 @@
 cmake_minimum_required (VERSION 2.8.9 FATAL_ERROR)
 cmake_policy (VERSION 2.8)
 
-add_subdirectory (${CMAKE_SOURCE_DIR}/noson)
-add_subdirectory (${CMAKE_SOURCE_DIR}/test)
+project(libnoson)
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/noson)
+add_subdirectory(${CMAKE_SOURCE_DIR}/test)
 
 ###############################################################################
 # install targets

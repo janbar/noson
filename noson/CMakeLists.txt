@@ -4,15 +4,6 @@ cmake_policy (VERSION 3.1)
 project (noson)
 
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-#include (GNUInstallDirs)
-
-# Options
-OPTION (BUILD_SHARED_LIBS "Build shared libraries." OFF)
-if (MSVC)
-  # This option must match the settings used in your program, in particular if you
-  # are linking statically
-  OPTION (STATIC_CRT "Link the static CRT libraries" OFF)
-endif ()
 
 ###############################################################################
 # set lib version here
@@ -27,22 +18,16 @@ set (NOSON_LIB_SOVERSION ${noson_VERSION_MAJOR})
 ###############################################################################
 # add definitions
 if (MSVC)
+  include(MSVCRuntime)
+  configure_msvc_runtime()
   add_definitions ("/D_CRT_SECURE_NO_WARNINGS")
-  if (STATIC_CRT)
-    set (CMAKE_C_FLAGS_RELEASE "/MT")
-    set (CMAKE_C_FLAGS_MINSIZEREL "/MT")
-    set (CMAKE_C_FLAGS_RELWITHDEBINFO "/MT")
-    set (CMAKE_C_FLAGS_DEBUG "/MTd")
-    set (CMAKE_CXX_FLAGS_RELEASE "/MT")
-    set (CMAKE_CXX_FLAGS_MINSIZEREL "/MT")
-    set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "/MT")
-    set (CMAKE_CXX_FLAGS_DEBUG "/MTd")
-  endif ()
   set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /W3 /Od /RTC1")
   set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /EHsc /nologo")
   set (CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /O2 /EHsc /nologo")
   set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /O2 /EHsc /nologo")
   set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /W3 /Od /RTC1 /EHsc /nologo")
+  set( CMAKE_SHARED_LIBRARY_PREFIX "lib" )
+  set( CMAKE_STATIC_LIBRARY_PREFIX "lib" )
 endif ()
 
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -57,43 +42,43 @@ find_package (Threads REQUIRED)
 
 check_function_exists (timegm CHK_TIMEGM)
 if (CHK_TIMEGM)
-    set (HAVE_TIMEGM 1)
+  set (HAVE_TIMEGM 1)
 else ()
-    set (HAVE_TIMEGM 0)
+  set (HAVE_TIMEGM 0)
 endif ()
 
 check_function_exists (localtime_r CHK_LOCALTIME_R)
 if (CHK_LOCALTIME_R)
-    set (HAVE_LOCALTIME_R 1)
+  set (HAVE_LOCALTIME_R 1)
 else ()
-    set (HAVE_LOCALTIME_R 0)
+  set (HAVE_LOCALTIME_R 0)
 endif ()
 
 check_function_exists (gmtime_r CHK_GMTIME_R)
 if (CHK_GMTIME_R)
-    set (HAVE_GMTIME_R 1)
+  set (HAVE_GMTIME_R 1)
 else ()
-    set (HAVE_GMTIME_R 0)
+  set (HAVE_GMTIME_R 0)
 endif ()
 
 if (NOT ZLIB_FOUND)
-    find_package (ZLIB REQUIRED)
+  find_package (ZLIB REQUIRED)
 endif()
 if (ZLIB_FOUND)
-    include_directories (${ZLIB_INCLUDE_DIRS})
-    set (HAVE_ZLIB 1)
+  include_directories (${ZLIB_INCLUDE_DIRS})
+  set (HAVE_ZLIB 1)
 else ()
-    set (HAVE_ZLIB 0)
+  set (HAVE_ZLIB 0)
 endif ()
 
 if (NOT OPENSSL_FOUND)
-    find_package(OpenSSL REQUIRED)
+  find_package(OpenSSL REQUIRED)
 endif()
 if (OPENSSL_FOUND)
-    include_directories (${OPENSSL_INCLUDE_DIR})
-    set (HAVE_OPENSSL 1)
+  include_directories (${OPENSSL_INCLUDE_DIR})
+  set (HAVE_OPENSSL 1)
 else ()
-    set (HAVE_OPENSSL 0)
+  set (HAVE_OPENSSL 0)
 endif ()
 
 # Check what the inline keyword is.
@@ -101,22 +86,22 @@ check_function_keywords ("inline")
 check_function_keywords ("__inline")
 check_function_keywords ("__inline__")
 if (HAVE_INLINE)
-   set (CC_INLINE inline)
+  set (CC_INLINE inline)
 elseif (HAVE___INLINE)
-   set (CC_INLINE __inline)
+  set (CC_INLINE __inline)
 elseif (HAVE___INLINE__)
-   set (CC_INLINE __inline__)
+  set (CC_INLINE __inline__)
 else ()
-   # no inline on this platform
-   set (CC_INLINE)
+  # no inline on this platform
+  set (CC_INLINE)
 endif ()
 
 # About streamer
 if (NOT FLAC_FOUND)
-    find_package(FLAC)
+  find_package(FLAC)
 endif ()
 if (NOT FLACXX_FOUND)
-    find_package(FLACXX)
+  find_package(FLACXX)
 endif ()
 find_package(Pulse)
 find_package(Pulse-simple)
@@ -132,93 +117,93 @@ set (noson_PUBLIC_DIR "${CMAKE_CURRENT_BINARY_DIR}/public/noson")
 
 # configure the public config file
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/src/local_config.h.in
-                 ${noson_PUBLIC_DIR}/local_config.h)
+  ${noson_PUBLIC_DIR}/local_config.h)
 
 # Copy the header files to the public folder
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/locked.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/intrinsic.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/sharedptr.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/avtransport.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/contentdirectory.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/deviceproperties.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/didlparser.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/digitalitem.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/element.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/eventhandler.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/renderingcontrol.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/service.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/subscription.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/sonosplayer.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/sonossystem.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/sonostypes.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/sonoszone.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/zonegrouptopology.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/musicservices.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/smapi.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/smapimetadata.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/smaccount.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/alarmclock.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/alarm.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/requestbroker.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/subscriptionpool.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 
 # Copy headers for streams
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/audioencoder.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/audioformat.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/audiosource.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/audiostream.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/iodevice.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/streambuffer.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/streamreader.h
-        DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/filestreamer.h
-        DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 if(HAVE_FLAC)
   file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/flacencoder.h
-            DESTINATION ${noson_PUBLIC_DIR})
+    DESTINATION ${noson_PUBLIC_DIR})
   if(HAVE_PULSEAUDIO)
     file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/pacontrol.h
-              DESTINATION ${noson_PUBLIC_DIR})
+      DESTINATION ${noson_PUBLIC_DIR})
     file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/pasource.h
-              DESTINATION ${noson_PUBLIC_DIR})
+      DESTINATION ${noson_PUBLIC_DIR})
     file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/pulsestreamer.h
-              DESTINATION ${noson_PUBLIC_DIR})
+      DESTINATION ${noson_PUBLIC_DIR})
   endif()
 endif()
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/imageservice.h
-          DESTINATION ${noson_PUBLIC_DIR})
+  DESTINATION ${noson_PUBLIC_DIR})
 
 file (GLOB PUBLIC_HEADER_FILES ${noson_PUBLIC_DIR}/*.h)
 
@@ -339,39 +324,36 @@ set (noson_SOURCES ${SRC_FILES} ${OS_SRC_FILES} ${STREAM_SRC_FILES})
 
 ###############################################################################
 # add targets
-set (noson_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+
+add_library (noson ${noson_SOURCES})
+
+target_link_libraries (noson ${CMAKE_THREAD_LIBS_INIT})
 if (ZLIB_FOUND)
-  list (APPEND noson_LIBRARIES ${ZLIB_LIBRARIES})
+  target_link_libraries (noson ${ZLIB_LIBRARIES})
 endif ()
 if (OPENSSL_FOUND)
-  list (APPEND noson_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
+  target_link_libraries (noson ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
 endif ()
 if(HAVE_FLAC)
-  list(APPEND noson_LIBRARIES ${FLACXX_LIBRARIES} ${FLAC_LIBRARIES})
+  target_link_libraries (noson ${FLACXX_LIBRARIES} ${FLAC_LIBRARIES})
 endif()
 if(HAVE_PULSEAUDIO)
-  list(APPEND noson_LIBRARIES ${PULSESIMPLE_LIBRARIES} ${PULSE_LIBRARIES})
+  target_link_libraries (noson ${PULSESIMPLE_LIBRARIES} ${PULSE_LIBRARIES})
 endif()
 
 if (MSVC)
-  list (APPEND noson_LIBRARIES ws2_32)
+  target_link_libraries (noson ws2_32)
 else ()
-  list (APPEND noson_LIBRARIES m)
+  target_link_libraries (noson m)
   find_library (LIBRT rt)
   if (LIBRT)
-    list (APPEND noson_LIBRARIES rt)
+    target_link_libraries(noson rt)
   endif ()
 endif ()
 
-if (BUILD_SHARED_LIBS)
-  add_library (noson SHARED ${noson_SOURCES})
-else ()
-  add_library (noson STATIC ${noson_SOURCES})
-endif ()
-target_link_libraries (noson ${noson_LIBRARIES})
 set_target_properties (noson PROPERTIES
-    VERSION "${NOSON_LIB_VERSION}"
-    SOVERSION "${NOSON_LIB_SOVERSION}")
+  VERSION "${NOSON_LIB_VERSION}"
+  SOVERSION "${NOSON_LIB_SOVERSION}")
 
 # Export the package for use from the build-tree
 # (this registers the build-tree with a global CMake-registry)
