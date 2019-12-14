@@ -101,6 +101,16 @@ private:
   static bool resize_packet(packet_t * packet, uint32_t size);
   static bool fill_packet(packet_t * packet, uint32_t len, FILE * fp);
   static bool parse_comment(packet_t * packet, Picture ** pic, PictureType pictureType);
+
+  static Picture * ExtractMP4Picture(const std::string& filePath, PictureType pictureType, bool& error);
+  static void FreeMP4Picture(void * payload);
+  static int nextChild(unsigned char * buf, uint64_t * remaining, FILE * fp, unsigned * child, uint64_t * childSize);
+  static int loadDataValue(uint64_t * remaining, FILE * fp, char ** alloc, unsigned * allocSize);
+  static int loadCovrValue(uint64_t * remaining, FILE * fp, Picture ** pic);
+  static int parse_ilst(uint64_t * remaining, FILE * fp, Picture ** pic);
+  static int parse_meta(uint64_t * remaining, FILE * fp, Picture ** pic);
+  static int parse_udta(uint64_t * remaining, FILE * fp, Picture ** pic);
+  static int parse_moov(uint64_t * remaining, FILE * fp, Picture ** pic);
 };
 
 }

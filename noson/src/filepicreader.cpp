@@ -126,6 +126,20 @@ StreamReader::STREAM * FilePicReader::OpenStream(const std::string& streamUrl)
       return stream;
     }
   }
+  if (suffix.compare("m4a") == 0)
+  {
+    Picture * picture = ExtractMP4Picture(filePath, picType, error);
+    if (picture)
+    {
+      STREAM * stream = new STREAM();
+      stream->opaque = picture;
+      stream->contentType = picture->mime;
+      stream->contentLength = picture->size;
+      stream->data = nullptr;
+      stream->size = 0;
+      return stream;
+    }
+  }
 
   // error flag has been cleaned but no picture has been found
   // return null stream
@@ -934,4 +948,230 @@ bool FilePicReader::parse_comment(packet_t * packet, Picture ** pic, PictureType
   packet->data = vp + *vp;
   packet->datalen -= ve - vp - *vp;
   return (count == 0);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//// Media file MP4
+/////////////////////////////////////////////////////////////////////////////
+
+#define M4A_HEADER_SIZE  8
+
+FilePicReader::Picture* FilePicReader::ExtractMP4Picture(const std::string& filePath, PictureType pictureType, bool& error)
+{
+  unsigned char buf[M4A_HEADER_SIZE];
+  bool isValid = false;
+  bool isLast = false;
+  Picture * pic = nullptr;
+  FILE * file = fopen(filePath.c_str(), "rb");
+  if (!file)
+  {
+    DBG(DBG_INFO, "%s: file not found (%s)\n", __FUNCTION__, filePath.c_str());
+    error = true;
+    return pic;
+  }
+
+  // loop over chunks until one match with requirements
+  unsigned chunk;
+  uint64_t size, remaining = M4A_HEADER_SIZE;
+  int r;
+  while (!isLast && (r = nextChild(buf, &remaining, file, &chunk, &size)) > 0)
+  {
+    if (chunk == 0x66747970) // ftyp
+    {
+      if (size < 4 || fread(buf, 1, 4, file) != 4)
+        break;
+      size -= 4;
+      isValid = true;
+      if (memcmp(buf, "M4A ", 4) == 0 || memcmp(buf, "M4B ", 4) == 0)
+        isValid = true;
+      else
+        isValid = false;
+    }
+    else if (chunk == 0x6d6f6f76) // moov
+    {
+      parse_moov(&size, file, &pic);
+      isLast = true;
+    }
+
+    // first chunk MUST be ftyp, else return an error
+    if (!isValid || (size && fseek(file, size, SEEK_CUR) != 0))
+    {
+      DBG(DBG_INFO, "%s: bad magic header (%s)\n", __FUNCTION__, filePath.c_str());
+      break;
+    }
+    // refill remaining
+    remaining = M4A_HEADER_SIZE;
+  }
+  fclose(file);
+  error = (!isLast && pic == nullptr);
+  return pic;
+}
+
+void FilePicReader::FreeMP4Picture(void* payload)
+{
+  assert(payload);
+  char * pic = static_cast<char*>(payload);
+  delete [] pic;
+}
+
+int FilePicReader::nextChild(unsigned char * buf, uint64_t * remaining, FILE * fp, unsigned * child, uint64_t * childSize)
+{
+  if (*remaining < M4A_HEADER_SIZE)
+    return 0; // end of chunk
+  if (fread(buf, 1, M4A_HEADER_SIZE, fp) == M4A_HEADER_SIZE)
+  {
+    *remaining -= M4A_HEADER_SIZE;
+    *child = (unsigned)read32be(buf + 4);
+    *childSize = (uint32_t)read32be(buf);
+    if (*childSize == 1)
+    {
+      // size of 1 means the real size follows the header in next 8 bytes (64bits)
+      if (*remaining < 8 || fread(buf, 1, 8, fp) != 8)
+        return -1; // error
+      *remaining -= 8;
+      *childSize = (((uint64_t)read32be(buf) << 32) | (uint32_t)read32be(buf + 4)) - M4A_HEADER_SIZE - 8;
+    }
+    else
+    {
+      *childSize -= M4A_HEADER_SIZE;
+    }
+    if (*child > 0x20202020)
+      return 1;
+  }
+  return -1; // error
+}
+
+int FilePicReader::loadDataValue(uint64_t * remaining, FILE * fp, char ** alloc, unsigned * allocSize)
+{
+  unsigned char buf[M4A_HEADER_SIZE];
+  unsigned child;
+  uint64_t size;
+  int r;
+  if ((r = nextChild(buf, remaining, fp, &child, &size)) > 0)
+  {
+    if (*remaining < size || child != 0x64617461) // data
+      return -1;
+    char * _alloc = new char [size];
+    if (fread(_alloc, 1, size, fp) != size)
+    {
+      delete [] _alloc;
+      return -1;
+    }
+    *remaining -= size;
+    *allocSize = size;
+    *alloc = _alloc;
+    return (read32be(_alloc) & 0x00ffffff); // return datatype
+  }
+  return r;
+}
+
+int FilePicReader::loadCovrValue(uint64_t * remaining, FILE * fp, Picture ** pic)
+{
+  static const char * mime_types[2] = { "image/jpeg" , "image/png" };
+  char * alloc = nullptr;
+  unsigned allocSize = 0;
+  int r = loadDataValue(remaining, fp, &alloc, &allocSize);
+  if (r == 0x0D || r == 0x0E) // JPEG | PNG
+  {
+    Picture * p = new Picture();
+    p->payload = alloc; // allocated pointer
+    p->free = &FilePicReader::FreeMP4Picture; // handler to free the payload
+    p->mime = mime_types[r - 0x0D]; // mime type string
+    p->data = alloc + 8; // image data
+    p->size = allocSize - 8; // image data length
+    DBG(DBG_PROTO, "%s: found picture (%s) size (%u)\n", __FUNCTION__, p->mime, p->size);
+    *pic = p;
+  }
+  return r;
+}
+
+int FilePicReader::parse_ilst(uint64_t * remaining, FILE * fp, Picture ** pic)
+{
+  unsigned char buf[M4A_HEADER_SIZE];
+  unsigned child;
+  uint64_t size;
+  int r;
+  while ((r = nextChild(buf, remaining, fp, &child, &size)) > 0)
+  {
+    uint64_t rest = size;
+    if (child == 0x636f7672) // covr
+      loadCovrValue(&rest, fp, pic);
+
+    // move to the end of child
+    if (rest && fseek(fp, rest, SEEK_CUR) != 0)
+      return -1;
+    *remaining -= size;
+  }
+  return 1;
+}
+
+int FilePicReader::parse_meta(uint64_t * remaining, FILE * fp, Picture ** pic)
+{
+  bool exit = false;
+  unsigned char buf[M4A_HEADER_SIZE];
+  unsigned child;
+  uint64_t size;
+  int r;
+  // skip flag bytes before reading children atoms
+  if (*remaining < 4 || fread(buf, 1, 4, fp) != 4)
+    return -1;
+  *remaining -= 4;
+  while (!exit && (r = nextChild(buf, remaining, fp, &child, &size)) > 0)
+  {
+    uint64_t rest = size;
+    if (child == 0x696c7374) // ilst
+    {
+      parse_ilst(&rest, fp, pic);
+      exit = true;
+    }
+    // move to the end of child
+    if (rest && fseek(fp, rest, SEEK_CUR) != 0)
+      break;
+    *remaining -= size;
+  }
+  return 1;
+}
+
+int FilePicReader::parse_udta(uint64_t * remaining, FILE * fp, Picture ** pic)
+{
+  bool exit = false;
+  unsigned char buf[M4A_HEADER_SIZE];
+  unsigned child;
+  uint64_t size;
+  int r;
+  while (!exit && (r = nextChild(buf, remaining, fp, &child, &size)) > 0)
+  {
+    uint64_t rest = size;
+    if (child == 0x6d657461) // meta
+    {
+      parse_meta(&rest, fp, pic);
+      exit = true;
+    }
+    // move to the end of child
+    if (rest && fseek(fp, rest, SEEK_CUR) != 0)
+      return -1;
+    *remaining -= size;
+  }
+  return 1;
+}
+
+int FilePicReader::parse_moov(uint64_t * remaining, FILE * fp, Picture ** pic)
+{
+  unsigned char buf[M4A_HEADER_SIZE];
+  unsigned child;
+  uint64_t size = 0;
+  int r;
+  while ((r = nextChild(buf, remaining, fp, &child, &size)) > 0)
+  {
+    uint64_t rest = size;
+    if (child == 0x75647461) // udta
+    {
+      parse_udta(&rest, fp, pic);
+    }
+    // move to the end of child
+    if (rest && fseek(fp, rest, SEEK_CUR) != 0)
+      return -1;
+    *remaining -= size;
+  }
+  return 1;
 }
