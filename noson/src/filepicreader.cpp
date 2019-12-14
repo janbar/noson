@@ -126,7 +126,7 @@ StreamReader::STREAM * FilePicReader::OpenStream(const std::string& streamUrl)
       return stream;
     }
   }
-  if (suffix.compare("m4a") == 0)
+  if (suffix.compare("m4a") == 0 || suffix.compare("m4b") == 0)
   {
     Picture * picture = ExtractMP4Picture(filePath, picType, error);
     if (picture)

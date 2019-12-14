@@ -45,6 +45,7 @@ FileStreamer::codec_type FileStreamer::codecTypeTab[] = {
   { "mpeg4aac"      , "aac"  , "audio/aac"  },
   { "vorbis"        , "ogg"  , "application/ogg" },
   { "mp4a"          , "m4a"  , "audio/mp4"  },
+  { "mp4b"          , "m4b"  , "audio/mp4"  },
 };
 
 int FileStreamer::codecTypeTabSize = sizeof(FileStreamer::codecTypeTab) / sizeof(FileStreamer::codec_type);
@@ -330,7 +331,8 @@ bool FileStreamer::probeMP4A(const std::string& filePath)
   if (file)
   {
     char buf[12];
-    if (fread(buf, 1, 12, file) == 12 && memcmp(buf + 4, "ftypM4A ", 8) == 0)
+    if (fread(buf, 1, 12, file) == 12 &&
+            (memcmp(buf + 4, "ftypM4A ", 8) == 0 || memcmp(buf + 4, "ftypM4B ", 8) == 0))
       ret = true;
     fclose(file);
   }
