@@ -49,9 +49,9 @@ FileStreamer::codec_type FileStreamer::codecTypeTab[] = {
 int FileStreamer::codecTypeTabSize = sizeof(FileStreamer::codecTypeTab) / sizeof(FileStreamer::codec_type);
 
 FileStreamer::file_type FileStreamer::fileTypeTab[] = {
-  { "audio/flac"        , &FileStreamer::probeFLAC  , Transfer_Chunked },
-  { "audio/mpeg"        , &FileStreamer::probeMPEG  , Transfer_Chunked },
-  { "audio/aac"         , &FileStreamer::probeMPEG  , Transfer_Chunked },
+  { "audio/flac"        , &FileStreamer::probeFLAC  , Transfer_ByRange },
+  { "audio/mpeg"        , &FileStreamer::probeMPEG  , Transfer_ByRange },
+  { "audio/aac"         , &FileStreamer::probeMPEG  , Transfer_ByRange },
   { "application/ogg"   , &FileStreamer::probeOGGS  , Transfer_ByRange },
 };
 
