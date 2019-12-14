@@ -44,6 +44,7 @@ FileStreamer::codec_type FileStreamer::codecTypeTab[] = {
   { "mpeg2aac"      , "aac"  , "audio/aac"  },
   { "mpeg4aac"      , "aac"  , "audio/aac"  },
   { "vorbis"        , "ogg"  , "application/ogg" },
+  { "mp4a"          , "m4a"  , "audio/mp4"  },
 };
 
 int FileStreamer::codecTypeTabSize = sizeof(FileStreamer::codecTypeTab) / sizeof(FileStreamer::codec_type);
@@ -53,6 +54,7 @@ FileStreamer::file_type FileStreamer::fileTypeTab[] = {
   { "audio/mpeg"        , &FileStreamer::probeMPEG  , Transfer_ByRange },
   { "audio/aac"         , &FileStreamer::probeMPEG  , Transfer_ByRange },
   { "application/ogg"   , &FileStreamer::probeOGGS  , Transfer_ByRange },
+  { "audio/mp4"         , &FileStreamer::probeMP4A  , Transfer_ByRange },
 };
 
 int FileStreamer::fileTypeTabSize = sizeof(FileStreamer::fileTypeTab) / sizeof(FileStreamer::file_type);
@@ -315,6 +317,20 @@ bool FileStreamer::probeOGGS(const std::string& filePath)
   {
     char buf[4];
     if (fread(buf, 1, 4, file) == 4 && memcmp(buf, "OggS", 4) == 0)
+      ret = true;
+    fclose(file);
+  }
+  return ret;
+}
+
+bool FileStreamer::probeMP4A(const std::string& filePath)
+{
+  bool ret = false;
+  FILE * file = fopen(filePath.c_str(), "rb");
+  if (file)
+  {
+    char buf[12];
+    if (fread(buf, 1, 12, file) == 12 && memcmp(buf + 4, "ftypM4A ", 8) == 0)
       ret = true;
     fclose(file);
   }

@@ -97,6 +97,7 @@ private:
   static bool probeFLAC(const std::string& filePath);
   static bool probeMPEG(const std::string& filePath);
   static bool probeOGGS(const std::string& filePath);
+  static bool probeMP4A(const std::string& filePath);
 
   typedef struct { size_t start; size_t end; } range;
   static range bytesRange(const std::string& rangeValue, size_t size);
