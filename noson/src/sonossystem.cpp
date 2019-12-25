@@ -101,10 +101,16 @@ void System::Debug(int level)
 
 bool System::Discover()
 {
-  std::string url;
-  if (!FindDeviceDescription(url))
+  std::vector<std::string> urls;
+  if (!FindDeviceDescriptions(urls))
     return false;
-  return Discover(url);
+
+  for (const std::string &url : urls) {
+    if (Discover(url)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool System::Discover(const std::string& url)
@@ -125,6 +131,13 @@ bool System::Discover(const std::string& url)
   SAFE_DELETE(m_alarmClock);
   SAFE_DELETE(m_deviceProperties);
   SAFE_DELETE(m_groupTopology);
+
+  // music services
+  m_musicServices = new MusicServices(uri.Host(), uri.Port());
+  m_smservices = m_musicServices->GetAvailableServices();
+  if (m_smservices.empty()) {
+    return false;
+  }
 
   // subscribe to ZoneGroupTopology events
   m_groupTopology = new ZoneGroupTopology(uri.Host(), uri.Port(), m_subscriptionPool, this, CB_ZGTopology);
@@ -151,10 +164,6 @@ bool System::Discover(const std::string& url)
   m_deviceProperties->GetZoneInfo(vars);
   m_serialNumber = vars.GetValue("SerialNumber");
   m_softwareVersion = vars.GetValue("SoftwareVersion");
-
-  // music services
-  m_musicServices = new MusicServices(uri.Host(), uri.Port());
-  m_smservices = m_musicServices->GetAvailableServices();
 
   // subscribe to AlarmClock events
   m_alarmClock = new AlarmClock(uri.Host(), uri.Port(), m_subscriptionPool, this, CB_AlarmClock);
@@ -643,6 +652,7 @@ bool System::FindDeviceDescription(std::string& url)
 #define SSDP_ADDR           "239.255.255.250"
 #define SSDP_STRP           "1900"
 #define SSDP_NUMP           1900
+#define RESPONSES_TIMEOUT   1000
 #define DISCOVER_TIMEOUT    5000
 #define DISCOVER_ST         "urn:schemas-upnp-org:device:ZonePlayer:1"
 #define HTTP_TOKEN_MAXSIZE  20
@@ -666,6 +676,7 @@ bool System::FindDeviceDescription(std::string& url)
   sock.SetMulticastTTL(4);
 
   OS::CTimeout timeout(DISCOVER_TIMEOUT);
+  OS::CTimeout responsesTimeout;
   while (!ret && timeout.TimeLeft() > 0 && !laddr.empty())
   {
     std::pair<std::string, unsigned> addr = laddr.front();
@@ -736,7 +747,7 @@ bool System::FindDeviceDescription(std::string& url)
               {
                 DBG(DBG_INFO, "%s: location url found (%s)\n", __FUNCTION__, val);
                 _context |= 0x8;
-                url.assign(val);
+                urls.push_back(val);
               }
               break;
             default:
@@ -748,6 +759,17 @@ bool System::FindDeviceDescription(std::string& url)
           // the message is ending by an empty line
           DBG(DBG_INFO, "%s: reseting context\n", __FUNCTION__);
           _context = 0; // reset context
+        }
+
+      }
+
+      // If we got a response, we give it one more second to receive potentially additional urls
+      if (_context == 0xF) {
+        if (!responsesTimeout.IsSet()) {
+          responsesTimeout.Set(RESPONSES_TIMEOUT);
+          _context = 0;
+        } else if (responsesTimeout.TimeLeft() > 0) {
+          _context = 0;
         }
       }
     }

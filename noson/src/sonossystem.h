@@ -196,7 +196,7 @@ namespace NSROOT
     SMServiceList m_smservices;
 
     static bool DeviceMatches(const char * serverString);
-    static bool FindDeviceDescription(std::string& url);
+    static bool FindDeviceDescriptions(std::vector<std::string>& urls);
     void RevokePlayers();
 
     static void CB_ZGTopology(void* handle);
