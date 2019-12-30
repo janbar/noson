@@ -615,6 +615,28 @@ RequestBrokerPtr System::GetRequestBroker(const std::string &name)
   return m_eventHandler.GetRequestBroker(name);
 }
 
+bool System::DeviceMatches(const char * serverString)
+{
+  // All models within the array will be discarded
+  static const char * discarded[] = { "WD", "CR", "BR", "ANVI", "" };
+
+  const char * vendor = strstr(serverString, "Sonos/");
+  if (!vendor)
+    return false;
+  const char * model_s = strstr(vendor, "(");
+  if (!model_s)
+    return false;
+  const char * model_e = strstr(model_s, ")");
+  if (!model_e)
+    return false;
+  std::string model(&model_s[1], (size_t)(model_e - model_s - 1));
+  for (int i = 0; *discarded[i] != '\0'; ++i) {
+    if (strncmp(discarded[i], model.c_str(), strlen(discarded[i])) == 0)
+      return false;
+  }
+  return true;
+}
+
 bool System::FindDeviceDescription(std::string& url)
 {
 #define IPBC_ADDR           "255.255.255.255"
@@ -697,7 +719,7 @@ bool System::FindDeviceDescription(std::string& url)
               {
                 DBG(DBG_INFO, "%s: server string found (%s)\n", __FUNCTION__, val);
                 _context |= 0x2;
-                if (strstr(val, "Sonos/"))
+                if (DeviceMatches(val))
                 {
                   DBG(DBG_INFO, "%s: search target matches\n", __FUNCTION__);
                   _context |= 0x4;
