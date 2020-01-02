@@ -491,6 +491,17 @@ void AVTransport::HandleEventMessage(EventMessagePtr msg)
         Locked<AVTProperty>::pointer prop = m_property.Get();
 
         DBG(DBG_DEBUG, "%s: %s SEQ=%s %s\n", __FUNCTION__, msg->subject[0].c_str(), msg->subject[1].c_str(), msg->subject[2].c_str());
+
+        // check for higher sequence
+        uint32_t seq = 0;
+        string_to_uint32(msg->subject[1].c_str(), &seq);
+        if (seq < prop->EventSEQ) // initialized value is zero and could be equal for the first message
+        {
+          DBG(DBG_DEBUG, "%s: %s CURRENT_SEQ=%u , sequence %u is obsolete\n", __FUNCTION__, msg->subject[0].c_str(), prop->EventSEQ, seq);
+          return;
+        }
+        prop->EventSEQ = seq; // track the new sequence update
+
         std::vector<std::string>::const_iterator it = msg->subject.begin();
         while (it != msg->subject.end())
         {

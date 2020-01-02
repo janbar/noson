@@ -105,12 +105,14 @@ namespace NSROOT
   {
   public:
     AVTProperty()
-    : NumberOfTracks(0)
+    : EventSEQ(0)
+    , NumberOfTracks(0)
     , CurrentTrack(0)
     , CurrentSection(0) { }
 
-    virtual ~AVTProperty() { }
+    virtual ~AVTProperty();
 
+    unsigned        EventSEQ;
     std::string     TransportState;               // PLAYING, STOPPED
     std::string     CurrentPlayMode;              // NORMAL
     std::string     CurrentCrossfadeMode;         // 0
@@ -156,10 +158,12 @@ namespace NSROOT
   {
   public:
     ContentProperty()
-    : ShareIndexInProgress(false) { }
+    : EventSEQ(0)
+    , ShareIndexInProgress(false) { }
 
-    virtual ~ContentProperty() { }
+    virtual ~ContentProperty();
 
+    unsigned EventSEQ;
     std::string SystemUpdateID;
     bool ShareIndexInProgress;
     std::string ShareIndexLastError;
@@ -178,7 +182,8 @@ namespace NSROOT
   {
   public:
     RCSProperty()
-    : VolumeMaster(0)
+    : EventSEQ(0)
+    , VolumeMaster(0)
     , VolumeLF(0)
     , VolumeRF(0)
     , MuteMaster(0)
@@ -191,8 +196,9 @@ namespace NSROOT
     , LoudnessMaster(0)
     { }
 
-    virtual ~RCSProperty() { }
+    virtual ~RCSProperty();
 
+    unsigned EventSEQ;
     int VolumeMaster;
     int VolumeLF;
     int VolumeRF;
@@ -211,7 +217,7 @@ namespace NSROOT
   public:
     SRProperty() {}
 
-    virtual ~SRProperty() { }
+    virtual ~SRProperty();
 
     std::string uuid;
     std::string subordinateName;
