@@ -39,11 +39,14 @@ namespace NSROOT
   {
   public:
     ACProperty()
-    : timeGeneration(0)
+    : EventSEQ(0)
+    , timeGeneration(0)
     { }
 
-    virtual ~ACProperty() { }
+    virtual ~ACProperty();
 
+    unsigned EventSEQ;
+    std::string EventSID;
     std::string timeZone;
     std::string timeServer;
     unsigned timeGeneration;

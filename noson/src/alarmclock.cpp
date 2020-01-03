@@ -32,6 +32,10 @@ const std::string AlarmClock::ControlURL("/AlarmClock/Control");
 const std::string AlarmClock::EventURL("/AlarmClock/Event");
 const std::string AlarmClock::SCPDURL("/xml/AlarmClock1.xml");
 
+ACProperty::~ACProperty()
+{
+}
+
 AlarmClock::AlarmClock(const std::string& serviceHost, unsigned servicePort)
 : Service(serviceHost, servicePort)
 , m_subscriptionPool()
@@ -135,6 +139,22 @@ void AlarmClock::HandleEventMessage(EventMessagePtr msg)
         Locked<ACProperty>::pointer prop = m_property.Get();
 
         DBG(DBG_DEBUG, "%s: %s SEQ=%s %s\n", __FUNCTION__, msg->subject[0].c_str(), msg->subject[1].c_str(), msg->subject[2].c_str());
+
+        // check for higher sequence
+        uint32_t seq = 0;
+        string_to_uint32(msg->subject[1].c_str(), &seq);
+        if (msg->subject[0] != prop->EventSID)
+        {
+          prop->EventSID = msg->subject[0];
+        }
+        else if (seq < prop->EventSEQ)
+        {
+          DBG(DBG_DEBUG, "%s: %s SEQ=%u , discarding %u\n", __FUNCTION__, prop->EventSID.c_str(), prop->EventSEQ, seq);
+          return;
+        }
+        // tracking serial of the event
+        prop->EventSEQ = seq;
+
         std::vector<std::string>::const_iterator it = msg->subject.begin();
         while (it != msg->subject.end())
         {
