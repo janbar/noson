@@ -56,6 +56,7 @@ ZoneGroupTopology::ZoneGroupTopology(const std::string& serviceHost, unsigned se
 , m_eventCB(nullptr)
 , m_msgCount(0)
 , m_topologyKey(0)
+, m_eventSEQ(0)
 , m_zones(ZoneList())
 , m_zonePlayers(ZonePlayerList())
 {
@@ -69,6 +70,7 @@ ZoneGroupTopology::ZoneGroupTopology(const std::string& serviceHost, unsigned se
 , m_eventCB(eventCB)
 , m_msgCount(0)
 , m_topologyKey(0)
+, m_eventSEQ(0)
 , m_zones(ZoneList())
 , m_zonePlayers(ZonePlayerList())
 {
@@ -105,8 +107,24 @@ void ZoneGroupTopology::HandleEventMessage(EventMessagePtr msg)
     if (m_subscription.GetSID() == msg->subject[0] && msg->subject[2] == "PROPERTY")
     {
       DBG(DBG_DEBUG, "%s: %s SEQ=%s %s\n", __FUNCTION__, msg->subject[0].c_str(), msg->subject[1].c_str(), msg->subject[2].c_str());
+
+      // check for higher sequence
+      uint32_t seq = 0;
+      string_to_uint32(msg->subject[1].c_str(), &seq);
+      if (msg->subject[0] != m_eventSID)
+      {
+        m_eventSID = msg->subject[0];
+      }
+      else if (seq < m_eventSEQ)
+      {
+        DBG(DBG_DEBUG, "%s: %s SEQ=%u , discarding %u\n", __FUNCTION__, m_eventSID.c_str(), m_eventSEQ, seq);
+        return;
+      }
+      // tracking serial of the event
+      m_eventSEQ = seq;
+
       std::vector<std::string>::const_iterator it = msg->subject.begin();
-      unsigned _key = m_topologyKey;
+      unsigned _oldKey = m_topologyKey;
       while (it != msg->subject.end())
       {
         if (*it == "ZoneGroupState")
@@ -119,7 +137,7 @@ void ZoneGroupTopology::HandleEventMessage(EventMessagePtr msg)
         ++it;
       }
       // Event is signaled only on first or any change
-      if (m_msgCount && _key == m_topologyKey)
+      if (m_msgCount && _oldKey == m_topologyKey)
         return;
       // Signal
       ++m_msgCount;

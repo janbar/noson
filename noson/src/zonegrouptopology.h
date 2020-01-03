@@ -69,6 +69,8 @@ namespace NSROOT
     EventCB m_eventCB;
     unsigned m_msgCount;
     unsigned m_topologyKey;
+    unsigned m_eventSEQ;
+    std::string m_eventSID;
 
     Locked<ZoneList> m_zones;
     Locked<ZonePlayerList> m_zonePlayers;
