@@ -495,12 +495,17 @@ void AVTransport::HandleEventMessage(EventMessagePtr msg)
         // check for higher sequence
         uint32_t seq = 0;
         string_to_uint32(msg->subject[1].c_str(), &seq);
-        if (seq < prop->EventSEQ) // initialized value is zero and could be equal for the first message
+        if (msg->subject[0] != prop->EventSID)
         {
-          DBG(DBG_DEBUG, "%s: %s CURRENT_SEQ=%u , sequence %u is obsolete\n", __FUNCTION__, msg->subject[0].c_str(), prop->EventSEQ, seq);
+          prop->EventSID = msg->subject[0];
+        }
+        else if (seq < prop->EventSEQ)
+        {
+          DBG(DBG_DEBUG, "%s: %s SEQ=%u , discarding %u\n", __FUNCTION__, prop->EventSID.c_str(), prop->EventSEQ, seq);
           return;
         }
-        prop->EventSEQ = seq; // track the new sequence update
+        // tracking serial of the event
+        prop->EventSEQ = seq;
 
         std::vector<std::string>::const_iterator it = msg->subject.begin();
         while (it != msg->subject.end())

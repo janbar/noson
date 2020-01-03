@@ -112,37 +112,38 @@ namespace NSROOT
 
     virtual ~AVTProperty();
 
-    unsigned        EventSEQ;
-    std::string     TransportState;               // PLAYING, STOPPED
-    std::string     CurrentPlayMode;              // NORMAL
-    std::string     CurrentCrossfadeMode;         // 0
-    unsigned        NumberOfTracks;               // 13
-    unsigned        CurrentTrack;                 // 9
-    unsigned        CurrentSection;               // 0
-    std::string     CurrentTrackURI;              // x-file-cifs://server/share/music/track.flac
-    std::string     CurrentTrackDuration;         // 0:03:14
-    DigitalItemPtr  CurrentTrackMetaData;
-    std::string     r_NextTrackURI;               // x-file-cifs://server/share/music/track.flac
-    DigitalItemPtr  r_NextTrackMetaData;
-    std::string     r_EnqueuedTransportURI;       // x-rincon-playlist:RINCON_000E58343F7201400#A:ALBUMARTIST/artist/album
-    DigitalItemPtr  r_EnqueuedTransportURIMetaData;
-    std::string     PlaybackStorageMedium;        // NETWORK
-    std::string     AVTransportURI;               // x-rincon-queue:RINCON_000E583F284001400#0
-    DigitalItemPtr  AVTransportURIMetaData;
-    std::string     NextAVTransportURI;
-    std::string     NextAVTransportURIMetaData;
-    std::string     CurrentTransportActions;      // Set, Play, Stop, Pause, Seek, Next, Previous
-    std::string     r_CurrentValidPlayModes;      // SHUFFLE,REPEAT,CROSSFADE
-    std::string     r_MuseSessions;
-    std::string     TransportStatus;              // OK
-    std::string     r_SleepTimerGeneration;       // 0
-    std::string     r_AlarmRunning;               // 0
-    std::string     r_AlarmIDRunning;
-    std::string     r_AlarmLoggedStartTime;
-    std::string     r_AlarmState;
-    std::string     r_SnoozeRunning;              // 0
-    std::string     r_RestartPending;             // 0
-    std::string     PossiblePlaybackStorageMedia; // NONE, NETWORK
+    unsigned EventSEQ;
+    std::string EventSID;
+    std::string TransportState;                // PLAYING, STOPPED
+    std::string CurrentPlayMode;               // NORMAL
+    std::string CurrentCrossfadeMode;          // 0
+    unsigned NumberOfTracks;                   // 13
+    unsigned CurrentTrack;                     // 9
+    unsigned CurrentSection;                   // 0
+    std::string CurrentTrackURI;               // x-file-cifs://server/share/music/track.flac
+    std::string CurrentTrackDuration;          // 0:03:14
+    DigitalItemPtr CurrentTrackMetaData;
+    std::string r_NextTrackURI;                // x-file-cifs://server/share/music/track.flac
+    DigitalItemPtr r_NextTrackMetaData;
+    std::string r_EnqueuedTransportURI;        // x-rincon-playlist:XXXX#A:ALBUMARTIST/artist/album
+    DigitalItemPtr r_EnqueuedTransportURIMetaData;
+    std::string PlaybackStorageMedium;         // NETWORK
+    std::string AVTransportURI;                // x-rincon-queue:XX:XXXX
+    DigitalItemPtr AVTransportURIMetaData;
+    std::string NextAVTransportURI;
+    std::string NextAVTransportURIMetaData;
+    std::string CurrentTransportActions;       // Set, Play, Stop, Pause, Seek, Next, Previous
+    std::string r_CurrentValidPlayModes;       // SHUFFLE,REPEAT,CROSSFADE
+    std::string r_MuseSessions;
+    std::string TransportStatus;               // OK
+    std::string r_SleepTimerGeneration;        // 0
+    std::string r_AlarmRunning;                // 0
+    std::string r_AlarmIDRunning;
+    std::string r_AlarmLoggedStartTime;
+    std::string r_AlarmState;
+    std::string r_SnoozeRunning;               // 0
+    std::string r_RestartPending;              // 0
+    std::string PossiblePlaybackStorageMedia;  // NONE, NETWORK
 
     // NOT IMPLEMENTED
     //std::string TransportPlaySpeed
@@ -164,6 +165,7 @@ namespace NSROOT
     virtual ~ContentProperty();
 
     unsigned EventSEQ;
+    std::string EventSID;
     std::string SystemUpdateID;
     bool ShareIndexInProgress;
     std::string ShareIndexLastError;
@@ -199,6 +201,7 @@ namespace NSROOT
     virtual ~RCSProperty();
 
     unsigned EventSEQ;
+    std::string EventSID;
     int VolumeMaster;
     int VolumeLF;
     int VolumeRF;
