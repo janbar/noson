@@ -351,6 +351,11 @@ else ()
   endif ()
 endif ()
 
+if (${CMAKE_SYSTEM_NAME} STREQUAL "SunOS")
+  find_library (SOCKET socket REQUIRED)
+  target_link_libraries (noson socket)
+endif ()
+
 set_target_properties (noson PROPERTIES
   VERSION "${NOSON_LIB_VERSION}"
   SOVERSION "${NOSON_LIB_SOVERSION}")

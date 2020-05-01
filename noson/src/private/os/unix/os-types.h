@@ -18,7 +18,9 @@ typedef int net_socket_t;
 typedef long LONG;
 typedef LONG HRESULT;
 
+#ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
+#endif
 #define FILE_BEGIN        SEEK_SET
 #define FILE_CURRENT      SEEK_CUR
 #define FILE_END          SEEK_END
