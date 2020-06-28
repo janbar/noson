@@ -120,25 +120,29 @@ bool SMAPI::Init(const SMServicePtr& smsvc, const std::string& locale)
     default:
       break;
     }
-    if (!response->IsSuccessful())
+    if (response->IsSuccessful())
     {
-      DBG(DBG_ERROR, "%s: invalid response\n", __FUNCTION__);
+      // receive content data
+      size_t len = 0, l = 0;
+      std::string data;
+      char buffer[4096];
+      while ((l = response->ReadContent(buffer, sizeof(buffer))))
+      {
+        data.append(buffer, l);
+        len += l;
+      }
       delete response;
-      return false;
+      response = nullptr;
+      if (!parsePresentationMap(data))
+        return false;
     }
-    // receive content data
-    size_t len = 0, l = 0;
-    std::string data;
-    char buffer[4096];
-    while ((l = response->ReadContent(buffer, sizeof(buffer))))
+    else
     {
-      data.append(buffer, l);
-      len += l;
+      DBG(DBG_ERROR, "%s: the presentation map is invalid\n", __FUNCTION__);
+      delete response;
+      m_presentation.clear();
+      m_searchCategories.clear();
     }
-    delete response;
-    response = nullptr;
-    if (!parsePresentationMap(data))
-      return false;
   }
 
   // see https://musicpartners.sonos.com/node/530
@@ -147,11 +151,15 @@ bool SMAPI::Init(const SMServicePtr& smsvc, const std::string& locale)
   {
     if (m_searchCategories.empty())
     {
-      // add default search categories
-      m_searchCategories.push_back(ElementPtr(new Element("tracks", "track")));
-      m_searchCategories.push_back(ElementPtr(new Element("albums", "album")));
-      m_searchCategories.push_back(ElementPtr(new Element("artists", "artist")));
-      m_searchCategories.push_back(ElementPtr(new Element("playlists", "playlist")));
+      // don't load default categories for TuneIn because it won't work as expected
+      if (m_service->GetServiceType() != "65031") /* TuneIn */
+      {
+        // add default search categories
+        m_searchCategories.push_back(ElementPtr(new Element("tracks", "track")));
+        m_searchCategories.push_back(ElementPtr(new Element("albums", "album")));
+        m_searchCategories.push_back(ElementPtr(new Element("artists", "artist")));
+        m_searchCategories.push_back(ElementPtr(new Element("playlists", "playlist")));
+      }
     }
   }
   else
@@ -621,6 +629,7 @@ ElementList SMAPI::DoCall(const std::string& action, const ElementList& args)
 
   WSRequest request(*m_uri, HRM_POST);
   request.SetUserAgent(m_service->GetAgent());
+  request.SetHeader("X-Sonos-SWGen", "1");
   request.SetHeader("Accept-Language", m_language);
   request.SetHeader("SOAPAction", soapaction);
   request.SetContentCustom(CT_XML, content.c_str());
