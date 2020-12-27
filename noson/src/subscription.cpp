@@ -93,6 +93,7 @@ namespace NSROOT
     {
       if (IsRunning())
       {
+        m_timeout.Clear();
         m_event.Signal();
       }
     }
