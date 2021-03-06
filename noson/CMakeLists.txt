@@ -3,7 +3,7 @@ cmake_policy (VERSION 3.1)
 
 project (noson)
 
-set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 ###############################################################################
 # set lib version here
@@ -359,6 +359,13 @@ endif ()
 set_target_properties (noson PROPERTIES
   VERSION "${NOSON_LIB_VERSION}"
   SOVERSION "${NOSON_LIB_SOVERSION}")
+
+# Support building as a subproject of a larger cmake project
+target_include_directories(noson
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/public>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+    )
 
 # Export the package for use from the build-tree
 # (this registers the build-tree with a global CMake-registry)
