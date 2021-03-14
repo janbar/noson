@@ -17,17 +17,17 @@
  */
 
 #include "flacencoder.h"
-#include "streambuffer.h"
+#include "framebuffer.h"
 #include "private/byteorder.h"
 #include "private/debug.h"
 
 #define SAMPLES 1024
-#define BUFFER_SIZE 0x10000
+#define FRAME_BUFFER_SIZE 256
 
 using namespace NSROOT;
 
 FLACEncoder::FLACEncoder()
-: FLACEncoder(BUFFER_SIZE)
+: FLACEncoder(FRAME_BUFFER_SIZE)
 {
 }
 
@@ -38,9 +38,11 @@ FLACEncoder::FLACEncoder(int buffered)
 , m_sampleSize(0)
 , m_pcm(nullptr)
 , m_buffer(nullptr)
+, m_packet(nullptr)
+, m_consumed(0)
 , m_encoder(this)
 {
-  m_buffer = new StreamBuffer(buffered);
+  m_buffer = new FrameBuffer(buffered);
 }
 
 FLACEncoder::~FLACEncoder()
@@ -49,6 +51,8 @@ FLACEncoder::~FLACEncoder()
     AudioEncoder::close();
   if (m_pcm != nullptr)
     delete[] m_pcm;
+  if (m_packet)
+    m_buffer->freePacket(m_packet);
   delete m_buffer;
 }
 
@@ -103,12 +107,32 @@ bool FLACEncoder::open(OpenMode mode)
 
 int FLACEncoder::bytesAvailable() const
 {
-  return m_buffer->size();
+  if (m_packet)
+    return (m_packet->size - m_consumed);
+  return m_buffer->bytesAvailable();
 }
 
 int FLACEncoder::readData(char * data, int maxlen)
 {
-  return m_buffer->read(data, maxlen);
+  if (m_packet == nullptr)
+  {
+    m_packet = m_buffer->read();
+    m_consumed = 0;
+  }
+  if (m_packet)
+  {
+    int s = m_packet->size - m_consumed;
+    int r = (maxlen < s ? maxlen : s);
+    memcpy(data, m_packet->data + m_consumed, r);
+    m_consumed += r;
+    if (m_consumed >= m_packet->size)
+    {
+      m_buffer->freePacket(m_packet);
+      m_packet = nullptr;
+    }
+    return r;
+  }
+  return 0;
 }
 
 void FLACEncoder::onClose()

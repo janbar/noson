@@ -28,7 +28,8 @@
 namespace NSROOT
 {
 
-class StreamBuffer;
+class FrameBuffer;
+class FramePacket;
 
 class AudioSource : public IODevice
 {
@@ -82,7 +83,9 @@ protected:
 
 private:
   bool m_record;
-  StreamBuffer * m_buffer;
+  FrameBuffer * m_buffer;
+  FramePacket * m_packet;
+  int m_consumed;
 };
 
 }

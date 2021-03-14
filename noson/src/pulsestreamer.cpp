@@ -36,6 +36,7 @@
 #define PULSESTREAMER_TIMEOUT   10000
 #define PULSESTREAMER_MAX_PB    3
 #define PULSESTREAMER_CHUNK     16384
+#define PULSESTREAMER_MIN_LAG   1000000
 #define PA_SINK_NAME            "noson"
 #define PA_CLIENT_NAME          PA_SINK_NAME
 
@@ -196,6 +197,9 @@ void PulseStreamer::streamSink(handle * handle)
     SONOS::AudioEncoder * enc = new SONOS::FLACEncoder();
     SONOS::AudioStream ai(*src, *enc);
     ai.start();
+
+    // a minimal lag is required to work properly
+    usleep(PULSESTREAMER_MIN_LAG);
 
     std::string resp;
     resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
