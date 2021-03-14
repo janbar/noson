@@ -28,6 +28,10 @@ AudioEncoder::AudioEncoder()
 {
 }
 
+AudioEncoder::~AudioEncoder()
+{
+}
+
 void AudioEncoder::setAudioFormat(const AudioFormat& format)
 {
   if (IODevice::isOpen())

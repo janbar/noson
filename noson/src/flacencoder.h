@@ -21,6 +21,7 @@
 
 #include "local_config.h"
 #include "audioencoder.h"
+#include "alarmclock.h"
 
 #include <FLAC++/metadata.h>
 #include <FLAC++/encoder.h>
@@ -28,7 +29,8 @@
 namespace NSROOT
 {
 
-class StreamBuffer;
+class FrameBuffer;
+class FramePacket;
 
 class FLACEncoder : public AudioEncoder
 {
@@ -57,7 +59,9 @@ private:
   int m_sampleSize;
   FLAC__int32 * m_pcm;
 
-  StreamBuffer * m_buffer;
+  FrameBuffer * m_buffer;
+  FramePacket * m_packet;
+  int m_consumed;
 
   class FLACEncoderPrivate : public FLAC::Encoder::Stream
   {
@@ -68,7 +72,7 @@ private:
     FLACEncoder * m_p;
   };
   
-  FLACEncoderPrivate m_encoder;
+  FLACEncoderPrivate * m_encoder;
 };
 
 }

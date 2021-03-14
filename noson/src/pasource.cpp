@@ -62,7 +62,6 @@ PASource::PASource(const std::string& name, const std::string& deviceName)
 , m_pa(nullptr)
 , m_blankKiller(nullptr)
 , m_p(new PASourceWorker(this))
-
 {
 }
 
@@ -200,6 +199,8 @@ void* PASourceWorker::Process()
         DBG(DBG_ERROR, "pa_simple_read() failed: %s\n", pa_strerror(m_source->m_pa_error));
         break;
       }
+      if (m_source->m_mute)
+        memset(buf, 0, bsize);
       // Apply the blank killer
       m_source->m_blankKiller(buf, channels, BLANK_FRAMES);
       // And write it to out

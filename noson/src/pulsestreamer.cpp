@@ -26,6 +26,7 @@
 #include "data/datareader.h"
 #include "private/debug.h"
 #include "private/socket.h"
+#include "private/os/threads/timeout.h"
 
 #include <cstring>
 
@@ -36,6 +37,7 @@
 #define PULSESTREAMER_TIMEOUT   10000
 #define PULSESTREAMER_MAX_PB    3
 #define PULSESTREAMER_CHUNK     16384
+#define PULSESTREAMER_TM_MUTE   1000
 #define PA_SINK_NAME            "noson"
 #define PA_CLIENT_NAME          PA_SINK_NAME
 
@@ -195,6 +197,9 @@ void PulseStreamer::streamSink(handle * handle)
     SONOS::AudioSource * src = new SONOS::PASource(PA_CLIENT_NAME, deviceName);
     SONOS::AudioEncoder * enc = new SONOS::FLACEncoder();
     SONOS::AudioStream ai(*src, *enc);
+    // the source is muted for a short time to limit output rate on startup
+    OS::CTimeout muted(PULSESTREAMER_TM_MUTE);
+    src->mute(true);
     ai.start();
 
     std::string resp;
@@ -215,6 +220,9 @@ void PulseStreamer::streamSink(handle * handle)
         memcpy(buf + r + 7, "\r\n", 2);
         if (!RequestBroker::Reply(handle, buf, r + 7 + 2))
           break;
+        // disable source mute after delay
+        if (src->muted() && !muted.TimeLeft())
+          src->mute(false);
       }
       delete [] buf;
       if (r == 0)

@@ -17,17 +17,17 @@
  */
 
 #include "flacencoder.h"
-#include "streambuffer.h"
+#include "framebuffer.h"
 #include "private/byteorder.h"
 #include "private/debug.h"
 
 #define SAMPLES 1024
-#define BUFFER_SIZE 0x10000
+#define FRAME_BUFFER_SIZE 256
 
 using namespace NSROOT;
 
 FLACEncoder::FLACEncoder()
-: FLACEncoder(BUFFER_SIZE)
+: FLACEncoder(FRAME_BUFFER_SIZE)
 {
 }
 
@@ -38,9 +38,12 @@ FLACEncoder::FLACEncoder(int buffered)
 , m_sampleSize(0)
 , m_pcm(nullptr)
 , m_buffer(nullptr)
-, m_encoder(this)
+, m_packet(nullptr)
+, m_consumed(0)
+, m_encoder(nullptr)
 {
-  m_buffer = new StreamBuffer(buffered);
+  m_buffer = new FrameBuffer(buffered);
+  m_encoder = new FLACEncoderPrivate(this);
 }
 
 FLACEncoder::~FLACEncoder()
@@ -49,6 +52,9 @@ FLACEncoder::~FLACEncoder()
     AudioEncoder::close();
   if (m_pcm != nullptr)
     delete[] m_pcm;
+  if (m_packet)
+    m_buffer->freePacket(m_packet);
+  delete m_encoder;
   delete m_buffer;
 }
 
@@ -65,15 +71,15 @@ bool FLACEncoder::open(OpenMode mode)
   // configure the encoder
   if (!(m_ok = m_format.isValid()))
     DBG(DBG_WARN, "ERROR: Invalid format\n");
-  else if (!(m_ok = m_encoder.set_verify(true)))
+  else if (!(m_ok = m_encoder->set_verify(true)))
     DBG(DBG_WARN, "ERROR: Set verify failed\n");
-  else if (!(m_ok = m_encoder.set_compression_level(5)))
+  else if (!(m_ok = m_encoder->set_compression_level(5)))
     DBG(DBG_WARN, "ERROR: Set compression level failed\n");
-  else if (!(m_ok = m_encoder.set_channels(m_format.channelCount)))
+  else if (!(m_ok = m_encoder->set_channels(m_format.channelCount)))
     DBG(DBG_WARN, "ERROR: Set channels (%d) failed\n", m_format.channelCount);
-  else if (!(m_ok = m_encoder.set_bits_per_sample(m_format.sampleSize)))
+  else if (!(m_ok = m_encoder->set_bits_per_sample(m_format.sampleSize)))
     DBG(DBG_WARN, "ERROR: Set sample size (%d) failed\n", m_format.sampleSize);
-  else if (!(m_ok = m_encoder.set_sample_rate(m_format.sampleRate)))
+  else if (!(m_ok = m_encoder->set_sample_rate(m_format.sampleRate)))
     DBG(DBG_WARN, "ERROR: Set sample rate (%d) failed\n", m_format.sampleRate);
   else if (!(m_ok = (m_format.sampleSize == 8 && m_format.sampleType == AudioFormat::UnSignedInt) ||
           (m_format.sampleSize == 16 && m_format.sampleType == AudioFormat::SignedInt && m_format.byteOrder == AudioFormat::LittleEndian) ||
@@ -93,7 +99,7 @@ bool FLACEncoder::open(OpenMode mode)
   m_buffer->clear();
 
   AudioEncoder::open(mode);
-  FLAC__StreamEncoderInitStatus init_status = m_encoder.init();
+  FLAC__StreamEncoderInitStatus init_status = m_encoder->init();
   if(init_status == FLAC__STREAM_ENCODER_INIT_STATUS_OK)
     return true;
   AudioEncoder::close();
@@ -103,12 +109,32 @@ bool FLACEncoder::open(OpenMode mode)
 
 int FLACEncoder::bytesAvailable() const
 {
-  return m_buffer->size();
+  if (m_packet)
+    return (m_packet->size - m_consumed);
+  return m_buffer->bytesAvailable();
 }
 
 int FLACEncoder::readData(char * data, int maxlen)
 {
-  return m_buffer->read(data, maxlen);
+  if (m_packet == nullptr)
+  {
+    m_packet = m_buffer->read();
+    m_consumed = 0;
+  }
+  if (m_packet)
+  {
+    int s = m_packet->size - m_consumed;
+    int r = (maxlen < s ? maxlen : s);
+    memcpy(data, m_packet->data + m_consumed, r);
+    m_consumed += r;
+    if (m_consumed >= m_packet->size)
+    {
+      m_buffer->freePacket(m_packet);
+      m_packet = nullptr;
+    }
+    return r;
+  }
+  return 0;
 }
 
 void FLACEncoder::onClose()
@@ -116,7 +142,7 @@ void FLACEncoder::onClose()
   if (AudioEncoder::isOpen())
   {
     DBG(DBG_INFO, "Close FLAC encoder\n");
-    m_encoder.finish();
+    m_encoder->finish();
   }
 }
 
@@ -153,7 +179,7 @@ int FLACEncoder::encode(const char * data, int len)
       }
     }
     // feed samples to encoder
-    ok = m_encoder.process_interleaved(m_pcm, need);
+    ok = m_encoder->process_interleaved(m_pcm, need);
     samples -= need;
   }
   return len;

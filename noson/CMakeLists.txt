@@ -184,11 +184,11 @@ file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/audiostream.h
   DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/iodevice.h
   DESTINATION ${noson_PUBLIC_DIR})
-file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/streambuffer.h
-  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/streamreader.h
   DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/filestreamer.h
+  DESTINATION ${noson_PUBLIC_DIR})
+file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/framebuffer.h
   DESTINATION ${noson_PUBLIC_DIR})
 if(HAVE_FLAC)
   file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/flacencoder.h
@@ -234,6 +234,7 @@ list (APPEND SRC_FILES
   src/eventhandler.cpp
   src/filepicreader.cpp
   src/filestreamer.cpp
+  src/framebuffer.cpp
   src/imageservice.cpp
   src/intrinsic.cpp
   src/iodevice.cpp
@@ -249,7 +250,6 @@ list (APPEND SRC_FILES
   src/sonossystem.cpp
   src/sonostypes.cpp
   src/sonoszone.cpp
-  src/streambuffer.cpp
   src/subscription.cpp
   src/subscriptionpool.cpp
   src/zonegrouptopology.cpp
@@ -272,6 +272,7 @@ list (APPEND HDR_FILES
   src/eventhandler.h
   src/filepicreader.h
   src/filestreamer.h
+  src/framebuffer.h
   src/imageservice.h
   src/intrinsic.h
   src/iodevice.h
@@ -288,7 +289,6 @@ list (APPEND HDR_FILES
   src/sonossystem.h
   src/sonostypes.h
   src/sonoszone.h
-  src/streambuffer.h
   src/streamreader.h
   src/subscription.h
   src/subscriptionpool.h

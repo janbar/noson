@@ -17,30 +17,39 @@
  */
 
 #include "audiosource.h"
-#include "streambuffer.h"
+#include "framebuffer.h"
 
 using namespace NSROOT;
 
-#define BUFFER_SIZE 0x10000
+#define FRAME_BUFFER_SIZE 256
 
 AudioSource::AudioSource()
-: AudioSource(BUFFER_SIZE)
+: AudioSource(FRAME_BUFFER_SIZE)
 {
 }
 
 AudioSource::AudioSource(int buffered)
 : m_record(false)
-, m_buffer(new StreamBuffer(buffered))
+, m_buffer(nullptr)
+, m_packet(nullptr)
+, m_consumed(0)
+, m_mute(false)
 {
+  m_buffer = new FrameBuffer(buffered);
 }
 
 AudioSource::~AudioSource()
 {
+  if (m_packet)
+    m_buffer->freePacket(m_packet);
   delete m_buffer;
 }
 
 bool AudioSource::startRecording()
 {
+  if (m_packet)
+    m_buffer->freePacket(m_packet);
+  m_packet = nullptr;
   m_buffer->clear();
   m_record = true;
   return true;
@@ -53,12 +62,37 @@ void AudioSource::stopRecording()
 
 int AudioSource::bytesAvailable() const
 {
-  return m_buffer->size();
+  if (m_packet)
+    return (m_packet->size - m_consumed);
+  return m_buffer->bytesAvailable();
+}
+
+void AudioSource::mute(bool enabled)
+{
+  m_mute = enabled;
 }
 
 int AudioSource::readData(char * data, int maxlen)
 {
-  return m_buffer->read(data, maxlen);
+  if (m_packet == nullptr)
+  {
+    m_packet = m_buffer->read();
+    m_consumed = 0;
+  }
+  if (m_packet)
+  {
+    int s = m_packet->size - m_consumed;
+    int r = (maxlen < s ? maxlen : s);
+    memcpy(data, m_packet->data + m_consumed, r);
+    m_consumed += r;
+    if (m_consumed >= m_packet->size)
+    {
+      m_buffer->freePacket(m_packet);
+      m_packet = nullptr;
+    }
+    return r;
+  }
+  return 0;
 }
 
 int AudioSource::writeData(const char * data, int len)

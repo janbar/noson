@@ -22,7 +22,6 @@
 #include "local_config.h"
 #include "iodevice.h"
 #include "audioformat.h"
-#include "streambuffer.h"
 
 namespace NSROOT
 {
@@ -31,7 +30,7 @@ class AudioEncoder : public IODevice
 {
 public:
   AudioEncoder();
-  virtual ~AudioEncoder() { }
+  virtual ~AudioEncoder();
 
   void setAudioFormat(const AudioFormat& format);
   AudioFormat audioFormat() const { return m_format; }

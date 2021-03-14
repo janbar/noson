@@ -519,7 +519,7 @@ bool Player::PlayStream(const std::string& streamURL, const std::string& title, 
     if (mime == ".flac")
     {
       std::string protocolInfo;
-      protocolInfo.assign(ProtocolTable[Protocol_httpGet]).append(":*:audio/flac:*");
+      protocolInfo.assign(ProtocolTable[Protocol_xRinconMP3Radio]).append(":*:audio/flac:*");
       // Setup the digital item
       DigitalItemPtr item(new DigitalItem(DigitalItem::Type_item, DigitalItem::SubType_audioItem));
       item->SetProperty(DIDL_QNAME_DC "title", title);

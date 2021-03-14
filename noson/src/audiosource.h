@@ -28,7 +28,8 @@
 namespace NSROOT
 {
 
-class StreamBuffer;
+class FrameBuffer;
+class FramePacket;
 
 class AudioSource : public IODevice
 {
@@ -76,13 +77,19 @@ public:
   void stopRecording();
   int bytesAvailable() const override;
 
+  void mute(bool enabled);
+  bool muted() const { return m_mute; }
+
 protected:
   int readData(char * data, int maxlen) override;
   int writeData(const char *data, int len) override;
+  bool m_mute;
 
 private:
   bool m_record;
-  StreamBuffer * m_buffer;
+  FrameBuffer * m_buffer;
+  FramePacket * m_packet;
+  int m_consumed;
 };
 
 }
