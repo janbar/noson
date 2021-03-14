@@ -22,7 +22,6 @@
 #include "local_config.h"
 #include "iodevice.h"
 #include "audioformat.h"
-#include "streambuffer.h"
 
 namespace NSROOT
 {

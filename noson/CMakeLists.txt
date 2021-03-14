@@ -184,8 +184,6 @@ file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/audiostream.h
   DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/iodevice.h
   DESTINATION ${noson_PUBLIC_DIR})
-file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/streambuffer.h
-  DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/streamreader.h
   DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/filestreamer.h
@@ -252,7 +250,6 @@ list (APPEND SRC_FILES
   src/sonossystem.cpp
   src/sonostypes.cpp
   src/sonoszone.cpp
-  src/streambuffer.cpp
   src/subscription.cpp
   src/subscriptionpool.cpp
   src/zonegrouptopology.cpp
@@ -292,7 +289,6 @@ list (APPEND HDR_FILES
   src/sonossystem.h
   src/sonostypes.h
   src/sonoszone.h
-  src/streambuffer.h
   src/streamreader.h
   src/subscription.h
   src/subscriptionpool.h
