@@ -83,7 +83,7 @@ public:
 protected:
   int readData(char * data, int maxlen) override;
   int writeData(const char *data, int len) override;
-  bool m_mute;
+  volatile bool m_mute;
 
 private:
   bool m_record;
