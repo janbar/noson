@@ -21,7 +21,6 @@
 
 #include "local_config.h"
 #include "audioencoder.h"
-#include "alarmclock.h"
 
 #include <FLAC++/metadata.h>
 #include <FLAC++/encoder.h>
