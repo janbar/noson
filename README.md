@@ -33,7 +33,15 @@ cmake --build .</code></pre>
 
 ## Generate the documentation
 
-sudo apt-get install graphviz
+<pre><code>sudo apt-get install graphviz
+cd {SOURCE_PATH}/docs
+doxygen doxygen-dev.cfg
+firefox doxygen-dev-docs/html/index.html</code></pre>
 
-doxygen <root path of noson>/docs/doxygen-dev.cfg
+## Sample code
+
+You will find a basic usage in test/src/test.cpp.
+
+Then you can have a look on the app https://github.com/janbar/noson-app.
+
 
