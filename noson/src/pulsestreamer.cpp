@@ -44,7 +44,7 @@
 using namespace NSROOT;
 
 PulseStreamer::PulseStreamer(RequestBroker * imageService /*= nullptr*/)
-: SONOS::RequestBroker()
+: RequestBroker()
 , m_resources()
 , m_sinkIndex(0)
 , m_playbackCount(0)
@@ -132,19 +132,19 @@ void PulseStreamer::UnregisterResource(const std::string& uri)
 std::string PulseStreamer::GetPASink()
 {
   std::string deviceName;
-  SONOS::PAControl::SinkList sinks;
-  SONOS::PAControl pacontrol(PA_CLIENT_NAME);
+  PAControl::SinkList sinks;
+  PAControl pacontrol(PA_CLIENT_NAME);
   if (pacontrol.connect())
   {
     bool cont = true;
     for (;;)
     {
       pacontrol.getSinkList(&sinks);
-      for (SONOS::PAControl::Sink ad : sinks)
+      for (PAControl::Sink ad : sinks)
       {
         if (ad.name == PA_SINK_NAME)
         {
-          SONOS::DBG(DBG_DEBUG, "%s: Found device %d: %s\n", __FUNCTION__, ad.index, ad.monitorSourceName.c_str());
+          DBG(DBG_DEBUG, "%s: Found device %d: %s\n", __FUNCTION__, ad.index, ad.monitorSourceName.c_str());
           deviceName = ad.monitorSourceName;
           m_sinkIndex.Store(ad.ownerModule); // own the module
           break;
@@ -165,10 +165,10 @@ void PulseStreamer::FreePASink()
 {
   // Lock count
   // and check if an other playback is running before delete the sink
-  SONOS::LockedNumber<int>::pointer p = m_playbackCount.Get();
+  LockedNumber<int>::pointer p = m_playbackCount.Get();
   if (*p == 1 && m_sinkIndex.Load())
   {
-    SONOS::PAControl pacontrol(PA_CLIENT_NAME);
+    PAControl pacontrol(PA_CLIENT_NAME);
     if (pacontrol.connect())
     {
       DBG(DBG_DEBUG, "%s: delete sink (%s)\n", __FUNCTION__, PA_SINK_NAME);
@@ -194,9 +194,9 @@ void PulseStreamer::streamSink(handle * handle)
     Reply429(handle);
   else
   {
-    SONOS::AudioSource * src = new SONOS::PASource(PA_CLIENT_NAME, deviceName);
-    SONOS::AudioEncoder * enc = new SONOS::FLACEncoder();
-    SONOS::AudioStream ai(*src, *enc);
+    AudioSource * src = new PASource(PA_CLIENT_NAME, deviceName);
+    AudioEncoder * enc = new FLACEncoder();
+    AudioStream ai(*src, *enc);
     // the source is muted for a short time to limit output rate on startup
     OS::CTimeout muted(PULSESTREAMER_TM_MUTE);
     src->mute(true);
