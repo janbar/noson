@@ -67,6 +67,10 @@ namespace NSROOT
 
     bool SetNightmode(uint8_t value);
 
+    bool GetSubGain(int8_t* value);
+
+    bool SetSubGain(int8_t value);
+
     bool GetTreble(int8_t* value);
 
     bool SetTreble(int8_t value);

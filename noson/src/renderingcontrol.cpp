@@ -149,6 +149,32 @@ bool RenderingControl::SetNightmode(uint8_t value)
   return false;
 }
 
+bool RenderingControl::GetSubGain(int8_t *value)
+{
+  ElementList args;
+  args.push_back(ElementPtr(new Element("InstanceID", "0")));
+  ElementList vars = Request("GetEQ", args);
+  if (!vars.empty() && vars[0]->compare("GetEQResponse") == 0)
+  {
+    ElementList::const_iterator it = vars.FindKey("SubGain");
+    if (it != vars.end())
+      return (string_to_int8((*it)->c_str(), value) == 0);
+  }
+  return false;
+}
+
+bool RenderingControl::SetSubGain(int8_t value)
+{
+  ElementList args;
+  args.push_back(ElementPtr(new Element("InstanceID", "0")));
+  args.push_back(ElementPtr(new Element("EQType", "SubGain")));
+  args.push_back(ElementPtr(new Element("DesiredValue", std::to_string(value))));
+  ElementList vars = Request("SetEQ", args);
+  if (!vars.empty() && vars[0]->compare("SetEQResponse") == 0)
+    return true;
+  return false;
+}
+
 bool RenderingControl::GetTreble(int8_t* value)
 {
   ElementList args;
@@ -333,6 +359,11 @@ void RenderingControl::HandleEventMessage(EventMessagePtr msg)
           {
             if (string_to_int32((*++it).c_str(), &num) == 0)
               prop->NightMode = num;
+          }
+          else if (*it == "SubGain")
+          {
+            if (string_to_int32((*++it).c_str(), &num) == 0)
+              prop->SubGain = num;
           }
           else if (*it == "Bass")
           {

@@ -192,6 +192,7 @@ namespace NSROOT
     , MuteLF(0)
     , MuteRF(0)
     , NightMode(0)
+    , SubGain(0)
     , Treble(0)
     , Bass(0)
     , OutputFixed(0)
@@ -209,6 +210,7 @@ namespace NSROOT
     int MuteLF;
     int MuteRF;
     int NightMode;
+    int SubGain;
     int Treble;
     int Bass;
     int OutputFixed;
