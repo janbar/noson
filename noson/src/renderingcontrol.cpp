@@ -123,7 +123,7 @@ bool RenderingControl::SetMute(uint8_t value, const char* channel)
   return false;
 }
 
-bool RenderingControl::GetNightmode(uint8_t *value)
+bool RenderingControl::GetNightmode(int16_t *value)
 {
   ElementList args;
   args.push_back(ElementPtr(new Element("InstanceID", "0")));
@@ -132,12 +132,12 @@ bool RenderingControl::GetNightmode(uint8_t *value)
   {
     ElementList::const_iterator it = vars.FindKey("NightMode");
     if (it != vars.end())
-      return (string_to_uint8((*it)->c_str(), value) == 0);
+      return (string_to_int16((*it)->c_str(), value) == 0);
   }
   return false;
 }
 
-bool RenderingControl::SetNightmode(uint8_t value)
+bool RenderingControl::SetNightmode(int16_t value)
 {
   ElementList args;
   args.push_back(ElementPtr(new Element("InstanceID", "0")));
@@ -149,7 +149,7 @@ bool RenderingControl::SetNightmode(uint8_t value)
   return false;
 }
 
-bool RenderingControl::GetSubGain(int8_t *value)
+bool RenderingControl::GetSubGain(int16_t *value)
 {
   ElementList args;
   args.push_back(ElementPtr(new Element("InstanceID", "0")));
@@ -158,12 +158,12 @@ bool RenderingControl::GetSubGain(int8_t *value)
   {
     ElementList::const_iterator it = vars.FindKey("SubGain");
     if (it != vars.end())
-      return (string_to_int8((*it)->c_str(), value) == 0);
+      return (string_to_int16((*it)->c_str(), value) == 0);
   }
   return false;
 }
 
-bool RenderingControl::SetSubGain(int8_t value)
+bool RenderingControl::SetSubGain(int16_t value)
 {
   ElementList args;
   args.push_back(ElementPtr(new Element("InstanceID", "0")));
