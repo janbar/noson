@@ -59,6 +59,10 @@ namespace NSROOT
 
     bool SetVolume(uint8_t value, const char* channel = CH_MASTER);
 
+    bool GetVolumeDecibel(int16_t *value, const char* channel = CH_MASTER);
+
+    bool SetVolumeDecibel(int16_t value, const char* channel = CH_MASTER);
+
     bool GetMute(uint8_t* value, const char* channel = CH_MASTER);
 
     bool SetMute(uint8_t value, const char* channel = CH_MASTER);
@@ -84,6 +88,8 @@ namespace NSROOT
     bool GetLoudness(uint8_t* value, const char* channel = CH_MASTER);
 
     bool SetLoudness(uint8_t value, const char* channel = CH_MASTER);
+
+    bool GetDecibelRange(int16_t *minimum, int16_t *maximum, const char *channel = CH_MASTER);
 
     // Implements EventSubscriber
     virtual void HandleEventMessage(EventMessagePtr msg);

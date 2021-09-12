@@ -96,6 +96,35 @@ bool RenderingControl::SetVolume(uint8_t value, const char* channel)
   return false;
 }
 
+bool RenderingControl::GetVolumeDecibel(int16_t *value, const char *channel)
+{
+  ElementList args;
+  args.push_back(ElementPtr(new Element("InstanceID", "0")));
+  args.push_back(ElementPtr(new Element("Channel", channel)));
+  ElementList vars = Request("GetVolumeDB", args);
+  if (!vars.empty() && vars[0]->compare("GetVolumeDBResponse") == 0)
+  {
+    ElementList::const_iterator it = vars.FindKey("CurrentVolume");
+    if (it != vars.end())
+      return (string_to_int16((*it)->c_str(), value) == 0);
+  }
+  return false;
+}
+
+bool RenderingControl::SetVolumeDecibel(int16_t value, const char *channel)
+{
+  if (m_property.Get()->OutputFixed)
+    return false;
+  ElementList args;
+  args.push_back(ElementPtr(new Element("InstanceID", "0")));
+  args.push_back(ElementPtr(new Element("Channel", channel)));
+  args.push_back(ElementPtr(new Element("DesiredVolume", std::to_string(value))));
+  ElementList vars = Request("SetVolumeDB", args);
+  if (!vars.empty() && vars[0]->compare("SetVolumeDBResponse") == 0)
+    return true;
+  return false;
+}
+
 bool RenderingControl::GetMute(uint8_t* value, const char* channel)
 {
   ElementList args;
@@ -266,6 +295,33 @@ bool RenderingControl::SetLoudness(uint8_t value, const char* channel)
   return false;
 }
 
+bool RenderingControl::GetDecibelRange(int16_t *minimum, int16_t *maximum, const char* channel)
+{
+  ElementList args;
+  args.push_back(ElementPtr(new Element("InstanceID", "0")));
+  args.push_back(ElementPtr(new Element("Channel", channel)));
+  ElementList vars = Request("GetVolumeDBRange", args);
+  if (!vars.empty() && vars[0]->compare("GetVolumeDBRangeResponse") == 0)
+  {
+    ElementList::const_iterator it = vars.FindKey("MinValue");
+    if (it == vars.end())
+      return false;
+
+    if (string_to_int16((*it)->c_str(), minimum) != 0)
+      return false;
+
+    it = vars.FindKey("MaxValue");
+    if (it == vars.end())
+      return false;
+
+    if (string_to_int16((*it)->c_str(), maximum) != 0)
+      return false;
+
+    return true;
+  }
+  return false;
+}
+
 void RenderingControl::HandleEventMessage(EventMessagePtr msg)
 {
   if (!msg)
@@ -353,6 +409,21 @@ void RenderingControl::HandleEventMessage(EventMessagePtr msg)
           {
             if (string_to_int32((*++it).c_str(), &num) == 0)
               prop->LoudnessMaster = num;
+          }
+          else if (*it == "VolumeDB/Master")
+          {
+            if (string_to_int32((*++it).c_str(), &num) == 0)
+              prop->VolumeDecibelMaster = num;
+          }
+          else if (*it == "VolumeDB/LF")
+          {
+            if (string_to_int32((*++it).c_str(), &num) == 0)
+              prop->VolumeDecibelLF = num;
+          }
+          else if (*it == "VolumeDB/RF")
+          {
+            if (string_to_int32((*++it).c_str(), &num) == 0)
+              prop->VolumeDecibelRF = num;
           }
 
           ++it;

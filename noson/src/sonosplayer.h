@@ -92,6 +92,9 @@ namespace NSROOT
 
     bool GetVolume(const std::string& uuid, uint8_t* value);
     bool SetVolume(const std::string& uuid, uint8_t value);
+    bool GetVolumeDecibel(const std::string& uuid, int16_t* value);
+    bool SetVolumeDecibel(const std::string& uuid, int16_t value);
+    bool GetDecibelRange(const std::string& uuid, int16_t* minimum, int16_t* maximum);
     bool GetMute(const std::string& uuid, uint8_t* value);
     bool SetMute(const std::string& uuid, uint8_t value);
 

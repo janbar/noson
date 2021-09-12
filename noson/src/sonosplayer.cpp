@@ -316,6 +316,36 @@ bool Player::SetVolume(const std::string& uuid, uint8_t value)
   return false;
 }
 
+bool Player::GetVolumeDecibel(const std::string &uuid, int16_t *value)
+{
+  for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
+  {
+    if (it->uuid == uuid)
+      return it->renderingControl->GetVolumeDecibel(value);
+  }
+  return false;
+}
+
+bool Player::SetVolumeDecibel(const std::string &uuid, int16_t value)
+{
+  for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
+  {
+    if (it->uuid == uuid)
+      return it->renderingControl->SetVolumeDecibel(value);
+  }
+  return false;
+}
+
+bool Player::GetDecibelRange(const std::string &uuid, int16_t *minimum, int16_t *maximum)
+{
+  for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
+  {
+    if (it->uuid == uuid)
+      return it->renderingControl->GetDecibelRange(minimum, maximum);
+  }
+  return false;
+}
+
 bool Player::GetMute(const std::string& uuid, uint8_t* value)
 {
   for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
