@@ -197,6 +197,9 @@ namespace NSROOT
     , Bass(0)
     , OutputFixed(0)
     , LoudnessMaster(0)
+    , VolumeDecibelMaster(0)
+    , VolumeDecibelLF(0)
+    , VolumeDecibelRF(0)
     { }
 
     virtual ~RCSProperty();
@@ -215,6 +218,9 @@ namespace NSROOT
     int Bass;
     int OutputFixed;
     int LoudnessMaster;
+    int VolumeDecibelMaster;
+    int VolumeDecibelLF;
+    int VolumeDecibelRF;
   };
 
   class SRProperty
