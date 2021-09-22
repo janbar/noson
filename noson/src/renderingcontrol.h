@@ -63,9 +63,13 @@ namespace NSROOT
 
     bool SetMute(uint8_t value, const char* channel = CH_MASTER);
 
-    bool GetNightmode(uint8_t* value);
+    bool GetNightmode(int16_t* value);
 
-    bool SetNightmode(uint8_t value);
+    bool SetNightmode(int16_t value);
+
+    bool GetSubGain(int16_t* value);
+
+    bool SetSubGain(int16_t value);
 
     bool GetTreble(int8_t* value);
 

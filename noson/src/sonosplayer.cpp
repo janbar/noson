@@ -336,7 +336,7 @@ bool Player::SetMute(const std::string& uuid, uint8_t value)
   return false;
 }
 
-bool Player::GetNightmode(const std::string &uuid, uint8_t *value)
+bool Player::GetNightmode(const std::string &uuid, int16_t *value)
 {
   for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
   {
@@ -346,7 +346,7 @@ bool Player::GetNightmode(const std::string &uuid, uint8_t *value)
   return false;
 }
 
-bool Player::SetNightmode(const std::string &uuid, uint8_t value)
+bool Player::SetNightmode(const std::string &uuid, int16_t value)
 {
   for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
   {
@@ -372,6 +372,26 @@ bool Player::SetLoudness(const std::string &uuid, uint8_t value)
   {
     if (it->uuid == uuid)
       return it->renderingControl->SetLoudness(value);
+  }
+  return false;
+}
+
+bool Player::GetSubGain(const std::string &uuid, int16_t *value)
+{
+  for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
+  {
+    if (it->uuid == uuid)
+      return it->renderingControl->GetSubGain(value);
+  }
+  return false;
+}
+
+bool Player::SetSubGain(const std::string &uuid, int16_t value)
+{
+  for (RCTable::const_iterator it = m_RCTable.begin(); it != m_RCTable.end(); ++it)
+  {
+    if (it->uuid == uuid)
+      return it->renderingControl->SetSubGain(value);
   }
   return false;
 }
