@@ -1,4 +1,4 @@
-[![Build Status](https://api.travis-ci.org/janbar/noson.svg?branch=master)](http://travis-ci.org/janbar/noson)
+![build status](https://github.com/janbar/noson/actions/workflows/build-ubuntu-latest.yml/badge.svg?branch=master)
 
 ## About NOSON
 
