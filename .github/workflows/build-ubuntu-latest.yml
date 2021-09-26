@@ -1,0 +1,23 @@
+name: build ubuntu-latest
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: sudo apt-get install libflac-dev libflac++-dev libpulse-dev
+      - name: Configure build
+        run: "cmake -B build
+                    -Wno-dev"
+      - name: Build
+        run:  cmake --build build
