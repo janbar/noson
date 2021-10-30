@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt-get install libflac-dev libflac++-dev libpulse-dev
+        run: sudo apt-get update && sudo apt-get install libflac-dev libflac++-dev libpulse-dev
       - name: Configure build
         run: "cmake -B build
                     -Wno-dev"
