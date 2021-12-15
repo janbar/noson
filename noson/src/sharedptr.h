@@ -75,6 +75,16 @@ namespace NSROOT
     }
 
 #if __cplusplus >= 201103L
+    shared_ptr(const shared_ptr&& s) = delete;
+
+    shared_ptr(shared_ptr&& s) : p(s.p), c(s.c)
+    {
+      s.p = NULL;
+      s.c = NULL;
+    }
+
+    shared_ptr& operator=(const shared_ptr&& s) = delete;
+
     shared_ptr& operator=(shared_ptr&& s)
     {
       if (this != &s)

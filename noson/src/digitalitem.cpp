@@ -109,7 +109,7 @@ void DigitalItem::Clone(DigitalItem& _item) const
   this->m_vars.Clone(_item.m_vars);
 }
 
-const ElementPtr DigitalItem::GetProperty(const std::string& key) const
+ElementPtr DigitalItem::GetProperty(const std::string& key) const
 {
   ElementList::const_iterator it = m_vars.FindKey(key);
   if (it != m_vars.end())

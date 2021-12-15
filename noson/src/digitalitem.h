@@ -94,7 +94,7 @@ namespace NSROOT
 
     const std::string& GetValue(const std::string& key) const { return m_vars.GetValue(key); }
 
-    const ElementPtr GetProperty(const std::string& key) const;
+    ElementPtr GetProperty(const std::string& key) const;
 
     std::vector<ElementPtr> GetCollection(const std::string& key) const;
 
