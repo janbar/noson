@@ -131,17 +131,16 @@ std::vector<ElementPtr> DigitalItem::GetCollection(const std::string& key) const
   return list;
 }
 
-const ElementPtr& DigitalItem::SetProperty(const ElementPtr& var)
+void DigitalItem::SetProperty(const ElementPtr& var)
 {
   if (var)
   {
     ElementList::iterator it = m_vars.FindKey(var->GetKey());
     if (it != m_vars.end())
-      return *it = var;
-    m_vars.push_back(var);
-    return m_vars.back();
+      *it = var;
+    else
+      m_vars.push_back(var);
   }
-  return var;
 }
 
 void DigitalItem::RemoveProperty(const std::string& key)

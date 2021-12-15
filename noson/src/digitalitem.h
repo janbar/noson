@@ -98,11 +98,11 @@ namespace NSROOT
 
     std::vector<ElementPtr> GetCollection(const std::string& key) const;
 
-    const ElementPtr& SetProperty(const ElementPtr& var);
+    void SetProperty(const ElementPtr& var);
 
-    const ElementPtr& SetProperty(const Element& var) { return SetProperty(ElementPtr(new Element(var))); }
+    void SetProperty(const Element& var) { SetProperty(ElementPtr(new Element(var))); }
 
-    const ElementPtr& SetProperty(const std::string& key, const std::string& value) { return SetProperty(Element(key, value)); }
+    void SetProperty(const std::string& key, const std::string& value) { SetProperty(Element(key, value)); }
 
     void RemoveProperty(const std::string& key);
 

@@ -81,7 +81,7 @@ namespace NSROOT
 
     void SetProgramURI(const std::string& uri) { m_programURI.assign(uri); }
 
-    const DigitalItemPtr GetProgramMetadata() const { return m_programMetadata; }
+    DigitalItemPtr GetProgramMetadata() const { return m_programMetadata; }
 
     void SetProgramMetadata(const DigitalItemPtr& metadata) { m_programMetadata = metadata; }
 
