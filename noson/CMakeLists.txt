@@ -321,11 +321,12 @@ if (MSVC)
 endif ()
 
 set (noson_SOURCES ${SRC_FILES} ${OS_SRC_FILES} ${STREAM_SRC_FILES})
+set (noson_HEADERS ${HDR_FILES} ${STREAM_HDR_FILES})
 
 ###############################################################################
 # add targets
 
-add_library (noson ${noson_SOURCES})
+add_library (noson ${noson_SOURCES} ${noson_HEADERS})
 
 target_link_libraries (noson ${CMAKE_THREAD_LIBS_INIT})
 if (ZLIB_FOUND)
