@@ -69,11 +69,15 @@ int IODevice::read(char* data, int maxlen, unsigned timeout)
     OS::CTimeout _timeout(timeout);
     OS::CCondition<bool>* _condition = static_cast<OS::CCondition<bool>*>(m_readyRead);
     bool signaled = _condition->Wait(m_lock->mutex, _timeout);
-    m_lock->mutex.Unlock();
     if (!signaled)
+    {
+      m_lock->mutex.Unlock();
       return 0;
+    }
   }
-  return readData(data, maxlen);
+  int r = readData(data, maxlen);
+  m_lock->mutex.Unlock();
+  return r;
 }
 
 int IODevice::write(const char* data, int len)
