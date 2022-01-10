@@ -54,9 +54,17 @@ public:
 
   int bytesAvailable() const;
 
+  unsigned bytesUnread() const;
+
+  bool full() const;
+
   void clear();
 
   int write(const char * data, int len);
+
+  FramePacket * newPacket(int len);
+
+  void writePacket(FramePacket * packet);
 
   /**
    * Returned pointer MUST BE freed by caller
@@ -74,9 +82,11 @@ private:
 
 private:
   struct Lockable;
-  mutable Lockable * m_lock;
+  mutable Lockable * m_ringlock;
+  mutable Lockable * m_poollock;
   const int m_capacity;           /// buffer size
   volatile unsigned m_count;      /// total count of processed frame
+  volatile unsigned m_unread;     /// total size of unread data in the buffer
 
   struct Frame
   {
