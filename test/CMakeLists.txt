@@ -1,7 +1,7 @@
-cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
-cmake_policy (VERSION 3.1)
+cmake_minimum_required (VERSION 2.8.12)
+cmake_policy (VERSION 2.8.12)
 
-project (nosontest)
+project (nosontest C CXX)
 
 ###############################################################################
 # add definitions
