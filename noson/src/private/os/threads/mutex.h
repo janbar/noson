@@ -90,7 +90,7 @@ namespace OS
 
   private:
     mutex_t           m_handle;
-    volatile unsigned m_lockCount;
+    unsigned          m_lockCount;
 
     // Prevent copy
     CMutex(const CMutex& other);
@@ -154,7 +154,7 @@ namespace OS
 
   private:
     CMutex&           m_mutex;
-    volatile unsigned m_lockCount;
+    unsigned          m_lockCount;
 
     // Prevent copy
     CLockGuard(const CLockGuard& other);

@@ -85,8 +85,8 @@ private:
   mutable Lockable * m_ringlock;
   mutable Lockable * m_poollock;
   const int m_capacity;           /// buffer size
-  volatile unsigned m_count;      /// total count of processed frame
-  volatile unsigned m_unread;     /// total size of unread data in the buffer
+  unsigned m_count;               /// total count of processed frame
+  unsigned m_unread;              /// total size of unread data in the buffer
 
   struct Frame
   {
@@ -97,8 +97,8 @@ private:
   };
 
   std::vector<Frame*> m_buffer;   /// buffer of frames
-  volatile Frame * m_read;        /// frame to read
-  volatile Frame * m_write;       /// frame to write
+  Frame * m_read;                 /// frame to read
+  Frame * m_write;                /// frame to write
 
   void init();
 
