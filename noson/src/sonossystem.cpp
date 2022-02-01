@@ -577,8 +577,8 @@ std::string System::GetLogoForService(const SMServicePtr& service, const std::st
   const std::string& typeId = service->GetServiceType();
   for (ElementList::const_iterator it = logos.begin(); it != logos.end(); ++it)
     if ((*it)->GetKey() == typeId && (*it)->GetAttribut("placement") == placement)
-      return (**it);
-  return Element::Nil();
+      return ((*it)->data());
+  return Element::Nil().data();
 }
 
 void System::AddServiceOAuth(const std::string& type, const std::string& sn, const std::string& key, const std::string& token, const std::string& username)

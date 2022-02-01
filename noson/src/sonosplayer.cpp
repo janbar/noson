@@ -86,7 +86,7 @@ Player::Player(const ZonePlayerPtr& zonePlayer)
 
     SubordinateRC rc;
     rc.uuid = m_uuid;
-    rc.name = *zonePlayer;
+    rc.name = zonePlayer->data();
     rc.renderingControl = new RenderingControl(m_deviceHost, m_devicePort);
     m_RCTable.push_back(rc);
 
@@ -158,7 +158,7 @@ bool Player::Init(System* system)
     {
       SubordinateRC rc;
       rc.uuid = (*it)->GetUUID();
-      rc.name = **it;
+      rc.name = (*it)->data();
       rc.renderingControl = new RenderingControl((*it)->GetHost(), (*it)->GetPort(), m_subscriptionPool, this, CB_RenderingControl);
       m_RCTable.push_back(rc);
     }
