@@ -273,7 +273,6 @@ int string_to_time(const char *str, time_t *time)
   default:
     fprintf(stderr, "%s: string is not a timestamp '%s'\n", __FUNCTION__, buf);
     goto err;
-    break;
   }
 
   yyyy = buf;

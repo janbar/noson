@@ -510,8 +510,6 @@ long FilePicReader::find_id3v2(FILE * file, off_t * sync_offset)
       return -1;
     buffer_offset += sizeof(buffer);
   }
-
-  return -1;
 }
 
 int FilePicReader::parse_id3v2_pic_v2(FILE * file, unsigned frame_size, Picture ** pic, PictureType pictureType)
