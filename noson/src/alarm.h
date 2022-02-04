@@ -39,7 +39,7 @@ namespace NSROOT
 
   typedef enum {
     Recurrence_DAILY      = 0,
-    Recurrence_WEEKDAYS   = 1,
+    Recurrence_WEEKDAYS,
     Recurrence_WEEKENDS,
     Recurrence_ON,
     Recurrence_unknown,
@@ -67,7 +67,7 @@ namespace NSROOT
 
     virtual ~Alarm() { }
 
-    ElementList MakeArguments();
+    ElementList MakeArguments() const;
 
     const std::string& GetId() const { return m_id; }
 

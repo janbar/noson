@@ -38,7 +38,7 @@ const char* NSROOT::RecurrenceTable[Recurrence_unknown + 1] = {
 Alarm::Alarm()
 : m_enabled(false)
 , m_programURI(ALARM_BUZZER_URI)
-, m_programMetadata(0)
+, m_programMetadata(nullptr)
 , m_playMode(PlayModeTable[PlayMode_SHUFFLE])
 , m_volume(20)
 , m_includeLinkedZones(false)
@@ -48,7 +48,7 @@ Alarm::Alarm()
 Alarm::Alarm(Element& elem)
 : m_enabled(false)
 , m_programURI(ALARM_BUZZER_URI)
-, m_programMetadata(0)
+, m_programMetadata(nullptr)
 , m_playMode(PlayModeTable[PlayMode_SHUFFLE])
 , m_volume(20)
 , m_includeLinkedZones(false)
@@ -56,7 +56,7 @@ Alarm::Alarm(Element& elem)
   parse(elem);
 }
 
-ElementList Alarm::MakeArguments()
+ElementList Alarm::MakeArguments() const
 {
   ElementList args;
 
@@ -105,13 +105,11 @@ void Alarm::setDays(char mask)
   default:
     for (unsigned i = 0; i < 7; ++i)
     {
-      if ((mask & (1 << i)))
-      {
-        if (!daystr.empty())
-          daystr.push_back(',');
-        daystr.append(DayTable[i]);
-      }
+      if (mask & (1 << i))
+        daystr.append(DayTable[i]).push_back(',');
     }
+    if (!daystr.empty())
+      daystr.resize(daystr.size() - 1);
   }
   m_days.assign(daystr);
 }
@@ -154,7 +152,7 @@ void Alarm::SetRecurrence(const std::string& days)
     val.assign(RecurrenceTable[Recurrence_ON]);
     for (unsigned i = 0; i < 7; ++i)
     {
-      if ((mask & (1 << i)))
+      if (mask & (1 << i))
         val.push_back((char)(i + 0x30));
     }
   }
@@ -176,7 +174,7 @@ void Alarm::parse(Element& elem)
     else if (it->GetKey() == "Recurrence")
     {
       char mask = 0;
-      unsigned lon = strlen(RecurrenceTable[Recurrence_ON]);
+      size_t lon = strlen(RecurrenceTable[Recurrence_ON]);
       if (it->length() > lon && it->substr(0, lon) == RecurrenceTable[Recurrence_ON])
       {
         std::string days = it->substr(lon, std::string::npos);
@@ -205,7 +203,7 @@ void Alarm::parse(Element& elem)
     else if (it->GetKey() == "ProgramMetaData")
     {
       DIDLParser didl(it->c_str());
-      if (didl.IsValid() && didl.GetItems().size() > 0)
+      if (didl.IsValid() && !didl.GetItems().empty())
         m_programMetadata = didl.GetItems()[0];
       else
         m_programMetadata.reset();
