@@ -37,7 +37,7 @@ namespace NSROOT
   {
   public:
     RenderingControl(const std::string& serviceHost, unsigned servicePort);
-    RenderingControl(const std::string& serviceHost, unsigned servicePort, SubscriptionPoolPtr& subscriptionPool, void* CBHandle = 0, EventCB eventCB = 0);
+    RenderingControl(const std::string& serviceHost, unsigned servicePort, SubscriptionPoolPtr& subscriptionPool, void* CBHandle = nullptr, EventCB eventCB = nullptr);
     ~RenderingControl();
 
     static const std::string Name;
@@ -98,7 +98,7 @@ namespace NSROOT
     // Implements EventSubscriber
     virtual void HandleEventMessage(EventMessagePtr msg);
 
-    bool Empty() { return m_msgCount == 0; }
+    bool Empty() const { return m_msgCount == 0; }
 
     Locked<RCSProperty>& GetRenderingProperty() { return m_property; }
 
