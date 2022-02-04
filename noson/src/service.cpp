@@ -37,7 +37,7 @@ using namespace NSROOT;
 
 namespace NSROOT
 {
-  void __traceServiceError(tinyxml2::XMLDocument& doc)
+  void __traceServiceError(const tinyxml2::XMLDocument& doc)
   {
     DBG(DBG_ERROR, "%s: invalid or not supported response\n", __FUNCTION__);
     tinyxml2::XMLPrinter out;
@@ -128,7 +128,7 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
   // search the element 'Body'
   elem = elem->FirstChildElement();
   while (elem && !XMLNS::NameEqual(elem->Name(), "Body"))
-    elem = elem->NextSiblingElement(NULL);
+    elem = elem->NextSiblingElement(nullptr);
 
   if (!elem || !(elem = elem->FirstChildElement()))
   {
@@ -139,7 +139,7 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
   vars.push_back(ElementPtr(new Element("TAG", XMLNS::LocalName(elem->Name()))));
   if (vars.back()->compare("Fault") == 0)
   {
-    const tinyxml2::XMLElement* felem = elem->FirstChildElement(NULL);
+    const tinyxml2::XMLElement* felem = elem->FirstChildElement(nullptr);
     while (felem)
     {
       if (XMLNS::NameEqual(felem->Name(), "faultcode") && felem->GetText())
@@ -148,8 +148,8 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
         vars.push_back(ElementPtr(new Element("faultstring", felem->GetText())));
       else if (XMLNS::NameEqual(felem->Name(), "detail"))
       {
-        const tinyxml2::XMLElement* delem = felem->FirstChildElement(NULL);
-        if (delem && (delem = delem->FirstChildElement(NULL)))
+        const tinyxml2::XMLElement* delem = felem->FirstChildElement(nullptr);
+        if (delem && (delem = delem->FirstChildElement(nullptr)))
         {
           do
           {
@@ -159,17 +159,17 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
               vars.push_back(ElementPtr(new Element(XMLNS::LocalName(delem->Name()), delem->GetText())));
               DBG(DBG_PROTO, "%s: [fault] %s = %s\n", __FUNCTION__, vars.back()->GetKey().c_str(), vars.back()->c_str());
             }
-            delem = delem->NextSiblingElement(NULL);
+            delem = delem->NextSiblingElement(nullptr);
           } while (delem);
         }
       }
-      felem = felem->NextSiblingElement(NULL);
+      felem = felem->NextSiblingElement(nullptr);
     }
     SetFault(vars);
   }
   else
   {
-    elem = elem->FirstChildElement(NULL);
+    elem = elem->FirstChildElement(nullptr);
     while (elem)
     {
       if (elem->GetText())
@@ -178,7 +178,7 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
         vars.push_back(ElementPtr(new Element(XMLNS::LocalName(elem->Name()), elem->GetText())));
         DBG(DBG_PROTO, "%s: %s = %s\n", __FUNCTION__, vars.back()->GetKey().c_str(), vars.back()->c_str());
       }
-      elem = elem->NextSiblingElement(NULL);
+      elem = elem->NextSiblingElement(nullptr);
     }
   }
   return vars;

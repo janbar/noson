@@ -40,9 +40,9 @@ namespace NSROOT
     Service(const std::string& serviceHost, unsigned servicePort);
     virtual ~Service();
 
-    const std::string& GetHost() { return m_host; }
+    const std::string& GetHost() const { return m_host; }
 
-    unsigned GetPort() { return m_port; }
+    unsigned GetPort() const { return m_port; }
 
     virtual const std::string& GetName() const = 0;
 
