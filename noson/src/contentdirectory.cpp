@@ -163,7 +163,7 @@ void ContentDirectory::HandleEventMessage(EventMessagePtr msg)
               {
                 uint32_t num;
                 if (string_to_uint32(itt->c_str(), &num) == 0)
-                  prop->ContainerUpdateIDs.push_back(std::make_pair(str, num));
+                  prop->ContainerUpdateIDs.emplace_back(str, num);
               }
             }
           }
@@ -331,9 +331,9 @@ bool ContentList::BrowseContent(unsigned startingIndex, unsigned count, List::it
     uint32_t totalcount = 0;
     if (string_to_uint32(vars.GetValue("TotalMatches").c_str(), &totalcount) == 0)
       m_totalCount = totalcount; // reset total count
-    uint32_t count = 0;
-    string_to_uint32(vars.GetValue("NumberReturned").c_str(), &count);
-    DIDLParser didl((*it)->c_str(), count);
+    uint32_t cnt = 0;
+    string_to_uint32(vars.GetValue("NumberReturned").c_str(), &cnt);
+    DIDLParser didl((*it)->c_str(), cnt);
     if (didl.IsValid())
     {
       m_list.insert(position, didl.GetItems().begin(), didl.GetItems().end());
@@ -425,9 +425,9 @@ bool ContentBrowser::BrowseContent(unsigned startingIndex, unsigned count, Table
     uint32_t totalcount = 0;
     if (string_to_uint32(vars.GetValue("TotalMatches").c_str(), &totalcount) == 0)
       m_totalCount = totalcount; // reset total count
-    uint32_t count = 0;
-    string_to_uint32(vars.GetValue("NumberReturned").c_str(), &count);
-    DIDLParser didl((*it)->c_str(), count);
+    uint32_t cnt = 0;
+    string_to_uint32(vars.GetValue("NumberReturned").c_str(), &cnt);
+    DIDLParser didl((*it)->c_str(), cnt);
     if (didl.IsValid())
     {
       m_table.insert(position, didl.GetItems().begin(), didl.GetItems().end());

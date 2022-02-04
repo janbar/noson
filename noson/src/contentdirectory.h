@@ -42,7 +42,7 @@ namespace NSROOT
   {
   public:
     ContentDirectory(const std::string& serviceHost, unsigned servicePort);
-    ContentDirectory(const std::string& serviceHost, unsigned servicePort, SubscriptionPoolPtr& subscriptionPool, void* CBHandle = 0, EventCB eventCB = 0);
+    ContentDirectory(const std::string& serviceHost, unsigned servicePort, SubscriptionPoolPtr& subscriptionPool, void* CBHandle = nullptr, EventCB eventCB = nullptr);
     ~ContentDirectory();
 
     static const std::string Name;
@@ -135,7 +135,7 @@ namespace NSROOT
       friend class ContentList;
     public:
       typedef iterator self_type;
-      iterator() : c(0) {}
+      iterator() : c(nullptr) {}
       virtual ~iterator() {}
       self_type operator++() { self_type i0 = *this; if (c) c->Next(i); return i0; }
       self_type& operator++(int junk) { (void)junk; if (c) c->Next(i); return *this; }
@@ -157,9 +157,9 @@ namespace NSROOT
 
     iterator end() { return iterator(this, m_list.end()); }
 
-    unsigned size() { return m_totalCount; }
+    unsigned size() const { return m_totalCount; }
 
-    unsigned GetUpdateID() { return m_baseUpdateID; }
+    unsigned GetUpdateID() const { return m_baseUpdateID; }
 
   private:
     bool m_succeeded;
@@ -194,15 +194,15 @@ namespace NSROOT
 
     bool Browse(unsigned startingIndex, unsigned count);
 
-    unsigned index() { return m_startingIndex; }
+    unsigned index() const { return m_startingIndex; }
 
-    unsigned count() { return (unsigned) m_table.size(); }
+    unsigned count() const { return (unsigned) m_table.size(); }
 
-    unsigned total() { return m_totalCount; }
+    unsigned total() const { return m_totalCount; }
 
     Table& table() { return m_table; }
 
-    unsigned GetUpdateID() { return m_baseUpdateID; }
+    unsigned GetUpdateID() const { return m_baseUpdateID; }
 
   private:
     ContentDirectory& m_service;
