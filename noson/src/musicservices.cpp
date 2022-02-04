@@ -55,7 +55,7 @@ SMService::SMService(const std::string& agent, const ElementList& vars, const st
   m_desc.assign("");
 }
 
-SMServicePtr SMService::Clone(const std::string& serialNum)
+SMServicePtr SMService::Clone(const std::string& serialNum) const
 {
   return SMServicePtr(new SMService(m_agent, m_vars, serialNum));
 }
@@ -224,7 +224,7 @@ bool MusicServices::ListAvailableServices(ElementList& vars)
   return false;
 }
 
-bool MusicServices::ParseAvailableServices(const ElementList& vars, std::vector<ElementList>& data)
+bool MusicServices::ParseAvailableServices(const ElementList& vars, std::vector<ElementList>& data) const
 {
   const std::string& xml = vars.GetValue("AvailableServiceDescriptorList");
   tinyxml2::XMLDocument rootdoc;
@@ -285,13 +285,13 @@ bool MusicServices::ParseAvailableServices(const ElementList& vars, std::vector<
             cattr = cattr->Next();
           }
           service.push_back(mapPtr);
-          child2 = child2->NextSiblingElement(NULL);
+          child2 = child2->NextSiblingElement(nullptr);
         }
       }
-      child = child->NextSiblingElement(NULL);
+      child = child->NextSiblingElement(nullptr);
     }
     data.push_back(service);
-    elem = elem->NextSiblingElement(NULL);
+    elem = elem->NextSiblingElement(nullptr);
   }
   return true;
 }

@@ -50,7 +50,7 @@ namespace NSROOT
     SMService(const std::string& agent, const ElementList& vars, const std::string& serialNum);
     virtual ~SMService() {}
 
-    SMServicePtr Clone(const std::string& serialNum);
+    SMServicePtr Clone(const std::string& serialNum) const;
 
     const std::string& GetId() const;
     const std::string& GetName() const;
@@ -124,9 +124,7 @@ namespace NSROOT
      */
     bool ListAvailableServices(ElementList& vars);
 
-    bool ParseAvailableServices(const ElementList& vars, std::vector<ElementList>& data);
-
-    static SMAccountList GetAccountsForService(const SMAccountList& accounts, const std::string& serviceType);
+    bool ParseAvailableServices(const ElementList& vars, std::vector<ElementList>& data) const;
 
   };
 
