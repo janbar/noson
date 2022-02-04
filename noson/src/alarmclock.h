@@ -60,7 +60,7 @@ namespace NSROOT
   {
   public:
     AlarmClock(const std::string& serviceHost, unsigned servicePort);
-    AlarmClock(const std::string& serviceHost, unsigned servicePort, SubscriptionPoolPtr& subscriptionPool, void* CBHandle = 0, EventCB eventCB = 0);
+    AlarmClock(const std::string& serviceHost, unsigned servicePort, SubscriptionPoolPtr& subscriptionPool, void* CBHandle = nullptr, EventCB eventCB = nullptr);
     ~AlarmClock();
 
     static const std::string Name;
@@ -87,7 +87,7 @@ namespace NSROOT
 
     bool CreateAlarm(Alarm& alarm);
 
-    bool UpdateAlarm(Alarm& alarm);
+    bool UpdateAlarm(const Alarm& alarm);
 
     bool DestroyAlarm(const std::string& id);
 
@@ -96,7 +96,7 @@ namespace NSROOT
     // Implements EventSubscriber
     virtual void HandleEventMessage(EventMessagePtr msg);
 
-    bool Empty() { return m_msgCount == 0; }
+    bool Empty() const { return m_msgCount == 0; }
 
     Locked<ACProperty>& GetACProperty() { return m_property; }
 

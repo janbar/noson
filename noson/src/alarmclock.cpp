@@ -74,23 +74,23 @@ AlarmClock::~AlarmClock()
 bool AlarmClock::CreateAlarm(Alarm& alarm)
 {
   ElementList args = alarm.MakeArguments();
-  ElementList::iterator it = args.FindKey("ID");
+  ElementList::const_iterator it = args.FindKey("ID");
   if (it != args.end())
     args.erase(it);
   ElementList vars = Request("CreateAlarm", args);
   if (!vars.empty() && vars[0]->compare("CreateAlarmResponse") == 0)
   {
-    ElementList::const_iterator it = vars.FindKey("AssignedID");
-    if (it != vars.end())
+    ElementList::const_iterator ita = vars.FindKey("AssignedID");
+    if (ita != vars.end())
     {
-      alarm.SetId(**it);
+      alarm.SetId(**ita);
       return true;
     }
   }
   return false;
 }
 
-bool AlarmClock::UpdateAlarm(Alarm& alarm)
+bool AlarmClock::UpdateAlarm(const Alarm& alarm)
 {
   ElementList args = alarm.MakeArguments();
   ElementList vars = Request("UpdateAlarm", args);
@@ -220,7 +220,7 @@ bool AlarmClock::ParseAlarmList(const std::string& xml, AlarmList& alarms)
     }
     Alarm* alarm = new Alarm(var);
     alarms.push_back(AlarmPtr(alarm));
-    elem = elem->NextSiblingElement(NULL);
+    elem = elem->NextSiblingElement(nullptr);
   }
   return true;
 }
