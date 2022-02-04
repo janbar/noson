@@ -41,7 +41,7 @@ namespace NSROOT
     OS::CTimeout expiry;
     ElementList vars;
   };
-  
+
 }
 
 AVTransport::AVTransport(const std::string& serviceHost, unsigned servicePort)
@@ -445,8 +445,8 @@ bool AVTransport::ConfigureSleepTimer(unsigned seconds)
   char buf[9];
   memset(buf, 0, sizeof (buf));
   if (seconds)
-    sprintf(buf, "%.2u:%.2u:%.2u", (unsigned)(seconds / 3600),
-            (unsigned)((seconds % 3600) / 60), (unsigned)(seconds % 60));
+    sprintf(buf, "%.2u:%.2u:%.2u", seconds / 3600,
+            (seconds % 3600) / 60, seconds % 60);
   ElementList args;
   args.push_back(ElementPtr(new Element("InstanceID", "0")));
   args.push_back(ElementPtr(new Element("NewSleepTimerDuration", buf)));
