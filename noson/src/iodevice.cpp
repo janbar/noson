@@ -34,10 +34,8 @@ namespace NSROOT
 }
 
 IODevice::IODevice()
-: m_out(nullptr)
-, m_lock(new Lockable())
+: m_lock(new Lockable())
 , m_readyRead(new OS::CCondition<bool>())
-, m_mode(NotOpen)
 {
 }
 

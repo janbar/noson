@@ -83,13 +83,13 @@ public:
 protected:
   int readData(char * data, int maxlen) override;
   int writeData(const char *data, int len) override;
-  volatile bool m_mute;
+  volatile bool m_mute    = false;
 
 private:
-  bool m_record;
-  FrameBuffer * m_buffer;
-  FramePacket * m_packet;
-  int m_consumed;
+  bool m_record               = false;
+  FrameBuffer * m_buffer      = nullptr;
+  FramePacket * m_packet      = nullptr;
+  int m_consumed              = 0;
 };
 
 }

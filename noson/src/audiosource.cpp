@@ -24,16 +24,11 @@ using namespace NSROOT;
 #define FRAME_BUFFER_SIZE 256
 
 AudioSource::AudioSource()
-: AudioSource(FRAME_BUFFER_SIZE)
 {
+  m_buffer = new FrameBuffer(FRAME_BUFFER_SIZE);
 }
 
 AudioSource::AudioSource(int buffered)
-: m_record(false)
-, m_buffer(nullptr)
-, m_packet(nullptr)
-, m_consumed(0)
-, m_mute(false)
 {
   m_buffer = new FrameBuffer(buffered);
 }

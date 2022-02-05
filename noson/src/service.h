@@ -39,6 +39,8 @@ namespace NSROOT
   public:
     Service(const std::string& serviceHost, unsigned servicePort);
     virtual ~Service();
+    Service(const Service&) = delete;
+    Service& operator=(const Service&) = delete;
 
     const std::string& GetHost() const { return m_host; }
 
@@ -65,10 +67,6 @@ namespace NSROOT
     ElementList m_fault;
 
     void SetFault(const ElementList& vars);
-
-    // prevent copy
-    Service(const Service&);
-    Service& operator=(const Service&);
   };
 }
 

@@ -71,6 +71,8 @@ namespace NSROOT
     DigitalItem(Type_t _type, SubType_t _subType = SubType_unknown);
     DigitalItem(const std::string& objectID, const std::string& parentID, bool restricted, const ElementList& vars);
     virtual ~DigitalItem() {}
+    DigitalItem(const DigitalItem&) = delete;
+    DigitalItem& operator=(const DigitalItem&) = delete;
 
     bool IsValid() const { return m_type != Type_unknown; }
 
@@ -121,10 +123,6 @@ namespace NSROOT
 
     static const char* TypeTable[Type_unknown + 1];
     static const char* SubTypeTable[SubType_unknown + 1];
-
-    // prevent copy
-    DigitalItem(const DigitalItem&);
-    DigitalItem& operator=(const DigitalItem&);
   };
 }
 
