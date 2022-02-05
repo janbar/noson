@@ -117,10 +117,32 @@ namespace NSROOT
 
   /////////////////////////////////////////////////////////////////////////////
   ////
+  //// ContentChunk : base class for content
+  ////
+
+  class ContentChunk
+  {
+  public:
+    ContentChunk()
+    : m_baseUpdateID(0)
+    , m_totalCount(0)
+    , m_lastUpdateID(0) {}
+    virtual ~ContentChunk() {}
+
+    unsigned m_baseUpdateID;
+    unsigned m_totalCount;
+    unsigned m_lastUpdateID;
+
+    // extract and store summary then return the count of items in the chunk
+    unsigned summarize(const ElementList& vars);
+  };
+
+  /////////////////////////////////////////////////////////////////////////////
+  ////
   //// ContentList
   ////
 
-  class ContentList
+  class ContentList : private ContentChunk
   {
     typedef std::list<DigitalItemPtr> List;
 
@@ -166,10 +188,7 @@ namespace NSROOT
     ContentDirectory& m_service;
     unsigned m_bulkSize;
     std::string m_root;
-    unsigned m_baseUpdateID;
-    unsigned m_totalCount;
     unsigned m_browsedCount;
-    unsigned m_lastUpdateID;
 
     List m_list;
 
@@ -183,7 +202,7 @@ namespace NSROOT
   //// ContentBrowser
   ////
 
-  class ContentBrowser
+  class ContentBrowser : private ContentChunk
   {
   public:
     typedef std::vector<DigitalItemPtr> Table;
@@ -207,10 +226,7 @@ namespace NSROOT
   private:
     ContentDirectory& m_service;
     std::string m_root;
-    unsigned m_baseUpdateID;
-    unsigned m_totalCount;
     unsigned m_startingIndex;
-    unsigned m_lastUpdateID;
 
     Table m_table;
 
@@ -219,4 +235,4 @@ namespace NSROOT
 
 }
 
-#endif	/* AVTRANSPORT_H */
+#endif	/* CONTENTDIRECTORY_H */

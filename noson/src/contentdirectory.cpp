@@ -258,6 +258,24 @@ std::string ContentSearch::Root() const
 
 ///////////////////////////////////////////////////////////////////////////////
 ////
+//// ContentChunk
+////
+
+unsigned ContentChunk::summarize(const ElementList& vars)
+{
+  uint32_t updateID = 0;
+  if (string_to_uint32(vars.GetValue("UpdateID").c_str(), &updateID) == 0)
+    m_lastUpdateID = updateID; // set update ID for this chunk of data
+  uint32_t totalcount = 0;
+  if (string_to_uint32(vars.GetValue("TotalMatches").c_str(), &totalcount) == 0)
+    m_totalCount = totalcount; // reset total count
+  uint32_t cnt = 0;
+  string_to_uint32(vars.GetValue("NumberReturned").c_str(), &cnt);
+  return (unsigned)cnt;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+////
 //// ContentList
 ////
 
@@ -266,10 +284,7 @@ ContentList::ContentList(ContentDirectory& service, const ContentSearch& search,
 , m_service(service)
 , m_bulkSize(BROWSE_COUNT)
 , m_root(search.Root())
-, m_baseUpdateID(0)
-, m_totalCount(0)
 , m_browsedCount(0)
-, m_lastUpdateID(0)
 {
   if (bulksize > 0 && bulksize < BROWSE_COUNT)
     m_bulkSize = bulksize;
@@ -282,10 +297,7 @@ ContentList::ContentList(ContentDirectory& service, const std::string& objectID,
 , m_service(service)
 , m_bulkSize(BROWSE_COUNT)
 , m_root(objectID)
-, m_baseUpdateID(0)
-, m_totalCount(0)
 , m_browsedCount(0)
-, m_lastUpdateID(0)
 {
   if (bulksize > 0 && bulksize < BROWSE_COUNT)
     m_bulkSize = bulksize;
@@ -325,14 +337,7 @@ bool ContentList::BrowseContent(unsigned startingIndex, unsigned count, List::it
   ElementList::const_iterator it;
   if ((m_succeeded = m_service.Browse(m_root, startingIndex, count, vars)) && (it = vars.FindKey("Result")) != vars.end())
   {
-    uint32_t updateID = 0;
-    if (string_to_uint32(vars.GetValue("UpdateID").c_str(), &updateID) == 0)
-      m_lastUpdateID = updateID; // set update ID for this chunk of data
-    uint32_t totalcount = 0;
-    if (string_to_uint32(vars.GetValue("TotalMatches").c_str(), &totalcount) == 0)
-      m_totalCount = totalcount; // reset total count
-    uint32_t cnt = 0;
-    string_to_uint32(vars.GetValue("NumberReturned").c_str(), &cnt);
+    unsigned cnt = summarize(vars);
     DIDLParser didl((*it)->c_str(), cnt);
     if (didl.IsValid())
     {
@@ -353,10 +358,7 @@ bool ContentList::BrowseContent(unsigned startingIndex, unsigned count, List::it
 ContentBrowser::ContentBrowser(ContentDirectory& service, const ContentSearch& search, unsigned count)
 : m_service(service)
 , m_root(search.Root())
-, m_baseUpdateID(0)
-, m_totalCount(0)
 , m_startingIndex(0)
-, m_lastUpdateID(0)
 {
   BrowseContent(m_startingIndex, count, m_table.begin());
   m_baseUpdateID = m_lastUpdateID; // save baseline ID for this content
@@ -365,10 +367,7 @@ ContentBrowser::ContentBrowser(ContentDirectory& service, const ContentSearch& s
 ContentBrowser::ContentBrowser(ContentDirectory& service, const std::string& objectID, unsigned count)
 : m_service(service)
 , m_root(objectID)
-, m_baseUpdateID(0)
-, m_totalCount(0)
 , m_startingIndex(0)
-, m_lastUpdateID(0)
 {
   BrowseContent(m_startingIndex, count, m_table.begin());
   m_baseUpdateID = m_lastUpdateID; // save baseline ID for this content
@@ -419,14 +418,7 @@ bool ContentBrowser::BrowseContent(unsigned startingIndex, unsigned count, Table
   ElementList::const_iterator it;
   if (m_service.Browse(m_root, startingIndex, count, vars) && (it = vars.FindKey("Result")) != vars.end())
   {
-    uint32_t updateID = 0;
-    if (string_to_uint32(vars.GetValue("UpdateID").c_str(), &updateID) == 0)
-      m_lastUpdateID = updateID; // set update ID for this chunk of data
-    uint32_t totalcount = 0;
-    if (string_to_uint32(vars.GetValue("TotalMatches").c_str(), &totalcount) == 0)
-      m_totalCount = totalcount; // reset total count
-    uint32_t cnt = 0;
-    string_to_uint32(vars.GetValue("NumberReturned").c_str(), &cnt);
+    unsigned cnt = summarize(vars);
     DIDLParser didl((*it)->c_str(), cnt);
     if (didl.IsValid())
     {
