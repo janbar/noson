@@ -29,6 +29,8 @@ class IODevice
 public:
   IODevice();
   virtual ~IODevice();
+  IODevice(const IODevice& other) = delete;
+  IODevice& operator=(const IODevice& other) = delete;
 
   enum OpenMode { NotOpen = 0, ReadOnly = 1, WriteOnly = 2, ReadWrite = 3 };
 
@@ -51,13 +53,13 @@ protected:
   virtual int readData(char * data, int maxlen) = 0;
   virtual int writeData(const char *data, int len) = 0;
 
-  IODevice * m_out;
+  IODevice * m_out            = nullptr;
 
 private:
   struct Lockable;
   mutable Lockable * m_lock;
   void * m_readyRead;
-  OpenMode m_mode;
+  OpenMode m_mode             = NotOpen;
 };
 
 }

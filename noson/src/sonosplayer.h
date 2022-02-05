@@ -70,6 +70,8 @@ namespace NSROOT
     Player(const ZonePlayerPtr& zonePlayer);
 
     virtual ~Player();
+    Player(const Player&) = delete;
+    Player& operator=(const Player&) = delete;
 
     bool IsValid() const { return m_valid; }
     const std::string& GetHost() const { return m_deviceHost; }
@@ -206,10 +208,6 @@ namespace NSROOT
     static void CB_AVTransport(void* handle);
     static void CB_RenderingControl(void* handle);
     static void CB_ContentDirectory(void* handle);
-
-    // prevent copy
-    Player(const Player&);
-    Player& operator=(const Player&);
   };
 }
 

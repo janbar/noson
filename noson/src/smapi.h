@@ -45,6 +45,9 @@ namespace NSROOT
   public:
     SMAPI(const System& system);
     virtual ~SMAPI();
+    SMAPI(const SMAPI&) = delete;
+    SMAPI& operator=(const SMAPI&) = delete;
+
 
     bool Init(const SMServicePtr& smsvc, const std::string& locale);
     
@@ -156,10 +159,6 @@ namespace NSROOT
     void SetFault(const ElementList& vars);
 
     ElementList Request(const std::string& action, const ElementList& args);
-
-    // prevent copy
-    SMAPI(const SMAPI&);
-    SMAPI& operator=(const SMAPI&);
 
     static std::string language(const std::string& locale);
   };

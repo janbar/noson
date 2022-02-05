@@ -328,6 +328,8 @@ set (noson_HEADERS ${HDR_FILES} ${STREAM_HDR_FILES})
 
 add_library (noson ${noson_SOURCES} ${noson_HEADERS})
 
+set_property (TARGET noson PROPERTY CXX_STANDARD 11)
+
 target_link_libraries (noson ${CMAKE_THREAD_LIBS_INIT})
 if (ZLIB_FOUND)
   target_link_libraries (noson ${ZLIB_LIBRARIES})

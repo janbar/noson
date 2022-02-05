@@ -44,10 +44,6 @@ public:
   AudioFormat getFormat() const override { return m_format; }
 
 private:
-  // Prevent copy
-  PASource(const PASource& other);
-  PASource& operator=(const PASource& other);
-
   std::string m_name;
   std::string m_deviceName;
   AudioFormat m_format;

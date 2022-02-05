@@ -34,14 +34,12 @@ class FramePacket
 public:
   FramePacket(int _capacity);
   ~FramePacket();
+  FramePacket(const FramePacket& other) = delete;
+  FramePacket& operator=(const FramePacket& other) = delete;
   unsigned id;
   int size;
   char * const data;
   const int capacity;
-private:
-  // prevent copy
-  FramePacket(const FramePacket& other);
-  FramePacket& operator=(const FramePacket& other);
 };
 
 class FrameBuffer
@@ -49,6 +47,8 @@ class FrameBuffer
 public:
   FrameBuffer(int capacity);
   virtual ~FrameBuffer();
+  FrameBuffer(const FrameBuffer& other) = delete;
+  FrameBuffer& operator=(const FrameBuffer& other) = delete;
 
   int capacity() const;
 
@@ -74,11 +74,6 @@ public:
   FramePacket * read();
 
   void freePacket(FramePacket * p);
-
-private:
-  // Prevent copy
-  FrameBuffer(const FrameBuffer& other);
-  FrameBuffer& operator=(const FrameBuffer& other);
 
 private:
   struct Lockable;
