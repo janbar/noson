@@ -47,19 +47,19 @@ public:
   int write(const char * data, int len);
 
   void connectOutput(IODevice * io);
+  IODevice* connectedOutput() const { return m_out; }
 
 protected:
   void readyRead();
   virtual int readData(char * data, int maxlen) = 0;
-  virtual int writeData(const char *data, int len) = 0;
-
-  IODevice * m_out            = nullptr;
+  virtual int writeData(const char * data, int len) = 0;
 
 private:
   struct Lockable;
   mutable Lockable * m_lock;
   void * m_readyRead;
   OpenMode m_mode             = NotOpen;
+  IODevice * m_out            = nullptr;
 };
 
 }

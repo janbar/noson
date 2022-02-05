@@ -51,6 +51,7 @@ protected:
 private:
   void onClose() override;
   int encode(const char * data, int len) override;
+  int writeEncodedData(const char * data, int len);
 
 private:
   bool m_ok;
