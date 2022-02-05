@@ -94,15 +94,12 @@ int AudioSource::writeData(const char * data, int len)
 {
   if (m_record)
   {
-    if (m_out)
-    {
-      len = m_out->write(data, len);
-    }
-    else
-    {
-      if ((len = m_buffer->write(data, len)) > 0)
-        readyRead();
-    }
+    // check sink: connected output, otherwise internal buffer for reading
+    IODevice* output = connectedOutput();
+    if (output)
+      len = output->write(data, len);
+    else if ((len = m_buffer->write(data, len)) > 0)
+      readyRead();
   }
   return len;
 }

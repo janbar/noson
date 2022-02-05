@@ -185,19 +185,20 @@ int FLACEncoder::encode(const char * data, int len)
   return len;
 }
 
+int FLACEncoder::writeEncodedData(const char * data, int len)
+{
+  // check sink: connected output, otherwise internal buffer for reading
+  IODevice* output = connectedOutput();
+  if (output)
+    len = output->write(data, len);
+  else if ((len = m_buffer->write(data, len)) > 0)
+      readyRead();
+  return len;
+}
+
 FLAC__StreamEncoderWriteStatus FLACEncoder::FLACEncoderPrivate::write_callback(const FLAC__byte buffer[], size_t bytes, unsigned samples, unsigned current_frame)
 {
   DBG(DBG_DEBUG, "FLAC encoder wrote %" PRIu64 " bytes, %u samples, %u frame\n", bytes, samples, current_frame);
-  int r;
-  if (m_p->m_out)
-  {
-    r = m_p->m_out->write((char*)buffer, (int)bytes);
-  }
-  else
-  {
-    r = m_p->m_buffer->write((char*)buffer, (int)bytes);
-    if (r > 0)
-      m_p->readyRead();
-  }
+  int r = m_p->writeEncodedData((const char*)buffer, (int)bytes);
   return (r == (int)bytes ? FLAC__STREAM_ENCODER_WRITE_STATUS_OK : FLAC__STREAM_ENCODER_WRITE_STATUS_FATAL_ERROR);
 }

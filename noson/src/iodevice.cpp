@@ -82,7 +82,6 @@ int IODevice::write(const char* data, int len)
 {
   if (!writable())
     return -1;
-
   return writeData(data, len);
 }
 
