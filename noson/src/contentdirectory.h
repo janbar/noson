@@ -87,7 +87,7 @@ namespace NSROOT
 
   typedef enum
   {
-    SearchArtist,
+    SearchArtist          = 0,
     SearchAlbum,
     SearchGenre,
     SearchTrack,
@@ -100,6 +100,7 @@ namespace NSROOT
     SearchShare,
     SearchFavorite,
     SearchCategory,
+    Search_unknown,
   } Search_t;
 
   class ContentSearch
@@ -109,6 +110,8 @@ namespace NSROOT
     virtual ~ContentSearch() {}
 
     virtual std::string Root() const;
+
+    static std::pair<const std::string, const std::string> rootenum(Search_t search);
 
   protected:
     Search_t m_search;

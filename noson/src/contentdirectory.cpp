@@ -206,54 +206,38 @@ void ContentDirectory::HandleEventMessage(EventMessagePtr msg)
 //// ContentSearch
 ////
 
+namespace NSROOT
+{
+static const char * SearchTable[NSROOT::Search_unknown + 1][2] = {
+  {"A:ALBUMARTIST", "Artist"},
+  {"A:ALBUM",       "Album"},
+  {"A:GENRE",       "Genre"},
+  {"A:TRACKS",      "Track"},
+  {"A:COMPOSER",    "Composer"},
+  {"A:ARTIST",      "Contributor"},
+  {"A:PLAYLISTS",   "Playlist"},
+  {"R:0",           "Radio"},
+  {"Q:0",           "Queue"},
+  {"SQ:",           "SONOS Playlist"},
+  {"S:",            "Share"},
+  {"FV:2",          "Favorite"},
+  {"A:",            "Category"},
+  {"", ""}
+};
+}
+
 std::string ContentSearch::Root() const
 {
   std::string objectId;
-  switch (m_search)
-  {
-  case SearchArtist:
-    objectId.assign("A:ALBUMARTIST");
-    break;
-  case SearchAlbum:
-    objectId.assign("A:ALBUM");
-    break;
-  case SearchGenre:
-    objectId.assign("A:GENRE");
-    break;
-  case SearchTrack:
-    objectId.assign("A:TRACKS");
-    break;
-  case SearchComposer:
-    objectId.assign("A:COMPOSER");
-    break;
-  case SearchContributor:
-    objectId.assign("A:ARTIST");
-    break;
-  case SearchPlaylist:
-    objectId.assign("A:PLAYLISTS");
-    break;
-  case SearchRadio:
-    objectId.assign("R:0");
-    break;
-  case SearchQueue:
-    objectId.assign("Q:0");
-    break;
-  case SearchSonosPlaylist:
-    objectId.assign("SQ:");
-    break;
-  case SearchShare:
-    objectId.assign("S:");
-    break;
-  case SearchFavorite:
-    objectId.assign("FV:2");
-    break;
-  case SearchCategory:
-  default:
-    objectId.assign("A:");
-  }
+  objectId.assign(NSROOT::SearchTable[m_search][0]);
   if (!m_string.empty())
     objectId.append(":").append(m_string);
   return objectId;
+}
+
+std::pair<const std::string, const std::string> ContentSearch::rootenum(Search_t search)
+{
+  return std::make_pair(NSROOT::SearchTable[search][0], NSROOT::SearchTable[search][1]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
