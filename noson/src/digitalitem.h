@@ -112,6 +112,8 @@ namespace NSROOT
 
     void Clone(DigitalItem& _item) const;
 
+    std::vector<ElementPtr> GetElements() const;
+
   private:
     Type_t m_type;
     SubType_t m_subType;
