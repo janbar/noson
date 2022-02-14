@@ -21,9 +21,9 @@
 
 #include <string>
 #include <list>
-#include <pulse/pulseaudio.h>
 
 #include "local_config.h"
+#include "dlsym_pulsesimple.h"
 
 namespace NSROOT
 {

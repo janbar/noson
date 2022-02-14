@@ -33,6 +33,7 @@ class PulseStreamer : public RequestBroker
 public:
   PulseStreamer(RequestBroker * imageService = nullptr);
   ~PulseStreamer() override { }
+  virtual bool Initialize() override;
   virtual bool HandleRequest(handle * handle) override;
 
   const char * CommonName() override { return PULSESTREAMER_CNAME; }

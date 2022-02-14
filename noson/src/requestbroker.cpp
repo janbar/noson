@@ -42,6 +42,8 @@ RequestBroker::~RequestBroker()
 {
 }
 
+bool RequestBroker::Initialize() { return true; }
+
 std::string RequestBroker::MakeResponseHeader(Status status)
 {
   std::string header;

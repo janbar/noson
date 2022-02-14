@@ -68,6 +68,12 @@ PulseStreamer::PulseStreamer(RequestBroker * imageService /*= nullptr*/)
   m_resources.push_back(ptr);
 }
 
+bool PulseStreamer::Initialize()
+{
+  if (initialize_pulse(1) == 0)
+    return true;
+  return false;
+}
 
 bool PulseStreamer::HandleRequest(handle * handle)
 {

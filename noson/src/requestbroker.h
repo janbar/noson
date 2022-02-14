@@ -53,6 +53,14 @@ namespace NSROOT
     };
 
     /**
+     * @brief The initializer of the broker.
+     * It should return false when the feature cannot be activated on the
+     * running platform. The default implementation return true.
+     * @return true if succeeded, else false
+     */
+    virtual bool Initialize();
+
+    /**
      * @brief Handle an incoming request
      * @param handle the data to pass for callback
      * @param uri the URI of the requested resource

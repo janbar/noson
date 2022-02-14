@@ -200,6 +200,8 @@ if(HAVE_FLAC)
       DESTINATION ${noson_PUBLIC_DIR})
     file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/pulsestreamer.h
       DESTINATION ${noson_PUBLIC_DIR})
+    file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/dlsym_pulsesimple.h
+      DESTINATION ${noson_PUBLIC_DIR})
   endif()
 endif()
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/imageservice.h
@@ -302,11 +304,13 @@ if (HAVE_FLAC)
   if (HAVE_PULSEAUDIO)
     include_directories (${PULSESIMPLE_INCLUDE_DIR} ${PULSE_INCLUDE_DIR})
     list (APPEND STREAM_SRC_FILES
+      src/dlsym_pulsesimple.c
       src/pacontrol.cpp
       src/pasource.cpp
       src/pulsestreamer.cpp
     )
     list (APPEND STREAM_HDR_FILES
+      src/dlsym_pulsesimple.h
       src/pacontrol.h
       src/pasource.h
       src/pulsestreamer.h
@@ -330,7 +334,7 @@ add_library (noson ${noson_SOURCES} ${noson_HEADERS})
 
 set_property (TARGET noson PROPERTY CXX_STANDARD 11)
 
-target_link_libraries (noson ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (noson ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 if (ZLIB_FOUND)
   target_link_libraries (noson ${ZLIB_LIBRARIES})
 endif ()
@@ -339,9 +343,6 @@ if (OPENSSL_FOUND)
 endif ()
 if(HAVE_FLAC)
   target_link_libraries (noson ${FLACXX_LIBRARIES} ${FLAC_LIBRARIES})
-endif()
-if(HAVE_PULSEAUDIO)
-  target_link_libraries (noson ${PULSESIMPLE_LIBRARIES} ${PULSE_LIBRARIES})
 endif()
 
 if (MSVC)

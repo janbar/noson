@@ -602,7 +602,8 @@ bool System::HavePulseAudio()
 
 void System::RegisterRequestBroker(RequestBrokerPtr rb)
 {
-  m_eventHandler.RegisterRequestBroker(rb);
+  if (rb->Initialize())
+    m_eventHandler.RegisterRequestBroker(rb);
 }
 
 void System::UnregisterRequestBroker(const std::string& name)
