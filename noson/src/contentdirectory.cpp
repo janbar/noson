@@ -322,13 +322,17 @@ bool ContentList::BrowseContent(unsigned startingIndex, unsigned count, List::it
   if ((m_succeeded = m_service.Browse(m_root, startingIndex, count, vars)) && (it = vars.FindKey("Result")) != vars.end())
   {
     unsigned cnt = summarize(vars);
-    DIDLParser didl((*it)->c_str(), cnt);
-    if (didl.IsValid())
+    // peer could return a valid result on out of range
+    if (startingIndex < m_totalCount)
     {
-      m_list.insert(position, didl.GetItems().begin(), didl.GetItems().end());
-      m_browsedCount += didl.GetItems().size();
-      DBG(DBG_PROTO, "%s: count %u\n", __FUNCTION__, didl.GetItems().size());
-      return true;
+      DIDLParser didl((*it)->c_str(), cnt);
+      if (didl.IsValid())
+      {
+        m_list.insert(position, didl.GetItems().begin(), didl.GetItems().end());
+        m_browsedCount += didl.GetItems().size();
+        DBG(DBG_PROTO, "%s: count %u\n", __FUNCTION__, didl.GetItems().size());
+        return true;
+      }
     }
   }
   return false;
