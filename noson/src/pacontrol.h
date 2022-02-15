@@ -23,7 +23,7 @@
 #include <list>
 
 #include "local_config.h"
-#include "dlsym_pulsesimple.h"
+#include "dlsym_pulse.h"
 
 namespace NSROOT
 {

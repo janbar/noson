@@ -9,7 +9,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # set lib version here
 set (noson_VERSION_MAJOR 2)
 set (noson_VERSION_MINOR 8)
-set (noson_VERSION_PATCH 1)
+set (noson_VERSION_PATCH 2)
 
 set (noson_VERSION ${noson_VERSION_MAJOR}.${noson_VERSION_MINOR}.${noson_VERSION_PATCH})
 set (NOSON_LIB_VERSION ${noson_VERSION})
@@ -200,7 +200,7 @@ if(HAVE_FLAC)
       DESTINATION ${noson_PUBLIC_DIR})
     file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/pulsestreamer.h
       DESTINATION ${noson_PUBLIC_DIR})
-    file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/dlsym_pulsesimple.h
+    file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/dlsym_pulse.h
       DESTINATION ${noson_PUBLIC_DIR})
   endif()
 endif()
@@ -304,13 +304,13 @@ if (HAVE_FLAC)
   if (HAVE_PULSEAUDIO)
     include_directories (${PULSESIMPLE_INCLUDE_DIR} ${PULSE_INCLUDE_DIR})
     list (APPEND STREAM_SRC_FILES
-      src/dlsym_pulsesimple.c
+      src/dlsym_pulse.c
       src/pacontrol.cpp
       src/pasource.cpp
       src/pulsestreamer.cpp
     )
     list (APPEND STREAM_HDR_FILES
-      src/dlsym_pulsesimple.h
+      src/dlsym_pulse.h
       src/pacontrol.h
       src/pasource.h
       src/pulsestreamer.h

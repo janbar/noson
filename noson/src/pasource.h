@@ -21,7 +21,7 @@
 
 #include "local_config.h"
 #include "audiosource.h"
-#include "dlsym_pulsesimple.h"
+#include "dlsym_pulse.h"
 
 namespace NSROOT
 {
