@@ -146,7 +146,7 @@ std::string PulseStreamer::GetPASink()
     for (;;)
     {
       pacontrol.getSinkList(&sinks);
-      for (PAControl::Sink ad : sinks)
+      for (PAControl::Sink& ad : sinks)
       {
         if (ad.name == PA_SINK_NAME)
         {
