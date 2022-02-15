@@ -140,29 +140,44 @@ std::string PulseStreamer::GetPASink()
   std::string deviceName;
   PAControl::SinkList sinks;
   PAControl pacontrol(PA_CLIENT_NAME);
-  if (pacontrol.connect())
+
+  bool cont = true;
+  for (;;)
   {
-    bool cont = true;
-    for (;;)
+    // get sink list
+    if (pacontrol.connect())
     {
       pacontrol.getSinkList(&sinks);
-      for (PAControl::Sink& ad : sinks)
+      pacontrol.disconnect();
+    }
+    else
+    {
+      DBG(DBG_ERROR, "%s: failed to connect to pulse\n", __FUNCTION__);
+      break;
+    }
+    // search the sink in list
+    for (PAControl::Sink& ad : sinks)
+    {
+      if (ad.name == PA_SINK_NAME)
       {
-        if (ad.name == PA_SINK_NAME)
-        {
-          DBG(DBG_DEBUG, "%s: Found device %d: %s\n", __FUNCTION__, ad.index, ad.monitorSourceName.c_str());
-          deviceName = ad.monitorSourceName;
-          m_sinkIndex.Store(ad.ownerModule); // own the module
-          break;
-        }
-      }
-      if (!deviceName.empty() || !cont)
+        DBG(DBG_DEBUG, "%s: Found device %d: %s\n", __FUNCTION__, ad.index, ad.monitorSourceName.c_str());
+        deviceName = ad.monitorSourceName;
+        m_sinkIndex.Store(ad.ownerModule); // own the module
         break;
-      DBG(DBG_DEBUG, "%s: create sink (%s)\n", __FUNCTION__, PA_SINK_NAME);
+      }
+    }
+    if (!deviceName.empty() || !cont)
+      break;
+    // no sink exist so create it
+    DBG(DBG_DEBUG, "%s: create sink (%s)\n", __FUNCTION__, PA_SINK_NAME);
+    if (pacontrol.connect())
+    {
       m_sinkIndex.Store(pacontrol.newSink(PA_SINK_NAME, PA_SINK_NAME));
+      pacontrol.disconnect();
       cont = false;
     }
-    pacontrol.disconnect();
+    else
+      break;
   }
   return deviceName;
 }
