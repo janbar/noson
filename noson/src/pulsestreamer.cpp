@@ -208,7 +208,7 @@ void PulseStreamer::streamSink(handle * handle)
 
   if (deviceName.empty())
   {
-    DBG(DBG_WARN, "%s: no sink available", __FUNCTION__);
+    DBG(DBG_WARN, "%s: no sink available\n", __FUNCTION__);
     Reply503(handle);
   }
   else if (m_playbackCount.Load() > PULSESTREAMER_MAX_PB)
