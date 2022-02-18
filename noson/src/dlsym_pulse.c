@@ -424,7 +424,7 @@ int (*pa_simple_flush_dylibloader_wrapper_pulse)( pa_simple*, int*);
 int initialize_pulse(int verbose) {
   void *handle;
   char *error;
-  handle = dlopen("libpulse-simple.so", RTLD_LAZY);
+  handle = dlopen("libpulse-simple.so.0", RTLD_LAZY);
   if (!handle) {
     if (verbose) {
       fprintf(stderr, "%s\n", dlerror());
