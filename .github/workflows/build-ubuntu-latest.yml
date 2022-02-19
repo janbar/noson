@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - tests
 
 jobs:
   build:
@@ -21,3 +22,5 @@ jobs:
                     -Wno-dev"
       - name: Build
         run:  cmake --build build
+      - name: Tests
+        run:  cmake --build build --target test
