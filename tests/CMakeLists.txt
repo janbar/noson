@@ -1,7 +1,10 @@
 cmake_minimum_required (VERSION 2.8.12)
 cmake_policy (VERSION 2.8.12)
+cmake_policy(SET CMP0054 NEW)
 
 project (nosontest C CXX)
+
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 ###############################################################################
 # add definitions
@@ -44,3 +47,10 @@ target_link_libraries (sslwgettest noson)
 add_executable (flacencodertest src/flacencodertest.cpp)
 add_dependencies (flacencodertest noson)
 target_link_libraries (flacencodertest noson)
+
+
+###############################################################################
+# add unit tests
+include(UnitTestProject)
+
+unittest_project(NAME check_flac_encoder SOURCES src/check_flac_encoder.cpp TARGET noson)

@@ -4,7 +4,11 @@ cmake_policy (VERSION 2.8.12)
 project(libnoson)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/noson)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test)
+
+include(CTest)
+if(BUILD_TESTING)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
+endif()
 
 ###############################################################################
 # install targets
