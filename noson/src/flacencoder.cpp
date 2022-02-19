@@ -107,6 +107,11 @@ bool FLACEncoder::open()
   return false;
 }
 
+bool FLACEncoder::overflow() const
+{
+  return m_buffer->full();
+}
+
 int FLACEncoder::bytesAvailable() const
 {
   if (m_packet)

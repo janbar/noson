@@ -55,6 +55,11 @@ void AudioSource::stopRecording()
   m_record = false;
 }
 
+bool AudioSource::overflow() const
+{
+  return m_buffer->full();
+}
+
 int AudioSource::bytesAvailable() const
 {
   if (m_packet)

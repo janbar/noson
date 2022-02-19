@@ -36,7 +36,7 @@ class AudioSource : public IODevice
 public:
   AudioSource();
   AudioSource(int buffered);
-  virtual ~AudioSource();
+  ~AudioSource() override;
 
   /**
    * Open the audio source. This allow read or write operations.
@@ -45,12 +45,12 @@ public:
    * @param mode default by ReadWrite
    * @return true if succeeded, else false
    */
-  virtual bool open(OpenMode mode = ReadWrite) override { return IODevice::open(mode); }
+  bool open(OpenMode mode = ReadWrite) override { return IODevice::open(mode); }
 
   /**
    * Close the audio source. This disallows read and write operations.
    */
-  virtual void close() override { stopRecording(); IODevice::close(); }
+  void close() override { stopRecording(); IODevice::close(); }
 
   /**
    * Return the name of the source
@@ -75,6 +75,7 @@ public:
   inline bool isRecording() const { return m_record; }
   bool startRecording();
   void stopRecording();
+  bool overflow() const;
   int bytesAvailable() const override;
 
   void mute(bool enabled);

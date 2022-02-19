@@ -38,16 +38,18 @@ class FLACEncoder : public AudioEncoder
 public:
   FLACEncoder();
   FLACEncoder(int buffered);
-  virtual ~FLACEncoder() override;
+  ~FLACEncoder() override;
 
-  virtual std::string mediaType() const override { return "audio/x-flac"; }
+  std::string mediaType() const override { return "audio/x-flac"; }
 
   bool open() override;
-  virtual int bytesAvailable() const override;
+  bool overflow() const;
+  int bytesAvailable() const override;
+
   void close() override;
 
 protected:
-  virtual int readData(char * data, int maxlen) override;
+  int readData(char * data, int maxlen) override;
 
 private:
   int encode(const char * data, int len) override;

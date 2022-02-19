@@ -30,7 +30,7 @@ class AudioEncoder : public IODevice
 {
 public:
   AudioEncoder();
-  virtual ~AudioEncoder();
+  ~AudioEncoder() override;
 
   void setAudioFormat(const AudioFormat& format);
   AudioFormat audioFormat() const { return m_format; }
@@ -47,9 +47,9 @@ protected:
   AudioFormat m_format;
   IODevice * m_source;
 
-  virtual bool open(OpenMode mode) override { return IODevice::open(mode); }
+  bool open(OpenMode mode) override { return IODevice::open(mode); }
   virtual int encode(const char * data, int len) = 0;
-  virtual int writeData(const char *data, int len) override;
+  int writeData(const char *data, int len) override;
 };
 
 }
