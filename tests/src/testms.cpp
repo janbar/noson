@@ -100,7 +100,7 @@ int main(int argc, char** argv)
       fprintf(stderr, "username=%s, ", argv[i+1]);
       username.assign(argv[i+1]);
     }
-    else if (strcmp(argv[i], "--search") == 0 && argc > i+1)
+    else if (strcmp(argv[i], "--password") == 0 && argc > i+1)
     {
       fprintf(stderr, "password=%s, ", argv[i+1]);
       password.assign(argv[i+1]);
