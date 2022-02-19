@@ -58,9 +58,9 @@ FLACEncoder::~FLACEncoder()
   delete m_buffer;
 }
 
-bool FLACEncoder::open(OpenMode mode)
+bool FLACEncoder::open()
 {
-  if (AudioEncoder::isOpen())
+  if (AudioEncoder::writable())
   {
     DBG(DBG_WARN, "FLAC Encoder already opened\n");
     return false;
@@ -98,7 +98,7 @@ bool FLACEncoder::open(OpenMode mode)
   m_pcm = new FLAC__int32 [SAMPLES * m_format.channelCount];
   m_buffer->clear();
 
-  AudioEncoder::open(mode);
+  AudioEncoder::open(ReadWrite);
   FLAC__StreamEncoderInitStatus init_status = m_encoder->init();
   if(init_status == FLAC__STREAM_ENCODER_INIT_STATUS_OK)
     return true;
@@ -112,6 +112,17 @@ int FLACEncoder::bytesAvailable() const
   if (m_packet)
     return (m_packet->size - m_consumed);
   return m_buffer->bytesAvailable();
+}
+
+void FLACEncoder::close()
+{
+  if (AudioEncoder::writable())
+  {
+    DBG(DBG_INFO, "Close FLAC encoder\n");
+    m_encoder->finish();
+    // allow to read the rest in the buffer
+    AudioEncoder::open(ReadOnly);
+  }
 }
 
 int FLACEncoder::readData(char * data, int maxlen)
@@ -135,15 +146,6 @@ int FLACEncoder::readData(char * data, int maxlen)
     return r;
   }
   return 0;
-}
-
-void FLACEncoder::onClose()
-{
-  if (AudioEncoder::isOpen())
-  {
-    DBG(DBG_INFO, "Close FLAC encoder\n");
-    m_encoder->finish();
-  }
 }
 
 int FLACEncoder::encode(const char * data, int len)

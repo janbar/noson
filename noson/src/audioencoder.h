@@ -39,16 +39,15 @@ public:
   IODevice * source() { return m_source; }
 
   virtual std::string mediaType() const = 0;
-  virtual bool open(OpenMode mode = ReadWrite) override { return IODevice::open(mode); }
+  virtual bool open() = 0;
 
-  void close() override { onClose(); IODevice::close(); }
   bool isSequential() const override { return true; }
 
 protected:
   AudioFormat m_format;
   IODevice * m_source;
 
-  virtual void onClose() = 0; // will run on close
+  virtual bool open(OpenMode mode) override { return IODevice::open(mode); }
   virtual int encode(const char * data, int len) = 0;
   virtual int writeData(const char *data, int len) override;
 };

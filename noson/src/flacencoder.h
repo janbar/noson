@@ -42,14 +42,14 @@ public:
 
   virtual std::string mediaType() const override { return "audio/x-flac"; }
 
-  virtual bool open(OpenMode mode = ReadWrite) override;
+  bool open() override;
   virtual int bytesAvailable() const override;
+  void close() override;
 
 protected:
   virtual int readData(char * data, int maxlen) override;
 
 private:
-  void onClose() override;
   int encode(const char * data, int len) override;
   int writeEncodedData(const char * data, int len);
 
@@ -71,7 +71,7 @@ private:
   private:
     FLACEncoder * m_p;
   };
-  
+
   FLACEncoderPrivate * m_encoder;
 };
 

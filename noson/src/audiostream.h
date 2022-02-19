@@ -40,7 +40,7 @@ public:
       return false;
     m_encoder.setSource(&m_source);
     m_encoder.setAudioFormat(m_source.getFormat());
-    bool started = (m_encoder.open(IODevice::ReadWrite) &&
+    bool started = (m_encoder.open() &&
             m_source.open(IODevice::ReadOnly) &&
             m_source.startRecording());
     if (!started)
