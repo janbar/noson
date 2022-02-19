@@ -72,15 +72,15 @@ int main(int argc, char** argv)
       g_loglevel = 4;
       fprintf(stderr, "debug=Yes, ");
     }
-    else if (strcmp(argv[i], "--zone") == 0 && ++i < argc)
+    else if (strcmp(argv[i], "--zone") == 0 && argc > i+1)
     {
-      fprintf(stderr, "zone=%s, ", argv[i]);
-      tryzone.assign(argv[i]);
+      fprintf(stderr, "zone=%s, ", argv[i+1]);
+      tryzone.assign(argv[i+1]);
     }
-    else if (strcmp(argv[i], "--search") == 0 && ++i < argc)
+    else if (strcmp(argv[i], "--search") == 0 && argc > i+1)
     {
-      fprintf(stderr, "search=%s, ", argv[i]);
-      search.assign(argv[i]);
+      fprintf(stderr, "search=%s, ", argv[i+1]);
+      search.assign(argv[i+1]);
     }
     else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0)
     {
