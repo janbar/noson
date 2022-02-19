@@ -40,3 +40,7 @@ target_link_libraries (intrinsictest noson)
 add_executable (sslwgettest src/sslwgettest.cpp)
 add_dependencies (sslwgettest noson)
 target_link_libraries (sslwgettest noson)
+
+add_executable (flacencodertest src/flacencodertest.cpp)
+add_dependencies (flacencodertest noson)
+target_link_libraries (flacencodertest noson)
