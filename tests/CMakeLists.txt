@@ -54,3 +54,4 @@ target_link_libraries (flacencodertest noson)
 include(UnitTestProject)
 
 unittest_project(NAME check_flac_encoder SOURCES src/check_flac_encoder.cpp TARGET noson)
+unittest_project(NAME check_compressor SOURCES src/check_compressor.cpp TARGET noson)
