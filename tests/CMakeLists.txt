@@ -28,25 +28,25 @@ include_directories (
 
 ###############################################################################
 # add targets
-add_executable (nosontest src/test.cpp)
-add_dependencies (nosontest noson)
-target_link_libraries (nosontest noson)
+add_executable (testdevice src/testdevice.cpp)
+add_dependencies (testdevice noson)
+target_link_libraries (testdevice noson)
 
-add_executable (nosontestms src/testms.cpp)
-add_dependencies (nosontestms noson)
-target_link_libraries (nosontestms noson)
+add_executable (testdevicems src/testdevicems.cpp)
+add_dependencies (testdevicems noson)
+target_link_libraries (testdevicems noson)
 
-add_executable (intrinsictest src/intrinsictest.cpp)
-add_dependencies (intrinsictest noson)
-target_link_libraries (intrinsictest noson)
+add_executable (testsslwget src/testsslwget.cpp)
+add_dependencies (testsslwget noson)
+target_link_libraries (testsslwget noson)
 
-add_executable (sslwgettest src/sslwgettest.cpp)
-add_dependencies (sslwgettest noson)
-target_link_libraries (sslwgettest noson)
+add_executable (testintrinsic src/testintrinsic.cpp)
+add_dependencies (testintrinsic noson)
+target_link_libraries (testintrinsic noson)
 
-add_executable (flacencodertest src/flacencodertest.cpp)
-add_dependencies (flacencodertest noson)
-target_link_libraries (flacencodertest noson)
+add_executable (tests16le2flac src/tests16le2flac.cpp)
+add_dependencies (tests16le2flac noson)
+target_link_libraries (tests16le2flac noson)
 
 
 ###############################################################################
@@ -56,3 +56,4 @@ include(UnitTestProject)
 unittest_project(NAME check_flac_encoder SOURCES src/check_flac_encoder.cpp TARGET noson)
 unittest_project(NAME check_compressor SOURCES src/check_compressor.cpp TARGET noson)
 unittest_project(NAME check_soap_parser SOURCES src/check_soap_parser.cpp TARGET noson)
+unittest_project(NAME check_intrinsic SOURCES src/check_intrinsic.cpp TARGET noson)
