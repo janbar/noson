@@ -55,3 +55,4 @@ include(UnitTestProject)
 
 unittest_project(NAME check_flac_encoder SOURCES src/check_flac_encoder.cpp TARGET noson)
 unittest_project(NAME check_compressor SOURCES src/check_compressor.cpp TARGET noson)
+unittest_project(NAME check_soap_parser SOURCES src/check_soap_parser.cpp TARGET noson)
