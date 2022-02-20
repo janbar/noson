@@ -7,25 +7,25 @@
 #include <noson/audioformat.h>
 #include <noson/flacencoder.h>
 
-// buffer for data
-char buf[1024];
-
-uint64_t _flush_encoded_data(SONOS::AudioEncoder * encoder)
+uint64_t _flush_encoded_data(SONOS::AudioEncoder * encoder, char * buf, size_t bufsize)
 {
   uint64_t h = 0;
   int w = 0;
   // check for available encoded data and flush out
   while ((w = encoder->bytesAvailable()) > 0)
   {
-    if ((w = encoder->read(buf, sizeof(buf), 0/*forever*/)) > 0)
+    if ((w = encoder->read(buf, bufsize, 0/*forever*/)) > 0)
       h += hashvalue(0xffffffff, buf, w);
   }
   return h;
 }
 
+#define BUFSIZE 1024
+
 TEST_CASE("Encoding PCM s16le to FLAC")
 {
-  SONOS::FLACEncoder * encoder = new SONOS::FLACEncoder(1024);
+  char * buf = new char[BUFSIZE];
+  SONOS::FLACEncoder * encoder = new SONOS::FLACEncoder(256);
   encoder->setAudioFormat(SONOS::AudioFormat::CDLPCM());
 
   int retry = 5;
@@ -40,7 +40,7 @@ TEST_CASE("Encoding PCM s16le to FLAC")
 
     while (p < e)
     {
-      size_t s = sizeof(buf);
+      size_t s = BUFSIZE;
       if ((p + s) > e)
         s = e - p;
       // push the data to the encoder
@@ -49,7 +49,7 @@ TEST_CASE("Encoding PCM s16le to FLAC")
         break;
       p += r;
       // flush out
-      hash += _flush_encoded_data(encoder);
+      hash += _flush_encoded_data(encoder, buf, BUFSIZE);
     }
 
     REQUIRE(p == e);
@@ -60,7 +60,7 @@ TEST_CASE("Encoding PCM s16le to FLAC")
       continue;
 
     // flush out the rest of encoded data
-    hash += _flush_encoded_data(encoder);
+    hash += _flush_encoded_data(encoder, buf, BUFSIZE);
     REQUIRE(hash == 0xa3c1d6c5);
   }
 
