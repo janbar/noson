@@ -36,7 +36,7 @@ namespace NSROOT
 
 class FilePicReader : public StreamReader
 {
-public:
+private:
   struct Picture
   {
     void * payload;
@@ -49,9 +49,9 @@ public:
   };
   static FilePicReader _instance;
   FilePicReader();
+  ~FilePicReader() override { }
 
 public:
-  virtual ~FilePicReader() override { }
   static FilePicReader * Instance();
 
   STREAM * OpenStream(const std::string& streamUrl) override;
