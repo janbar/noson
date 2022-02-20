@@ -40,20 +40,20 @@ namespace NSROOT
   public:
     AVTransport(const std::string& serviceHost, unsigned servicePort);
     AVTransport(const std::string& serviceHost, unsigned servicePort, SubscriptionPoolPtr& subscriptionPool, void* CBHandle = nullptr, EventCB eventCB = nullptr);
-    ~AVTransport();
+    ~AVTransport() override;
 
     static const std::string Name;
     static const std::string ControlURL;
     static const std::string EventURL;
     static const std::string SCPDURL;
 
-    const std::string& GetName() const { return Name; }
+    const std::string& GetName() const override { return Name; }
 
-    const std::string& GetControlURL() const { return ControlURL; }
+    const std::string& GetControlURL() const override { return ControlURL; }
 
-    const std::string& GetEventURL() const { return EventURL; }
+    const std::string& GetEventURL() const override { return EventURL; }
 
-    const std::string& GetSCPDURL() const { return SCPDURL; }
+    const std::string& GetSCPDURL() const override { return SCPDURL; }
 
     bool GetTransportInfo(ElementList& vars);
 
@@ -114,7 +114,7 @@ namespace NSROOT
     bool BecomeCoordinatorOfStandaloneGroup();
 
     // Implements EventSubscriber
-    virtual void HandleEventMessage(EventMessagePtr msg);
+    void HandleEventMessage(EventMessagePtr msg) override;
 
     bool Empty() const { return m_msgCount == 0; }
 

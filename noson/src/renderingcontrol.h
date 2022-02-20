@@ -38,7 +38,7 @@ namespace NSROOT
   public:
     RenderingControl(const std::string& serviceHost, unsigned servicePort);
     RenderingControl(const std::string& serviceHost, unsigned servicePort, SubscriptionPoolPtr& subscriptionPool, void* CBHandle = nullptr, EventCB eventCB = nullptr);
-    ~RenderingControl();
+    ~RenderingControl() override;
 
     static const std::string Name;
     static const std::string ControlURL;
@@ -47,13 +47,13 @@ namespace NSROOT
 
     static const char* CH_MASTER;
 
-    const std::string& GetName() const { return Name; }
+    const std::string& GetName() const override { return Name; }
 
-    const std::string& GetControlURL() const { return ControlURL; }
+    const std::string& GetControlURL() const override { return ControlURL; }
 
-    const std::string& GetEventURL() const { return EventURL; }
+    const std::string& GetEventURL() const override { return EventURL; }
 
-    const std::string& GetSCPDURL() const { return SCPDURL; }
+    const std::string& GetSCPDURL() const override { return SCPDURL; }
 
     bool GetVolume(uint8_t* value, const char* channel = CH_MASTER);
 
@@ -96,7 +96,7 @@ namespace NSROOT
     bool GetDecibelRange(int16_t *minimum, int16_t *maximum, const char *channel = CH_MASTER);
 
     // Implements EventSubscriber
-    virtual void HandleEventMessage(EventMessagePtr msg);
+    void HandleEventMessage(EventMessagePtr msg) override;
 
     bool Empty() const { return m_msgCount == 0; }
 

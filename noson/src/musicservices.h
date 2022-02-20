@@ -89,13 +89,13 @@ namespace NSROOT
     static const std::string EventURL;
     static const std::string SCPDURL;
 
-    const std::string& GetName() const { return Name; }
+    const std::string& GetName() const override { return Name; }
 
-    const std::string& GetControlURL() const { return ControlURL; }
+    const std::string& GetControlURL() const override { return ControlURL; }
 
-    const std::string& GetEventURL() const { return EventURL; }
+    const std::string& GetEventURL() const override { return EventURL; }
 
-    const std::string& GetSCPDURL() const { return SCPDURL; }
+    const std::string& GetSCPDURL() const override { return SCPDURL; }
 
     /**
      * Retrieves session info for a service

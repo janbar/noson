@@ -43,20 +43,20 @@ namespace NSROOT
   public:
     ContentDirectory(const std::string& serviceHost, unsigned servicePort);
     ContentDirectory(const std::string& serviceHost, unsigned servicePort, SubscriptionPoolPtr& subscriptionPool, void* CBHandle = nullptr, EventCB eventCB = nullptr);
-    ~ContentDirectory();
+    ~ContentDirectory() override;
 
     static const std::string Name;
     static const std::string ControlURL;
     static const std::string EventURL;
     static const std::string SCPDURL;
 
-    const std::string& GetName() const { return Name; }
+    const std::string& GetName() const override { return Name; }
 
-    const std::string& GetControlURL() const { return ControlURL; }
+    const std::string& GetControlURL() const override { return ControlURL; }
 
-    const std::string& GetEventURL() const { return EventURL; }
+    const std::string& GetEventURL() const override { return EventURL; }
 
-    const std::string& GetSCPDURL() const { return SCPDURL; }
+    const std::string& GetSCPDURL() const override { return SCPDURL; }
 
     bool Browse(const std::string& objectId, unsigned index, unsigned count, ElementList& vars);
 
@@ -67,7 +67,7 @@ namespace NSROOT
     bool CreateObject(const std::string& containerID, const DigitalItemPtr& element);
 
     // Implements EventSubscriber
-    virtual void HandleEventMessage(EventMessagePtr msg);
+    void HandleEventMessage(EventMessagePtr msg) override;
 
     Locked<ContentProperty>& GetContentProperty() { return m_property; }
 
@@ -153,7 +153,6 @@ namespace NSROOT
   public:
     ContentList(ContentDirectory& service, const ContentSearch& search, unsigned bulksize = BROWSE_COUNT);
     ContentList(ContentDirectory& service, const std::string& objectID, unsigned bulksize = BROWSE_COUNT);
-    virtual ~ContentList() {}
 
     class iterator
     {
@@ -212,7 +211,6 @@ namespace NSROOT
 
     ContentBrowser(ContentDirectory& service, const ContentSearch& search, unsigned count = BROWSE_COUNT);
     ContentBrowser(ContentDirectory& service, const std::string& objectID, unsigned count = BROWSE_COUNT);
-    virtual ~ContentBrowser() {}
 
     bool Browse(unsigned startingIndex, unsigned count);
 

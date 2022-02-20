@@ -52,7 +52,7 @@ namespace NSROOT
     friend class Player;
   public:
     System(void* CBHandle, EventCB eventCB);
-    ~System();
+    ~System() override;
 
     static void Debug(int level);
 
@@ -78,7 +78,7 @@ namespace NSROOT
     bool IsConnected() const;
 
     // Implements EventSubscriber
-    virtual void HandleEventMessage(EventMessagePtr msg);
+    void HandleEventMessage(EventMessagePtr msg) override;
 
     // Device properties
     const std::string& GetHouseholdID() const { return m_householdID; }
@@ -184,7 +184,7 @@ namespace NSROOT
 
     // Service subscriptions
     SubscriptionPoolPtr m_subscriptionPool;
-    
+
     // About this controler
     std::string m_systemLocalUri;
 
