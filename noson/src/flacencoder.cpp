@@ -95,8 +95,15 @@ bool FLACEncoder::open()
 
   m_bytesPerFrame = m_format.bytesPerFrame();
   m_sampleSize = m_format.sampleSize;
-  m_pcm = new FLAC__int32 [SAMPLES * m_format.channelCount];
+
   m_buffer->clear();
+  if (m_packet)
+    m_buffer->freePacket(m_packet);
+  m_packet = nullptr;
+
+  if (m_pcm != nullptr)
+    delete[] m_pcm;
+  m_pcm = new FLAC__int32 [SAMPLES * m_format.channelCount];
 
   AudioEncoder::open(ReadWrite);
   FLAC__StreamEncoderInitStatus init_status = m_encoder->init();
