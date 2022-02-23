@@ -515,6 +515,7 @@ bool System::CanQueueItem(const DigitalItemPtr& item)
     // check parent
     const std::string& parent = item->GetParentID();
     if (    parent.compare(0, 2, "A:") == 0 ||
+            parent.compare(0, 2, "S:") == 0 ||
             parent.compare(0, 3, "SQ:") == 0)
       return true;
 
