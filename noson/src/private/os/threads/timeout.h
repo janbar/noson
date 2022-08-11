@@ -25,6 +25,7 @@
 #if defined(__APPLE__)
 #include <mach/mach_time.h>
 #endif
+#include <time.h>
 
 #ifdef NSROOT
 namespace NSROOT {
