@@ -109,6 +109,10 @@ namespace NSROOT
 
     bool DestroyFavorite(const std::string& FVObjectID);
 
+    bool CreateRadio(const std::string& streamURL, const std::string& title);
+
+    bool DestroyRadio(const std::string& RDObjectID);
+
     static bool ExtractObjectFromFavorite(const DigitalItemPtr& favorite, DigitalItemPtr& item);
     static bool CanQueueItem(const DigitalItemPtr& item);
 

@@ -393,6 +393,35 @@ bool System::DestroyFavorite(const std::string& FVObjectID)
   return m_contentDirectory->DestroyObject(FVObjectID);
 }
 
+bool System::CreateRadio(const std::string& streamURL, const std::string& title)
+{
+  size_t p = streamURL.find("://");
+  if (streamURL.find("http") == 0 && p != std::string::npos)
+  {
+    DigitalItemPtr item(new DigitalItem(DigitalItem::Type_item, DigitalItem::SubType_audioItem));
+    item->SetRestricted(false);
+    item->SetProperty(DIDL_QNAME_DC "title", title);
+    item->SetProperty(DIDL_QNAME_UPNP "class", "object.item.audioItem.audioBroadcast");
+    ElementPtr res(new Element("res"));
+    std::string tmp;
+    tmp.assign(ProtocolTable[Protocol_xRinconMP3Radio]);
+    tmp.append(streamURL.substr(p));
+    res->assign(tmp);
+    tmp.assign(ProtocolTable[Protocol_xRinconMP3Radio]);
+    tmp.append(":*:*:*");
+    res->SetAttribut("protocolInfo", tmp);
+    item->SetProperty(res);
+    if (m_contentDirectory->CreateObject(ContentSearch(SearchRadioStation, "").Root(), item))
+      return true;
+  }
+  return false;
+}
+
+bool System::DestroyRadio(const std::string& RDObjectID)
+{
+  return m_contentDirectory->DestroyObject(RDObjectID);
+}
+
 bool System::ExtractObjectFromFavorite(const DigitalItemPtr& favorite, DigitalItemPtr& item)
 {
   const std::string& str = favorite->GetValue(DIDL_QNAME_RINC "resMD");
