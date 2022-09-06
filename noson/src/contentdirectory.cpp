@@ -216,7 +216,7 @@ static const char * SearchTable[NSROOT::Search_unknown + 1][2] = {
   {"A:COMPOSER",    "Composer"},
   {"A:ARTIST",      "Contributor"},
   {"A:PLAYLISTS",   "Playlist"},
-  {"R:0",           "Radio"},
+  {"R:0/0",         "RadioStation"},
   {"Q:0",           "Queue"},
   {"SQ:",           "SONOS Playlist"},
   {"S:",            "Share"},

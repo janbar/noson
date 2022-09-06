@@ -94,7 +94,7 @@ namespace NSROOT
     SearchComposer,
     SearchContributor,
     SearchPlaylist,
-    SearchRadio,
+    SearchRadioStation,
     SearchQueue,
     SearchSonosPlaylist,
     SearchShare,
