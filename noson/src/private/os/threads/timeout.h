@@ -24,6 +24,8 @@
 
 #if defined(__APPLE__)
 #include <mach/mach_time.h>
+#elif defined(__linux__)
+#include <time.h>
 #endif
 
 #ifdef NSROOT
