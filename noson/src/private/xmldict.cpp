@@ -44,11 +44,14 @@ bool XMLNS::NameEqual(const char* qname, const char* name)
   const char* n = qname;
   const char* p = qname;
   while (*p != ZERO)
-    if (*(++p) == ':')
+  {
+    if (*p == ':')
     {
       n = p + 1;
       break;
     }
+    ++p;
+  }
   return (strcmp(n, name) == 0);
 }
 
