@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2016 Jean-Luc Barriere
+ *      Copyright (C) 2016-2023 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -31,11 +31,14 @@ bool XMLNS::PrefixEqual(const char* qname, const char* prefix)
   unsigned n = 0;
   const char* p = qname;
   while (*p != ZERO)
-    if (*(++p) == ':')
+  {
+    if (*p == ':')
     {
       n = p - qname;
       break;
     }
+    ++p;
+  }
   return (strlen(prefix) == n && strncmp(qname, prefix, n) == 0);
 }
 
@@ -60,11 +63,14 @@ const char* XMLNS::LocalName(const char* qname)
   const char* n = qname;
   const char* p = qname;
   while (*p != ZERO)
-    if (*(++p) == ':')
+  {
+    if (*p == ':')
     {
       n = p + 1;
       break;
     }
+    ++p;
+  }
   return n;
 }
 
@@ -131,12 +137,15 @@ std::string XMLDict::TranslateQName(const XMLNames& names, const char* qname)
   const char* n = qname;
   const char* p = qname;
   while (*p != ZERO)
-    if (*(++p) == ':')
+  {
+    if (*p == ':')
     {
       l = p - qname;
       n = p + 1;
       break;
     }
+    ++p;
+  }
   std::string prefix(qname, l);
   const XMLNS* in = names.FindKey(prefix.c_str());
   if (in)
