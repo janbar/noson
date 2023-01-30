@@ -406,6 +406,6 @@ tz_t *time_tz(time_t time, tz_t* tz) {
   tz->tz_dir = minutes < 0 ? (-1) : 1;
   tz->tz_hour = tz->tz_dir * minutes / 60;
   tz->tz_min  = tz->tz_dir * ( minutes - tz->tz_hour * 60 );
-  sprintf(tz->tz_str, "%+2.2d:%2.2d", tz->tz_dir * tz->tz_hour, tz->tz_min);
+  sprintf(tz->tz_str, "%+2.2d:%2.2d", tz->tz_dir * tz->tz_hour, (unsigned)(tz->tz_min) % 60);
   return tz;
 }
