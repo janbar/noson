@@ -667,15 +667,11 @@ int FilePicReader::parse_id3v2(FILE * file, long id3v2_offset, Picture ** pic, o
     /* skip extended header */
     unsigned int extended_header_size;
     char extended_header_data[6];
-    bool crc;
 
-    if (fread(extended_header_data, 1, 4, file) != 4)
+    if (fread(extended_header_data, 1, 6, file) != 6)
       return -1;
 
     extended_header_size = (unsigned)read32be(extended_header_data);
-    crc = extended_header_data[5] & 0x8000;
-
-    *ptag_size += extended_header_size + (crc * 4);
 
     fseek(file, extended_header_size - 6, SEEK_CUR);
     frame_data_pos += extended_header_size;
