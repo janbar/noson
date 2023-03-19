@@ -37,12 +37,12 @@ typedef LONG HRESULT;
 #define E_OUTOFMEMORY              0x8007000EL
 #define E_FAIL                     0x8004005EL
 
-#if defined(__linux__)
-#include <limits.h>
-#define MAX_PATH PATH_MAX
-#elif defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__)
 #include <sys/cdefs.h>
 #include <sys/syslimits.h>
+#define MAX_PATH PATH_MAX
+#elif defined(__GNU__) || defined(__linux__)
+#include <limits.h>
 #define MAX_PATH PATH_MAX
 #else
 #define MAX_PATH 256
