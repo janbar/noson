@@ -882,3 +882,56 @@ ContentProperty Player::GetContentProperty()
 {
   return *(m_contentDirectory->GetContentProperty().Get());
 }
+
+bool Player::SetAutoplay(bool enabled)
+{
+  if (enabled)
+    return m_deviceProperties->SetAutoplayRoomUUID(m_uuid);
+  else
+    return m_deviceProperties->SetAutoplayRoomUUID("");
+}
+
+bool Player::GetAutoplay(std::string& roomuuid)
+{
+  ElementList vars;
+  if (m_deviceProperties->GetAutoplayRoomUUID(vars))
+  {
+    roomuuid.assign(vars.GetValue("RoomUUID"));
+    return true;
+  }
+  else
+    return false;
+}
+
+bool Player::SetLEDState(bool onoff)
+{
+  return m_deviceProperties->SetLEDState(onoff);
+}
+
+bool Player::SetAutoplayVolume(uint8_t volume)
+{
+  return m_deviceProperties->SetAutoplayVolume(volume);
+}
+
+bool Player::GetAutoplayVolume(uint8_t* currentVolume)
+{
+  ElementList vars;
+  if (m_deviceProperties->GetAutoplayVolume(vars))
+    return (string_to_uint8(vars.GetValue("CurrentVolume").c_str(), currentVolume) == 0);
+  else
+    return false;
+}
+
+bool Player::SetUseAutoplayVolume(uint8_t useVolume)
+{
+  return m_deviceProperties->SetUseAutoplayVolume(useVolume);
+}
+
+bool Player::GetUseAutoplayVolume(uint8_t* useVolume)
+{
+  ElementList vars;
+  if (m_deviceProperties->GetUseAutoplayVolume(vars))
+    return (string_to_uint8(vars.GetValue("UseVolume").c_str(), useVolume) == 0);
+  else
+    return false;
+}

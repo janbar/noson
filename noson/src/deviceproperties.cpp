@@ -59,3 +59,74 @@ bool DeviceProperties::GetHouseholdID(ElementList& vars)
     return true;
   return false;
 }
+
+bool DeviceProperties::GetAutoplayRoomUUID(ElementList& vars)
+{
+  ElementList args;
+  vars = Request("GetAutoplayRoomUUID", args);
+  if (!vars.empty() && vars[0]->compare("GetAutoplayRoomUUIDResponse") == 0)
+    return true;
+  return false;
+}
+
+bool DeviceProperties::SetAutoplayRoomUUID(const std::string& roomuuid)
+{
+  ElementList args;
+  args.push_back(SONOS::ElementPtr(new SONOS::Element("RoomUUID", roomuuid)));
+  ElementList vars;
+  vars = Request("SetAutoplayRoomUUID", args);
+  if (!vars.empty() && vars[0]->compare("SetAutoplayRoomUUIDResponse") == 0)
+    return true;
+  return false;
+}
+
+bool DeviceProperties::SetLEDState(bool onoff)
+{
+  ElementList args;
+  args.push_back(SONOS::ElementPtr(new SONOS::Element("DesiredLEDState", (onoff ? "On" : "Off"))));
+  ElementList vars;
+  vars = Request("SetLEDState", args);
+  if (!vars.empty() && vars[0]->compare("SetLEDStateResponse") == 0)
+    return true;
+  return false;
+}
+
+bool DeviceProperties::GetAutoplayVolume(ElementList& vars)
+{
+  ElementList args;
+  vars = Request("GetAutoplayVolume", args);
+  if (!vars.empty() && vars[0]->compare("GetAutoplayVolumeResponse") == 0)
+    return true;
+  return false;
+}
+
+bool DeviceProperties::SetAutoplayVolume(uint8_t volume)
+{
+  ElementList args;
+  args.push_back(SONOS::ElementPtr(new SONOS::Element("Volume", std::to_string(volume))));
+  ElementList vars;
+  vars = Request("SetAutoplayVolume", args);
+  if (!vars.empty() && vars[0]->compare("SetAutoplayVolumeResponse") == 0)
+    return true;
+  return false;
+}
+
+bool DeviceProperties::GetUseAutoplayVolume(ElementList& vars)
+{
+  ElementList args;
+  vars = Request("GetUseAutoplayVolume", args);
+  if (!vars.empty() && vars[0]->compare("GetUseAutoplayVolumeResponse") == 0)
+    return true;
+  return false;
+}
+
+bool DeviceProperties::SetUseAutoplayVolume(uint8_t useVolume)
+{
+  ElementList args;
+  args.push_back(SONOS::ElementPtr(new SONOS::Element("UseVolume", std::to_string(useVolume))));
+  ElementList vars;
+  vars = Request("SetUseAutoplayVolume", args);
+  if (!vars.empty() && vars[0]->compare("SetUseAutoplayVolumeResponse") == 0)
+    return true;
+  return false;
+}

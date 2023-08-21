@@ -51,6 +51,20 @@ namespace NSROOT
     bool GetZoneAttributes(ElementList& vars);
 
     bool GetHouseholdID(ElementList& vars);
+
+    bool GetAutoplayRoomUUID(ElementList& vars);
+
+    bool SetAutoplayRoomUUID(const std::string& roomuuid);
+
+    bool SetLEDState(bool onoff);
+
+    bool GetAutoplayVolume(ElementList& vars);
+
+    bool SetAutoplayVolume(uint8_t volume);
+
+    bool GetUseAutoplayVolume(ElementList& vars);
+
+    bool SetUseAutoplayVolume(uint8_t useVolume);
   };
 }
 

@@ -41,7 +41,7 @@ namespace NSROOT
   class RenderingControl;
   class ContentDirectory;
   class System;
-  
+
   class Player;
 
   typedef SHARED_PTR<Player> PlayerPtr;
@@ -163,6 +163,15 @@ namespace NSROOT
 
     // Content directory
     ContentProperty GetContentProperty();
+
+    // Device property
+    bool SetAutoplay(bool enabled);
+    bool GetAutoplay(std::string& roomuuid);
+    bool SetLEDState(bool onoff);
+    bool SetAutoplayVolume(uint8_t volume);
+    bool GetAutoplayVolume(uint8_t* currentVolume);
+    bool SetUseAutoplayVolume(uint8_t useVolume);
+    bool GetUseAutoplayVolume(uint8_t* useVolume);
 
   private:
     bool m_valid;
