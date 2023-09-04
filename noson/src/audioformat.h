@@ -30,7 +30,7 @@ namespace NSROOT
 struct AudioFormat
 {
   enum { LittleEndian, BigEndian } byteOrder;
-  enum { SignedInt, UnSignedInt } sampleType;
+  enum { SignedInt, UnSignedInt, Float } sampleType;
   uint8_t sampleSize;
   uint32_t sampleRate;
   uint8_t channelCount;
@@ -52,7 +52,20 @@ struct AudioFormat
 
   int bytesPerFrame()
   {
-    return (int)channelCount * ((sampleSize + 7) / 8);
+    switch (sampleSize)
+    {
+    case 8:
+      return (int)channelCount;
+    case 16:
+      return (int)channelCount * 2;
+    case 24:
+    case 32:
+      return (int)channelCount * 4;
+    case 64:
+      return (int)channelCount * 8;
+    default:
+      return (int)channelCount * ((sampleSize + 7) / 8);
+    }
   }
 
   static AudioFormat CDLPCM()

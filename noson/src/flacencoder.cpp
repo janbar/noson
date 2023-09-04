@@ -164,6 +164,7 @@ int FLACEncoder::encode(const char * data, int len)
 {
   bool ok = true;
   int samples = len / m_bytesPerFrame;
+  int interleave = m_bytesPerFrame / m_format.channelCount;
   while (ok && samples > 0)
   {
     int need = (samples > SAMPLES ? SAMPLES : static_cast<int>(samples));
@@ -174,23 +175,20 @@ int FLACEncoder::encode(const char * data, int len)
       {
       case 8:
         m_pcm[i] = (unsigned char)(*data) - 128;
-        data += 1;
         break;
       case 16:
         m_pcm[i] = read16le(data);
-        data += 2;
         break;
       case 24:
         m_pcm[i] = read24le(data);
-        data += 3;
         break;
       case 32:
         m_pcm[i] = read32le(data);
-        data += 4;
         break;
       default:
         m_pcm[i] = 0;
       }
+      data += interleave;
     }
     // feed samples to encoder
     ok = m_encoder->process_interleaved(m_pcm, need);

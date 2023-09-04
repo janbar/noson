@@ -106,15 +106,23 @@ static inline void write16be(void * data, int16_t val)
 static inline int32_t read24le(const void * data)
 {
   const char * p = (const char*)data;
-  uint8_t val = fromUnaligned<uint8_t>(&p[0]);
-  return ((int32_t)read16le(&p[1]) * 256) | (val & 0xff);
+  int32_t val = fromUnaligned<uint8_t>(&p[2]) << 16;
+  val |= fromUnaligned<uint8_t>(&p[1]) << 8;
+  val |= fromUnaligned<uint8_t>(&p[0]);
+  if (val & 0x800000)
+    val |= ~0xffffff;
+  return val;
 }
 
 static inline int32_t read24be(const void * data)
 {
   const char * p = (const char*)data;
-  uint8_t val = fromUnaligned<uint8_t>(&p[2]);
-  return ((int32_t)read16be(&p[1]) * 256) | (val & 0xff);
+  int32_t val = fromUnaligned<uint8_t>(&p[0]) << 16;
+  val |= fromUnaligned<uint8_t>(&p[1]) << 8;
+  val |= fromUnaligned<uint8_t>(&p[2]);
+  if (val & 0x800000)
+    val |= ~0xffffff;
+  return val;
 }
 
 static inline int32_t read32le(const void * data)
