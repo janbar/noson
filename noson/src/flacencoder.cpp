@@ -83,12 +83,16 @@ bool FLACEncoder::open()
     DBG(DBG_WARN, "ERROR: Set sample rate (%d) failed\n", m_format.sampleRate);
   else if (!(m_ok = (m_format.sampleSize == 8 && m_format.sampleType == AudioFormat::UnSignedInt) ||
           (m_format.sampleSize == 16 && m_format.sampleType == AudioFormat::SignedInt && m_format.byteOrder == AudioFormat::LittleEndian) ||
-          (m_format.sampleSize == 24 && m_format.sampleType == AudioFormat::SignedInt && m_format.byteOrder == AudioFormat::LittleEndian)
-          //(m_format.sampleSize == 32 && m_format.sampleType == AudioFormat::SignedInt && m_format.byteOrder == AudioFormat::LittleEndian)
+          (m_format.sampleSize == 24 && m_format.sampleType == AudioFormat::SignedInt && m_format.byteOrder == AudioFormat::LittleEndian) ||
+          (m_format.sampleSize == 32 && m_format.sampleType == AudioFormat::SignedInt && m_format.byteOrder == AudioFormat::LittleEndian)
           ))
     DBG(DBG_WARN, "ERROR: Audio format not supported: %d%s%s\n", m_format.sampleSize,
             m_format.sampleType == AudioFormat::SignedInt ? "S" : "U",
             m_format.sampleSize > 8 ? m_format.byteOrder == AudioFormat::LittleEndian ? "LE" : "BE" : "");
+
+  // the encoder only supports 24 bits, so the lower LSB will be removed
+  if (m_format.sampleSize == 32)
+    m_encoder->set_bits_per_sample(24);
 
   if (!m_ok)
     return false;
@@ -183,7 +187,8 @@ int FLACEncoder::encode(const char * data, int len)
         m_pcm[i] = read24le(data);
         break;
       case 32:
-        m_pcm[i] = read32le(data);
+        // remove lower LSB
+        m_pcm[i] = (read32le(data) >> 8);
         break;
       default:
         m_pcm[i] = 0;
