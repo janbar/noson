@@ -67,17 +67,12 @@ System::System(void* CBHandle, EventCB eventCB)
 , m_musicServices(nullptr)
 , m_players(PlayerMap())
 , m_subscriptionPool()
+, m_port(0)
 {
   m_subId = m_eventHandler.CreateSubscription(this);
   m_eventHandler.SubscribeForEvent(m_subId, EVENT_HANDLER_STATUS);
   if (!m_eventHandler.Start())
     DBG(DBG_ERROR, "%s: starting event handler failed\n", __FUNCTION__);
-  else
-  {
-    m_systemLocalUri.assign(ProtocolTable[Protocol_http])
-        .append("://").append(m_eventHandler.GetAddress())
-        .append(":").append(std::to_string(m_eventHandler.GetPort()));
-  }
   m_subscriptionPool = SubscriptionPoolPtr(new SubscriptionPool(m_eventHandler));
 }
 
@@ -644,6 +639,19 @@ void System::UnregisterRequestBroker(const std::string& name)
 RequestBrokerPtr System::GetRequestBroker(const std::string &name)
 {
   return m_eventHandler.GetRequestBroker(name);
+}
+
+const std::string& System::GetSystemLocalUri()
+{
+  unsigned port = m_eventHandler.GetPort();
+  if (m_port != port)
+  {
+    m_port = m_eventHandler.GetPort();
+    m_systemLocalUri.assign(ProtocolTable[Protocol_http])
+        .append("://").append(m_eventHandler.GetAddress())
+        .append(":").append(std::to_string(m_eventHandler.GetPort()));
+  }
+  return m_systemLocalUri;
 }
 
 bool System::DeviceMatches(const char * serverString)

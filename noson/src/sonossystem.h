@@ -162,7 +162,7 @@ namespace NSROOT
     void RegisterRequestBroker(RequestBrokerPtr rb);
     void UnregisterRequestBroker(const std::string& name);
     RequestBrokerPtr GetRequestBroker(const std::string& name);
-    const std::string& GetSystemLocalUri() { return m_systemLocalUri; }
+    const std::string& GetSystemLocalUri();
 
   private:
     mutable OS::CMutex* m_mutex;
@@ -190,6 +190,7 @@ namespace NSROOT
     SubscriptionPoolPtr m_subscriptionPool;
 
     // About this controler
+    unsigned m_port;
     std::string m_systemLocalUri;
 
     // About the connected device
