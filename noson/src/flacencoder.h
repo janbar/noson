@@ -57,7 +57,7 @@ private:
 
 private:
   bool m_ok;
-  int m_bytesPerFrame;
+  int m_interleave;
   int m_sampleSize;
   FLAC__int32 * m_pcm;
 

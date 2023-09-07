@@ -34,7 +34,7 @@ FLACEncoder::FLACEncoder()
 FLACEncoder::FLACEncoder(int buffered)
 : AudioEncoder()
 , m_ok(false)
-, m_bytesPerFrame(0)
+, m_interleave(0)
 , m_sampleSize(0)
 , m_pcm(nullptr)
 , m_buffer(nullptr)
@@ -97,7 +97,7 @@ bool FLACEncoder::open()
   if (!m_ok)
     return false;
 
-  m_bytesPerFrame = m_format.bytesPerFrame();
+  m_interleave = m_format.bytesPerFrame() / m_format.channelCount;
   m_sampleSize = m_format.sampleSize;
 
   m_buffer->clear();
@@ -167,8 +167,7 @@ int FLACEncoder::readData(char * data, int maxlen)
 int FLACEncoder::encode(const char * data, int len)
 {
   bool ok = true;
-  int samples = len / m_bytesPerFrame;
-  int interleave = m_bytesPerFrame / m_format.channelCount;
+  int samples = len / m_interleave / m_format.channelCount;
   while (ok && samples > 0)
   {
     int need = (samples > SAMPLES ? SAMPLES : static_cast<int>(samples));
@@ -193,7 +192,7 @@ int FLACEncoder::encode(const char * data, int len)
       default:
         m_pcm[i] = 0;
       }
-      data += interleave;
+      data += m_interleave;
     }
     // feed samples to encoder
     ok = m_encoder->process_interleaved(m_pcm, need);
@@ -215,7 +214,7 @@ int FLACEncoder::writeEncodedData(const char * data, int len)
 
 FLAC__StreamEncoderWriteStatus FLACEncoder::FLACEncoderPrivate::write_callback(const FLAC__byte buffer[], size_t bytes, unsigned samples, unsigned current_frame)
 {
-  DBG(DBG_DEBUG, "FLAC encoder wrote %" PRIu64 " bytes, %u samples, %u frame\n", bytes, samples, current_frame);
+  DBG(DBG_DEBUG, "FLAC encoder wrote %" PRIu64 " bytes, %u samples, %u frame\n", (uint64_t)bytes, samples, current_frame);
   int r = m_p->writeEncodedData((const char*)buffer, (int)bytes);
   return (r == (int)bytes ? FLAC__STREAM_ENCODER_WRITE_STATUS_OK : FLAC__STREAM_ENCODER_WRITE_STATUS_FATAL_ERROR);
 }

@@ -21,7 +21,6 @@
 
 #include "local_config.h"
 
-#include <cstdint>
 #include <string>
 
 namespace NSROOT
@@ -32,6 +31,7 @@ struct AudioFormat
   enum { LittleEndian, BigEndian } byteOrder;
   enum { SignedInt, UnSignedInt, Float } sampleType;
   uint8_t sampleSize;
+  uint8_t sampleBytes;
   uint32_t sampleRate;
   uint8_t channelCount;
   std::string codec;
@@ -40,6 +40,7 @@ struct AudioFormat
   : byteOrder(LittleEndian)
   , sampleType(SignedInt)
   , sampleSize(0)
+  , sampleBytes(0)
   , sampleRate(0)
   , channelCount(0)
   , codec()
@@ -52,20 +53,9 @@ struct AudioFormat
 
   int bytesPerFrame()
   {
-    switch (sampleSize)
-    {
-    case 8:
-      return (int)channelCount;
-    case 16:
-      return (int)channelCount * 2;
-    case 24:
-    case 32:
-      return (int)channelCount * 4;
-    case 64:
-      return (int)channelCount * 8;
-    default:
-      return (int)channelCount * ((sampleSize + 7) / 8);
-    }
+    if (sampleBytes > 0)
+      return (int)channelCount * sampleBytes;
+    return (int)channelCount * ((sampleSize + 7) / 8);
   }
 
   static AudioFormat CDLPCM()
@@ -74,6 +64,7 @@ struct AudioFormat
     af.byteOrder = LittleEndian;
     af.sampleType = SignedInt;
     af.sampleSize = 16;
+    af.sampleBytes = 0;
     af.sampleRate = 44100;
     af.channelCount = 2;
     af.codec = "audio/pcm";
