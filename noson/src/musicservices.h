@@ -61,7 +61,9 @@ namespace NSROOT
     const std::string& GetCapabilities() const;
     ElementPtr GetPolicy() const;
     ElementPtr GetStrings() const;
+    ElementPtr GetManifest() const;
     ElementPtr GetPresentationMap() const;
+    void SetVar(ElementPtr& var);
 
     static std::string ServiceType(const std::string& id);
 

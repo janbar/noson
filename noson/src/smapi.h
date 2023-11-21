@@ -39,7 +39,7 @@ namespace NSROOT
   };
 
   class URIParser;
-  
+
   class SMAPI
   {
   public:
@@ -50,7 +50,7 @@ namespace NSROOT
 
 
     bool Init(const SMServicePtr& smsvc, const std::string& locale);
-    
+
     const ElementList& AvailableSearchCategories() const { return m_searchCategories; }
 
     /**
@@ -136,7 +136,7 @@ namespace NSROOT
     std::string m_tz;
     uint32_t m_capabilities;
     Auth_t m_policyAuth;
-    
+
     SMServicePtr m_service;
     ElementList m_searchCategories;
     std::list<std::pair<ElementPtr, ElementList> > m_presentation;

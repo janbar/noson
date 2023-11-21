@@ -111,12 +111,28 @@ ElementPtr SMService::GetStrings() const
   return ElementPtr();
 }
 
+ElementPtr SMService::GetManifest() const
+{
+  ElementList::const_iterator it = m_vars.FindKey("Manifest");
+  if (it != m_vars.end())
+    return (*it);
+  return ElementPtr();
+}
+
 ElementPtr SMService::GetPresentationMap() const
 {
   ElementList::const_iterator it = m_vars.FindKey("PresentationMap");
   if (it != m_vars.end())
     return (*it);
   return ElementPtr();
+}
+
+void SMService::SetVar(ElementPtr& var)
+{
+  ElementList::const_iterator it = m_vars.FindKey(var->GetKey());
+  if (it != m_vars.end())
+    m_vars.erase(it);
+  m_vars.push_back(var);
 }
 
 std::string SMService::ServiceType(const std::string& id)
@@ -251,6 +267,17 @@ bool MusicServices::ParseAvailableServices(const ElementList& vars, std::vector<
     unsigned uid = 0; // unique item id
     const tinyxml2::XMLAttribute* attr = elem->FirstAttribute();
     ElementList service;
+    /* Service:
+     *   Id=integer
+     *   Name=string
+     *   Version=integer
+     *   Uri=string
+     *   SecureUri=String
+     *   ContainerType=string
+     *   Capabilities=integer
+     *   Policy {}
+     *   Manifest {}
+     */
     while (attr)
     {
       service.push_back(ElementPtr(new Element(attr->Name(), attr->Value())));
@@ -261,6 +288,10 @@ bool MusicServices::ParseAvailableServices(const ElementList& vars, std::vector<
     const tinyxml2::XMLElement* child = elem->FirstChildElement();
     while (child)
     {
+      /* Policy:
+       *   Auth=string
+       *   PoolInterval=integer
+       */
       if (XMLNS::NameEqual(child->Name(), "Policy"))
       {
         const tinyxml2::XMLAttribute* cattr = child->FirstAttribute();
@@ -272,21 +303,20 @@ bool MusicServices::ParseAvailableServices(const ElementList& vars, std::vector<
         }
         service.push_back(policyPtr);
       }
-      if (XMLNS::NameEqual(child->Name(), "Presentation"))
+      /* Manifest:
+       *   Version=integer
+       *   Uri=string
+       */
+      if (XMLNS::NameEqual(child->Name(), "Manifest"))
       {
-        const tinyxml2::XMLElement* child2 = child->FirstChildElement();
-        while (child2)
+        const tinyxml2::XMLAttribute* cattr = child->FirstAttribute();
+        ElementPtr manifestPtr(new Element(child->Name(), std::to_string(++uid)));
+        while (cattr)
         {
-          const tinyxml2::XMLAttribute* cattr = child2->FirstAttribute();
-          ElementPtr mapPtr(new Element(child2->Name(), std::to_string(++uid)));
-          while (cattr)
-          {
-            mapPtr->SetAttribut(cattr->Name(), cattr->Value());
-            cattr = cattr->Next();
-          }
-          service.push_back(mapPtr);
-          child2 = child2->NextSiblingElement(nullptr);
+          manifestPtr->SetAttribut(cattr->Name(), cattr->Value());
+          cattr = cattr->Next();
         }
+        service.push_back(manifestPtr);
       }
       child = child->NextSiblingElement(nullptr);
     }

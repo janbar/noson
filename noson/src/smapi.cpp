@@ -28,6 +28,7 @@
 #include "private/builtin.h"
 #include "private/cppdef.h"
 #include "private/urlencoder.h"
+#include "private/jsonparser.h"
 #include "sonossystem.h"
 
 #define DEVICE_PROVIDER         "Sonos"
@@ -94,13 +95,66 @@ bool SMAPI::Init(const SMServicePtr& smsvc, const std::string& locale)
   string_to_uint32(smsvc->GetCapabilities().c_str(), &m_capabilities);
   tz_t tz;
   m_tz.assign(time_tz(time(0), &tz)->tz_str);
+
+  // request the manifest if exists
+  if (!m_service->GetPresentationMap() && m_service->GetManifest())
+  {
+    URIParser uri(m_service->GetManifest()->GetAttribut("Uri"));
+    WSRequest request(uri);
+    request.SetUserAgent(m_service->GetAgent());
+    WSResponse* response = new WSResponse(request);
+    switch (response->GetStatusCode())
+    {
+    // allow the redirection
+    case 301:
+    case 302:
+    {
+      WSRequest redir(response->Redirection());
+      delete response;
+      response = new WSResponse(redir);
+    }
+    break;
+    default:
+      break;
+    }
+    if (response->IsSuccessful())
+    {
+      // Parse content response
+      const JSON::Document json(*response);
+      const JSON::Node& root = json.GetRoot();
+      if (json.IsValid() && root.IsObject())
+      {
+        const JSON::Node& map = root.GetObjectValue("presentationMap");
+        if (map.IsObject())
+        {
+          const JSON::Node& uri = map.GetObjectValue("uri");
+          if (uri.IsString())
+          {
+            const std::string& val = uri.GetStringValue();
+            ElementPtr mapPtr(new Element("PresentationMap"));
+            mapPtr->SetAttribut("Uri", val);
+            m_service->SetVar(mapPtr);
+          }
+        }
+      }
+      delete response;
+    }
+    else
+    {
+      delete response;
+      return false;
+    }
+  }
+
   if (!m_service->GetPresentationMap())
   {
+    DBG(DBG_WARN, "%s: service %s does not have a presentation map\n", __FUNCTION__, m_service->GetName().c_str());
     m_presentation.clear();
     m_searchCategories.clear();
   }
   else
   {
+    DBG(DBG_INFO, "%s: load presentation map for service %s\n", __FUNCTION__, m_service->GetName().c_str());
     // load presentation map from given uri
     URIParser uri(m_service->GetPresentationMap()->GetAttribut("Uri"));
     WSRequest request(uri);
@@ -151,15 +205,12 @@ bool SMAPI::Init(const SMServicePtr& smsvc, const std::string& locale)
   {
     if (m_searchCategories.empty())
     {
-      // don't load default categories for TuneIn because it won't work as expected
-      if (m_service->GetServiceType() != "65031") /* TuneIn */
-      {
-        // add default search categories
-        m_searchCategories.push_back(ElementPtr(new Element("tracks", "track")));
-        m_searchCategories.push_back(ElementPtr(new Element("albums", "album")));
-        m_searchCategories.push_back(ElementPtr(new Element("artists", "artist")));
-        m_searchCategories.push_back(ElementPtr(new Element("playlists", "playlist")));
-      }
+      DBG(DBG_WARN, "%s: load default search categories for service %s\n", __FUNCTION__, m_service->GetName().c_str());
+      // add default search categories
+      m_searchCategories.push_back(ElementPtr(new Element("tracks", "track")));
+      m_searchCategories.push_back(ElementPtr(new Element("albums", "album")));
+      m_searchCategories.push_back(ElementPtr(new Element("artists", "artist")));
+      m_searchCategories.push_back(ElementPtr(new Element("playlists", "playlist")));
     }
   }
   else
@@ -507,23 +558,27 @@ bool SMAPI::parsePresentationMap(const std::string& xml)
           ElementPtr search(new Element("Search"));
           // set attribute StringId if any
           const char* stringId = child->Attribute("stringId");
-          if (stringId)
-            search->SetAttribut("stringId", stringId);
-          // build the list of category for this search categories
-          ElementList list;
-          tinyxml2::XMLElement* categ = child->FirstChildElement();
-          while (categ && categ->Attribute("id") && categ->Attribute("mappedId"))
+          // accept category for 'CatalogSearch' or nil
+          if (!stringId || strlen(stringId) == 0 || strncmp(stringId, "LibrarySearch", 13) == 0)
           {
-            // could be Category or CustomCategory
-            ElementPtr item(new Element(categ->Name(), std::to_string(++uid)));
-            item->SetAttribut("id", categ->Attribute("id"));
-            item->SetAttribut("mappedId", categ->Attribute("mappedId"));
-            list.push_back(item);
-            // also fill list of search categories
-            m_searchCategories.push_back(ElementPtr(new Element(categ->Attribute("id"), categ->Attribute("mappedId"))));
-            categ = categ->NextSiblingElement(NULL);
+            if (stringId)
+              search->SetAttribut("stringId", stringId);
+            // build the list of category for this search categories
+            ElementList list;
+            tinyxml2::XMLElement* categ = child->FirstChildElement();
+            while (categ && categ->Attribute("id") && categ->Attribute("mappedId"))
+            {
+              // could be Category or CustomCategory
+              ElementPtr item(new Element(categ->Name(), std::to_string(++uid)));
+              item->SetAttribut("id", categ->Attribute("id"));
+              item->SetAttribut("mappedId", categ->Attribute("mappedId"));
+              list.push_back(item);
+              // also fill list of search categories
+              m_searchCategories.push_back(ElementPtr(new Element(categ->Attribute("id"), categ->Attribute("mappedId"))));
+              categ = categ->NextSiblingElement(NULL);
+            }
+            m_presentation.push_back(std::make_pair(search, list));
           }
-          m_presentation.push_back(std::make_pair(search, list));
           child = child->NextSiblingElement(NULL);
         }
       }
