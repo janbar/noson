@@ -28,7 +28,6 @@
 #include "private/builtin.h"
 #include "private/cppdef.h"
 #include "private/urlencoder.h"
-#include "private/jsonparser.h"
 #include "sonossystem.h"
 
 #define DEVICE_PROVIDER         "Sonos"
@@ -64,7 +63,6 @@ SMAPI::SMAPI(const System& system)
 , m_deviceHouseholdID()
 , m_soapHeader()
 , m_tz()
-, m_capabilities(0)
 , m_policyAuth(Auth_Anonymous)
 , m_service(0)
 , m_uri(0)
@@ -92,129 +90,12 @@ bool SMAPI::Init(const SMServicePtr& smsvc, const std::string& locale)
   if (!m_service)
     return false;
   m_language.assign(language(locale));
-  string_to_uint32(smsvc->GetCapabilities().c_str(), &m_capabilities);
   tz_t tz;
   m_tz.assign(time_tz(time(0), &tz)->tz_str);
 
-  // request the manifest if exists
-  if (!m_service->GetPresentationMap() && m_service->GetManifest())
-  {
-    URIParser uri(m_service->GetManifest()->GetAttribut("Uri"));
-    WSRequest request(uri);
-    request.SetUserAgent(m_service->GetAgent());
-    WSResponse* response = new WSResponse(request);
-    switch (response->GetStatusCode())
-    {
-    // allow the redirection
-    case 301:
-    case 302:
-    {
-      WSRequest redir(response->Redirection());
-      delete response;
-      response = new WSResponse(redir);
-    }
-    break;
-    default:
-      break;
-    }
-    if (response->IsSuccessful())
-    {
-      // Parse content response
-      const JSON::Document json(*response);
-      const JSON::Node& root = json.GetRoot();
-      if (json.IsValid() && root.IsObject())
-      {
-        const JSON::Node& map = root.GetObjectValue("presentationMap");
-        if (map.IsObject())
-        {
-          const JSON::Node& uri = map.GetObjectValue("uri");
-          if (uri.IsString())
-          {
-            const std::string& val = uri.GetStringValue();
-            ElementPtr mapPtr(new Element("PresentationMap"));
-            mapPtr->SetAttribut("Uri", val);
-            m_service->SetVar(mapPtr);
-          }
-        }
-      }
-      delete response;
-    }
-    else
-    {
-      delete response;
-      return false;
-    }
-  }
-
-  if (!m_service->GetPresentationMap())
-  {
-    DBG(DBG_WARN, "%s: service %s does not have a presentation map\n", __FUNCTION__, m_service->GetName().c_str());
-    m_presentation.clear();
-    m_searchCategories.clear();
-  }
-  else
-  {
-    DBG(DBG_INFO, "%s: load presentation map for service %s\n", __FUNCTION__, m_service->GetName().c_str());
-    // load presentation map from given uri
-    URIParser uri(m_service->GetPresentationMap()->GetAttribut("Uri"));
-    WSRequest request(uri);
-    request.SetUserAgent(m_service->GetAgent());
-    WSResponse* response = new WSResponse(request);
-    switch (response->GetStatusCode())
-    {
-    // allow the redirection
-    case 301:
-    case 302:
-      {
-        WSRequest redir(response->Redirection());
-        delete response;
-        response = new WSResponse(redir);
-      }
-      break;
-    default:
-      break;
-    }
-    if (response->IsSuccessful())
-    {
-      // receive content data
-      size_t len = 0, l = 0;
-      std::string data;
-      char buffer[4096];
-      while ((l = response->ReadContent(buffer, sizeof(buffer))))
-      {
-        data.append(buffer, l);
-        len += l;
-      }
-      delete response;
-      response = nullptr;
-      if (!parsePresentationMap(data))
-        return false;
-    }
-    else
-    {
-      DBG(DBG_ERROR, "%s: the presentation map is invalid\n", __FUNCTION__);
-      delete response;
-      m_presentation.clear();
-      m_searchCategories.clear();
-    }
-  }
-
-  // see https://musicpartners.sonos.com/node/530
-  // Enables the ability for users to search content
-  if ((m_capabilities & 0x1) == 0x1)
-  {
-    if (m_searchCategories.empty())
-    {
-      DBG(DBG_WARN, "%s: load default search categories for service %s\n", __FUNCTION__, m_service->GetName().c_str());
-      // add default search categories
-      m_searchCategories.push_back(ElementPtr(new Element("tracks", "track")));
-      m_searchCategories.push_back(ElementPtr(new Element("albums", "album")));
-      m_searchCategories.push_back(ElementPtr(new Element("artists", "artist")));
-      m_searchCategories.push_back(ElementPtr(new Element("playlists", "playlist")));
-    }
-  }
-  else
-    m_searchCategories.clear(); // disable search content
+  // check the manifest if exists
+  if (m_service->GetManifest())
+    m_service->CheckManifest();
 
   // setup end-point from service URI
   if (m_service->GetSecureUri().empty())
@@ -262,6 +143,12 @@ bool SMAPI::Init(const SMServicePtr& smsvc, const std::string& locale)
   return m_valid;
 }
 
+ElementList SMAPI::AvailableSearchCategories() const
+{
+  OS::CLockGuard lock(*m_mutex);
+  return m_service->SearchCategories();
+}
+
 bool SMAPI::GetMetadata(const std::string& id, int index, int count, bool recursive, SMAPIMetadata& metadata)
 {
   ElementList args;
@@ -285,7 +172,7 @@ bool SMAPI::GetMediaMetadata(const std::string& id, SMAPIMetadata& metadata)
 
 bool SMAPI::Search(const std::string& searchId, const std::string& term, int index, int count, SMAPIMetadata& metadata)
 {
-  const std::string& mappedId = m_searchCategories.GetValue(searchId);
+  const std::string& mappedId = m_service->SearchCategories().GetValue(searchId);
   if (mappedId.empty())
     return false;
   ElementList args;
@@ -516,106 +403,6 @@ const std::string& SMAPI::GetFaultString() const
   if (m_fault.GetValue("TAG") == "Fault")
     return m_fault.GetValue("faultstring");
   return m_fault.GetValue("errorstring");
-}
-
-bool SMAPI::parsePresentationMap(const std::string& xml)
-{
-  tinyxml2::XMLDocument rootdoc;
-  // Parse xml content
-  if (rootdoc.Parse(xml.c_str(), xml.size()) != tinyxml2::XML_SUCCESS)
-  {
-    DBG(DBG_ERROR, "%s: parse xml failed\n", __FUNCTION__);
-    return false;
-  }
-  tinyxml2::XMLElement* elem; // an element
-  // Check for response: Presentation
-  if (!(elem = rootdoc.RootElement()) || !XMLNS::NameEqual(elem->Name(), "Presentation"))
-  {
-    DBG(DBG_ERROR, "%s: invalid or not supported content\n", __FUNCTION__);
-    tinyxml2::XMLPrinter out;
-    rootdoc.Accept(&out);
-    DBG(DBG_ERROR, "%s\n", out.CStr());
-    return false;
-  }
-  m_presentation.clear();
-  m_searchCategories.clear();
-  elem = elem->FirstChildElement("PresentationMap");
-  while (elem)
-  {
-    unsigned uid = 0; // unique item id
-    tinyxml2::XMLElement* child; // a child of elem
-    const char* type = elem->Attribute("type");
-    if (type)
-    {
-      if (strncmp(type, "DisplayType", 11) == 0)
-      {
-      }
-      else if (strncmp(type, "Search", 6) == 0 && (child = elem->FirstChildElement("Match")))
-      {
-        child = child->FirstChildElement("SearchCategories");
-        while (child)
-        {
-          ElementPtr search(new Element("Search"));
-          // set attribute StringId if any
-          const char* stringId = child->Attribute("stringId");
-          // accept category for 'CatalogSearch' or nil
-          if (!stringId || strlen(stringId) == 0 || strncmp(stringId, "LibrarySearch", 13) == 0)
-          {
-            if (stringId)
-              search->SetAttribut("stringId", stringId);
-            // build the list of category for this search categories
-            ElementList list;
-            tinyxml2::XMLElement* categ = child->FirstChildElement();
-            while (categ && categ->Attribute("id") && categ->Attribute("mappedId"))
-            {
-              // could be Category or CustomCategory
-              ElementPtr item(new Element(categ->Name(), std::to_string(++uid)));
-              item->SetAttribut("id", categ->Attribute("id"));
-              item->SetAttribut("mappedId", categ->Attribute("mappedId"));
-              list.push_back(item);
-              // also fill list of search categories
-              m_searchCategories.push_back(ElementPtr(new Element(categ->Attribute("id"), categ->Attribute("mappedId"))));
-              categ = categ->NextSiblingElement(NULL);
-            }
-            m_presentation.push_back(std::make_pair(search, list));
-          }
-          child = child->NextSiblingElement(NULL);
-        }
-      }
-      else if (strncmp(type, "BrowseIconSizeMap", 17) == 0 && (child = elem->FirstChildElement("Match")))
-      {
-        child = child->FirstChildElement("browseIconSizeMap");
-        if (child)
-        {
-          ElementPtr name(new Element(child->Name()));
-          // build the list of size entry
-          ElementList list;
-          tinyxml2::XMLElement* entry = child->FirstChildElement("sizeEntry");
-          while (entry && entry->Attribute("size") && entry->Attribute("substitution"))
-          {
-            ElementPtr item(new Element(entry->Name(), std::to_string(++uid)));
-            item->SetAttribut("size", entry->Attribute("size"));
-            item->SetAttribut("substitution", entry->Attribute("substitution"));
-            list.push_back(item);
-            entry = entry->NextSiblingElement(NULL);
-          }
-          m_presentation.push_back(std::make_pair(name, list));
-        }
-      }
-      else if (strncmp(type, "NowPlayingRatings", 17) == 0)
-      {
-      }
-    }
-    elem = elem->NextSiblingElement(NULL);
-  }
-  // Storage for presentation:
-  // Element: key=Search, attr={stringId}
-  // values : key=Category, attr={id="stations", mappedId="search:station"}, value=#ordered#
-  //
-  // Element: key=browseIconSizeMap, attr={}
-  // values : key=sizeEntry, attr={size="0", substitution="_legacy.svg"}, value=#ordered#
-  //
-  return true;
 }
 
 bool SMAPI::makeSoapHeader()

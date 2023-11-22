@@ -51,7 +51,7 @@ namespace NSROOT
 
     bool Init(const SMServicePtr& smsvc, const std::string& locale);
 
-    const ElementList& AvailableSearchCategories() const { return m_searchCategories; }
+    ElementList AvailableSearchCategories() const;
 
     /**
      * Load metadata for a container or item.
@@ -134,12 +134,9 @@ namespace NSROOT
     std::string m_deviceHouseholdID;
     std::string m_soapHeader;
     std::string m_tz;
-    uint32_t m_capabilities;
     Auth_t m_policyAuth;
 
     SMServicePtr m_service;
-    ElementList m_searchCategories;
-    std::list<std::pair<ElementPtr, ElementList> > m_presentation;
     URIParser* m_uri;
     bool m_valid;
 
@@ -147,8 +144,6 @@ namespace NSROOT
     OS::CTimeout* m_authLinkTimeout;
     std::string m_authLinkCode;
     std::string m_authLinkDeviceId;
-
-    bool parsePresentationMap(const std::string& xml);
 
     bool makeSoapHeader();
 

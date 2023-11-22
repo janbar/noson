@@ -63,7 +63,6 @@ namespace NSROOT
     ElementPtr GetStrings() const;
     ElementPtr GetManifest() const;
     ElementPtr GetPresentationMap() const;
-    void SetVar(ElementPtr& var);
 
     static std::string ServiceType(const std::string& id);
 
@@ -72,12 +71,22 @@ namespace NSROOT
     SMAccountPtr GetAccount() const;
     const std::string& GetAgent() const;
 
+    ElementList& SearchCategories() { return m_searchCategories; }
+
+    bool CheckManifest();
+
   private:
     std::string m_agent;    ///< The agent string to announce in API call
     SMAccountPtr m_account; ///< The account relates this service
     ElementList m_vars;
     std::string m_type;     ///< The type id to use for this service
     mutable std::string m_desc;     ///< The sonos descriptor to use for this service
+
+    ElementList m_searchCategories;
+    std::list<std::pair<ElementPtr, ElementList> > m_presentation;
+
+    bool loadPresentationMap(const std::string& uri, int version);
+    bool parsePresentationMap(const std::string& xml);
   };
 
   class MusicServices : public Service
