@@ -60,8 +60,8 @@ namespace NSROOT
     const std::string& GetContainerType() const;
     const std::string& GetCapabilities() const;
     ElementPtr GetPolicy() const;
-    ElementPtr GetStrings() const;
     ElementPtr GetManifest() const;
+    ElementPtr GetStrings() const;
     ElementPtr GetPresentationMap() const;
 
     static std::string ServiceType(const std::string& id);
@@ -71,9 +71,9 @@ namespace NSROOT
     SMAccountPtr GetAccount() const;
     const std::string& GetAgent() const;
 
-    ElementList& SearchCategories() { return m_searchCategories; }
+    const ElementList& SearchCategories() const { return m_searchCategories; }
 
-    bool CheckManifest();
+    bool CheckManifest(const std::string& locale);
 
   private:
     std::string m_agent;    ///< The agent string to announce in API call

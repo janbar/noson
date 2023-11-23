@@ -174,7 +174,7 @@ const std::string& SMService::GetAgent() const
   return m_agent;
 }
 
-bool SMService::CheckManifest()
+bool SMService::CheckManifest(const std::string& locale)
 {
   if (!GetManifest())
   {
@@ -216,32 +216,47 @@ bool SMService::CheckManifest()
   default:
     break;
   }
-  if (response->IsSuccessful())
+  if (!response->IsSuccessful())
   {
-    // Parse content response
-    const JSON::Document json(*response);
-    const JSON::Node& root = json.GetRoot();
-    if (json.IsValid() && root.IsObject())
+    delete response;
+    return false;
+  }
+
+  // Parse content response
+  const JSON::Document json(*response);
+  const JSON::Node& root = json.GetRoot();
+  delete response;
+
+  if (!json.IsValid() || !root.IsObject())
+    return false;
+  // strings must be loaded first
+  {
+    const JSON::Node& obj = root.GetObjectValue("strings");
+    if (obj.IsObject())
     {
-      const JSON::Node& map = root.GetObjectValue("presentationMap");
-      if (map.IsObject())
+      const JSON::Node& ver = obj.GetObjectValue("version");
+      if (ver.IsInt())
       {
-        const JSON::Node& ver = map.GetObjectValue("version");
-        if (ver.IsInt())
-        {
-          const JSON::Node& uri = map.GetObjectValue("uri");
-          if (uri.IsString())
-          {
-            loadPresentationMap(uri.GetStringValue(), ver.GetIntValue());
-            delete response;
-            return true;
-          }
-        }
+        const JSON::Node& uri = obj.GetObjectValue("uri");
+        //@TODO: if (uri.IsString()) loadStrings(uri.GetStringValue(), ver.GetIntValue(), locale);
       }
     }
   }
-  delete response;
-  return false;
+  // processing presentation map
+  {
+    const JSON::Node& obj = root.GetObjectValue("presentationMap");
+    if (obj.IsObject())
+    {
+      const JSON::Node& ver = obj.GetObjectValue("version");
+      if (ver.IsInt())
+      {
+        const JSON::Node& uri = obj.GetObjectValue("uri");
+        if (uri.IsString())
+          loadPresentationMap(uri.GetStringValue(), ver.GetIntValue());
+      }
+    }
+  }
+  return true;
 }
 
 bool SMService::loadPresentationMap(const std::string& uri, int version)

@@ -95,7 +95,7 @@ bool SMAPI::Init(const SMServicePtr& smsvc, const std::string& locale)
 
   // check the manifest if exists
   if (m_service->GetManifest())
-    m_service->CheckManifest();
+    m_service->CheckManifest(locale);
 
   // setup end-point from service URI
   if (m_service->GetSecureUri().empty())
@@ -146,7 +146,9 @@ bool SMAPI::Init(const SMServicePtr& smsvc, const std::string& locale)
 ElementList SMAPI::AvailableSearchCategories() const
 {
   OS::CLockGuard lock(*m_mutex);
-  return m_service->SearchCategories();
+  if (m_valid)
+    return m_service->SearchCategories();
+  return ElementList();
 }
 
 bool SMAPI::GetMetadata(const std::string& id, int index, int count, bool recursive, SMAPIMetadata& metadata)
