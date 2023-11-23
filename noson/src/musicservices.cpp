@@ -238,7 +238,8 @@ bool SMService::CheckManifest(const std::string& locale)
       if (ver.IsInt())
       {
         const JSON::Node& uri = obj.GetObjectValue("uri");
-        //@TODO: if (uri.IsString()) loadStrings(uri.GetStringValue(), ver.GetIntValue(), locale);
+        if (uri.IsString())
+          loadStrings(uri.GetStringValue(), ver.GetIntValue(), locale);
       }
     }
   }
@@ -256,6 +257,141 @@ bool SMService::CheckManifest(const std::string& locale)
       }
     }
   }
+  return true;
+}
+
+bool SMService::loadStrings(const std::string& uri, int version, const std::string& locale)
+{
+  // is current version ?
+  if (GetStrings())
+  {
+    int32_t _ver = 0;
+    string_to_int32(GetStrings()->GetAttribut("Version").c_str(), &_ver);
+    if (_ver == version)
+    {
+      DBG(DBG_DEBUG, "%s: version %d is up to date\n", __FUNCTION__, _ver);
+      return true;
+    }
+  }
+
+  DBG(DBG_INFO, "%s: load strings %d for service %s locale %s\n", __FUNCTION__, version, GetName().c_str(), locale.c_str());
+  // load strings from given uri
+  URIParser _uri(uri);
+  WSRequest request(_uri);
+  request.SetUserAgent(GetAgent());
+  WSResponse* response = new WSResponse(request);
+  switch (response->GetStatusCode())
+  {
+  // allow the redirection
+  case 301:
+  case 302:
+  {
+    WSRequest redir(response->Redirection());
+    delete response;
+    response = new WSResponse(redir);
+  }
+  break;
+  default:
+    break;
+  }
+  if (response->IsSuccessful())
+  {
+    // receive content data
+    size_t len = 0, l = 0;
+    std::string data;
+    char buffer[4096];
+    while ((l = response->ReadContent(buffer, sizeof(buffer))))
+    {
+      data.append(buffer, l);
+      len += l;
+    }
+    delete response;
+    response = nullptr;
+
+    if (!parseStrings(data, locale))
+      return false;
+
+    // refresh presentation header
+    ElementPtr strPtr(new Element("Strings"));
+    strPtr->SetAttribut("Uri", uri);
+    BUILTIN_BUFFER buf;
+    int32_to_string(version, &buf);
+    strPtr->SetAttribut("Version", buf.data);
+    ElementList::const_iterator it = m_vars.FindKey(strPtr->GetKey());
+    if (it != m_vars.end())
+      m_vars.erase(it);
+    m_vars.push_back(strPtr);
+    return true;
+  }
+  else
+  {
+    DBG(DBG_ERROR, "%s: strings are invalid\n", __FUNCTION__);
+    delete response;
+  }
+  return false;
+}
+
+bool SMService::parseStrings(const std::string &xml, const std::string& locale)
+{
+  tinyxml2::XMLDocument rootdoc;
+  // Parse xml content
+  if (rootdoc.Parse(xml.c_str(), xml.size()) != tinyxml2::XML_SUCCESS)
+  {
+    DBG(DBG_ERROR, "%s: parse xml failed\n", __FUNCTION__);
+    return false;
+  }
+  tinyxml2::XMLElement* elem; // an element
+  // Check for response: Presentation
+  if (!(elem = rootdoc.RootElement()) || !XMLNS::NameEqual(elem->Name(), "stringtables"))
+  {
+    DBG(DBG_ERROR, "%s: invalid or not supported content\n", __FUNCTION__);
+    tinyxml2::XMLPrinter out;
+    rootdoc.Accept(&out);
+    DBG(DBG_ERROR, "%s\n", out.CStr());
+    return false;
+  }
+  m_strings.clear();
+  // language to match
+  std::pair<std::string, std::string> myLang;
+  myLang.first = locale.substr(0, 2);
+  if (locale.size() >= 5)
+    myLang.second = locale.substr(3, 2);
+  // browse the doc
+  elem = elem->FirstChildElement("stringtable");
+  while (elem)
+  {
+    const char* trLang = elem->Attribute("xml:lang");
+    if (trLang)
+    {
+      int l = strlen(trLang);
+      if ((l >= 5 && strncmp(trLang, myLang.first.c_str(), 2) == 0 && strncmp(trLang + 3, myLang.second.c_str(), 2) == 0) ||
+          (l == 2 && strncmp(trLang, myLang.first.c_str(), 2) == 0))
+      {
+        tinyxml2::XMLElement* child = elem->FirstChildElement("string");
+        while (child)
+        {
+          const char* stringId = child->Attribute("stringId");
+          if (stringId)
+            m_strings.insert(std::make_pair(stringId, child->GetText()));
+          child = child->NextSiblingElement(NULL);
+        }
+      }
+      else if ((l >= 5 && strncmp("en-US", trLang, 5) == 0) ||
+               (l == 2 && strncmp("en", trLang, 2) == 0))
+      {
+        tinyxml2::XMLElement* child = elem->FirstChildElement("string");
+        while (child)
+        {
+          const char* stringId = child->Attribute("stringId");
+          if (stringId)
+            m_stringsAlt.insert(std::make_pair(stringId, child->GetText()));
+          child = child->NextSiblingElement(NULL);
+        }
+      }
+    }
+    elem = elem->NextSiblingElement(NULL);
+  }
+  DBG(DBG_INFO, "%s: %d/%d string(s) loaded\n", __FUNCTION__, m_strings.size(), m_stringsAlt.size());
   return true;
 }
 

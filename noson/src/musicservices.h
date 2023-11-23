@@ -28,6 +28,7 @@
 
 #include <list>
 #include <vector>
+#include <map>
 
 namespace NSROOT
 {
@@ -82,9 +83,13 @@ namespace NSROOT
     std::string m_type;     ///< The type id to use for this service
     mutable std::string m_desc;     ///< The sonos descriptor to use for this service
 
+    std::map<std::string, std::string> m_strings;
+    std::map<std::string, std::string> m_stringsAlt;
     ElementList m_searchCategories;
     std::list<std::pair<ElementPtr, ElementList> > m_presentation;
 
+    bool loadStrings(const std::string& uri, int version, const std::string& locale);
+    bool parseStrings(const std::string& xml, const std::string& locale);
     bool loadPresentationMap(const std::string& uri, int version);
     bool parsePresentationMap(const std::string& xml);
   };
