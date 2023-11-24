@@ -58,11 +58,11 @@ inline std::string __urldecode(const std::string& str) {
     char c = *cstr;
     if (c == '%')
     {
-      unsigned v;
+      int v;
       char buf[3];
       strncpy(buf, cstr + 1, 3);
       buf[2] = '\0';
-      if (sscanf(buf, "%x", &v) == 1 || sscanf(buf, "%X", &v) == 1)
+      if (hex_to_num(buf, &v) == 0)
       {
         c = static_cast<char>(v);
         cstr += 2;

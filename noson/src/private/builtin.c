@@ -196,6 +196,25 @@ int string_to_double(const char *str, double *dbl)
   return 0;
 }
 
+int hex_to_num(const char *str, int *num)
+{
+  int val = 0;
+  while (*str)
+  {
+    if (*str >= '0' && *str <= '9')
+      val = (val << 4) + (*str - '0');
+    else if (*str >= 'A' && *str <= 'F')
+      val = (val << 4) + (*str - 'A' + 10);
+    else if (*str >= 'a' && *str <= 'f')
+      val = (val << 4) + (*str - 'a' + 10);
+    else
+      return -(EINVAL);
+    ++str;
+  }
+  *num = val;
+  return 0;
+}
+
 time_t __timegm(struct tm *utctime_tm)
 {
   time_t time;

@@ -60,6 +60,9 @@ extern int string_to_uint8(const char *str, uint8_t *num);
 #define string_to_double __str2double
 extern int string_to_double(const char *str, double *dbl);
 
+#define hex_to_num __hex2num
+extern int hex_to_num(const char *str, int *num);
+
 #define char_to_hex __charhex
 static CC_INLINE void char_to_hex(char c, BUILTIN_BUFFER *str)
 {
