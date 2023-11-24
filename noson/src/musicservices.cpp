@@ -355,8 +355,8 @@ bool SMService::parseStrings(const std::string &xml, const std::string& locale)
   std::pair<std::string, std::string> myLang;
   myLang.first = locale.substr(0, 2);
   if (locale.size() >= 5)
-    myLang.second = locale.substr(3, 2);
-  // browse the doc
+    myLang.second = locale.substr(3);
+  // browse stringtables
   elem = elem->FirstChildElement("stringtable");
   while (elem)
   {
@@ -364,9 +364,12 @@ bool SMService::parseStrings(const std::string &xml, const std::string& locale)
     if (trLang)
     {
       int l = strlen(trLang);
-      if ((l >= 5 && strncmp(trLang, myLang.first.c_str(), 2) == 0 && strncmp(trLang + 3, myLang.second.c_str(), 2) == 0) ||
-          (l == 2 && strncmp(trLang, myLang.first.c_str(), 2) == 0))
+
+      // load translations
+      if (l >= 5 && strncmp(trLang, myLang.first.c_str(), 2) == 0 && strncmp(trLang + 3, myLang.second.c_str(), l - 3) == 0)
       {
+        // prior to lang+country
+        m_strings.clear();
         tinyxml2::XMLElement* child = elem->FirstChildElement("string");
         while (child)
         {
@@ -376,9 +379,36 @@ bool SMService::parseStrings(const std::string &xml, const std::string& locale)
           child = child->NextSiblingElement(NULL);
         }
       }
-      else if ((l >= 5 && strncmp("en-US", trLang, 5) == 0) ||
-               (l == 2 && strncmp("en", trLang, 2) == 0))
+      else if (m_strings.empty() && l >= 2 && strncmp(trLang, myLang.first.c_str(), 2) == 0)
       {
+        // at least load the first lang found
+        tinyxml2::XMLElement* child = elem->FirstChildElement("string");
+        while (child)
+        {
+          const char* stringId = child->Attribute("stringId");
+          if (stringId)
+            m_strings.insert(std::make_pair(stringId, child->GetText()));
+          child = child->NextSiblingElement(NULL);
+        }
+      }
+
+      // load alternate translations
+      if (l >= 5 && strncmp(trLang, "en", 2) == 0 && strncmp(trLang + 3, "US", l - 3))
+      {
+        // prior to en+US
+        m_stringsAlt.clear();
+        tinyxml2::XMLElement* child = elem->FirstChildElement("string");
+        while (child)
+        {
+          const char* stringId = child->Attribute("stringId");
+          if (stringId)
+            m_stringsAlt.insert(std::make_pair(stringId, child->GetText()));
+          child = child->NextSiblingElement(NULL);
+        }
+      }
+      else if (m_stringsAlt.empty() && l >= 2 && strncmp(trLang, "en", 2) == 0)
+      {
+        // at least load the first 'en' found
         tinyxml2::XMLElement* child = elem->FirstChildElement("string");
         while (child)
         {
