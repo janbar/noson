@@ -508,27 +508,40 @@ bool SMService::parsePresentationMap(const std::string &xml)
           ElementPtr search(new Element("Search"));
           // set attribute StringId if any
           const char* stringId = child->Attribute("stringId");
-          // accept category for 'CatalogSearch' or nil
-          if (!stringId || strlen(stringId) == 0 || strncmp(stringId, "LibrarySearch", 13) == 0)
+          std::string trStringId;
+          if (stringId && *stringId != '\0')
           {
-            if (stringId)
-              search->SetAttribut("stringId", stringId);
-            // build the list of category for this search categories
-            ElementList list;
-            tinyxml2::XMLElement* categ = child->FirstChildElement();
-            while (categ && categ->Attribute("id") && categ->Attribute("mappedId"))
+            search->SetAttribut("stringId", stringId);
+            std::map<std::string, std::string>::const_iterator it = m_strings.find(stringId);
+            if (it != m_strings.cend())
+              trStringId.assign(it->second);
+            else
             {
-              // could be Category or CustomCategory
-              ElementPtr item(new Element(categ->Name(), std::to_string(++uid)));
-              item->SetAttribut("id", categ->Attribute("id"));
-              item->SetAttribut("mappedId", categ->Attribute("mappedId"));
-              list.push_back(item);
-              // also fill list of search categories
-              m_searchCategories.push_back(ElementPtr(new Element(categ->Attribute("id"), categ->Attribute("mappedId"))));
-              categ = categ->NextSiblingElement(NULL);
+              it = m_stringsAlt.find(stringId);
+              if (it != m_stringsAlt.cend())
+                trStringId.assign(it->second);
+              else
+                trStringId.assign(stringId);
             }
-            m_presentation.push_back(std::make_pair(search, list));
           }
+          // build the list of category for this search categories
+          ElementList list;
+          tinyxml2::XMLElement* categ = child->FirstChildElement();
+          while (categ && categ->Attribute("id") && categ->Attribute("mappedId"))
+          {
+            std::string id = categ->Attribute("id");
+            // could be Category or CustomCategory
+            if (!trStringId.empty())
+              id.append("::").append(trStringId);
+            ElementPtr item(new Element(categ->Name(), std::to_string(++uid)));
+            item->SetAttribut("id", id);
+            item->SetAttribut("mappedId", categ->Attribute("mappedId"));
+            list.push_back(item);
+            // also fill list of search categories
+            m_searchCategories.push_back(ElementPtr(new Element(id, categ->Attribute("mappedId"))));
+            categ = categ->NextSiblingElement(NULL);
+          }
+          m_presentation.push_back(std::make_pair(search, list));
           child = child->NextSiblingElement(NULL);
         }
       }
