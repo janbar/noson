@@ -201,7 +201,7 @@ bool AVTransport::SeekTime(uint16_t reltime)
 {
   char buf[9];
   memset(buf, 0, sizeof (buf));
-  sprintf(buf, "%.2u:%.2u:%.2u", (unsigned)(reltime / 3600),
+  snprintf(buf, sizeof(buf), "%.2u:%.2u:%.2u", (unsigned)(reltime / 3600),
           (unsigned)((reltime % 3600) / 60), (unsigned)(reltime % 60));
   ElementList args;
   args.push_back(ElementPtr(new Element("InstanceID", "0")));
@@ -445,7 +445,7 @@ bool AVTransport::ConfigureSleepTimer(unsigned seconds)
   char buf[9];
   memset(buf, 0, sizeof (buf));
   if (seconds)
-    sprintf(buf, "%.2u:%.2u:%.2u", seconds / 3600,
+    snprintf(buf, sizeof(buf), "%.2u:%.2u:%.2u", seconds / 3600,
             (seconds % 3600) / 60, seconds % 60);
   ElementList args;
   args.push_back(ElementPtr(new Element("InstanceID", "0")));
