@@ -22,6 +22,8 @@
 #ifndef URLENCODER_H
 #define URLENCODER_H
 
+#include "builtin.h"
+
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -37,9 +39,9 @@ inline std::string __urlencode(const std::string& str) {
       out.push_back(*cstr);
     else
     {
-      char buf[4];
-      sprintf(buf, "%%%02x", static_cast<unsigned char>(*cstr));
-      out.append(buf);
+      BUILTIN_BUFFER buf;
+      char_to_hex(*cstr, &buf, '%');
+      out.append(buf.data);
     }
     ++cstr;
   }
