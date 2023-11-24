@@ -40,8 +40,8 @@ static void __form_urlencode(std::string& encoded, const char *str)
 
   for (i = 0; i < len; ++i)
   {
-    char_to_hex(str[i], &buf, '%');
-    encoded.append(buf.data);
+    char_to_hex(str[i], &buf);
+    encoded.append("%").append(buf.data);
   }
 }
 

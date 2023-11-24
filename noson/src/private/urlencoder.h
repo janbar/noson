@@ -40,8 +40,8 @@ inline std::string __urlencode(const std::string& str) {
     else
     {
       BUILTIN_BUFFER buf;
-      char_to_hex(*cstr, &buf, '%');
-      out.append(buf.data);
+      char_to_hex(*cstr, &buf);
+      out.append("%").append(buf.data);
     }
     ++cstr;
   }

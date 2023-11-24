@@ -61,18 +61,13 @@ extern int string_to_uint8(const char *str, uint8_t *num);
 extern int string_to_double(const char *str, double *dbl);
 
 #define char_to_hex __charhex
-static CC_INLINE void char_to_hex(char c, BUILTIN_BUFFER *str, char prefix)
+static CC_INLINE void char_to_hex(char c, BUILTIN_BUFFER *str)
 {
   static const char g[16] = {
     '0', '1', '2', '3', '4', '5', '6', '7',
     '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
   };
   char * p = str->data;
-  if (prefix)
-  {
-    p[0] = prefix;
-    ++p;
-  }
   p[0] = g[(0xf & (c >> 4))];
   p[1] = g[(0xf & (c))];
   p[2] = '\0';
