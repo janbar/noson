@@ -201,31 +201,13 @@ bool SMService::CheckManifest(const std::string& locale)
   URIParser _uri(GetManifest()->GetAttribut("Uri"));
   WSRequest request(_uri);
   request.SetUserAgent(GetAgent());
-  WSResponse* response = new WSResponse(request);
-  switch (response->GetStatusCode())
-  {
-  // allow the redirection
-  case 301:
-  case 302:
-  {
-    WSRequest redir(response->Redirection());
-    delete response;
-    response = new WSResponse(redir);
-  }
-  break;
-  default:
-    break;
-  }
-  if (!response->IsSuccessful())
-  {
-    delete response;
+  WSResponse response(request, 1, false, true);
+  if (!response.IsSuccessful())
     return false;
-  }
 
   // Parse content response
-  const JSON::Document json(*response);
+  const JSON::Document json(response);
   const JSON::Node& root = json.GetRoot();
-  delete response;
 
   if (!json.IsValid() || !root.IsObject())
     return false;
@@ -279,34 +261,18 @@ bool SMService::loadStrings(const std::string& uri, int version, const std::stri
   URIParser _uri(uri);
   WSRequest request(_uri);
   request.SetUserAgent(GetAgent());
-  WSResponse* response = new WSResponse(request);
-  switch (response->GetStatusCode())
-  {
-  // allow the redirection
-  case 301:
-  case 302:
-  {
-    WSRequest redir(response->Redirection());
-    delete response;
-    response = new WSResponse(redir);
-  }
-  break;
-  default:
-    break;
-  }
-  if (response->IsSuccessful())
+  WSResponse response(request, 1, false, true);
+  if (response.IsSuccessful())
   {
     // receive content data
     size_t len = 0, l = 0;
     std::string data;
     char buffer[4096];
-    while ((l = response->ReadContent(buffer, sizeof(buffer))))
+    while ((l = response.ReadContent(buffer, sizeof(buffer))))
     {
       data.append(buffer, l);
       len += l;
     }
-    delete response;
-    response = nullptr;
 
     if (!parseStrings(data, locale))
       return false;
@@ -326,7 +292,6 @@ bool SMService::loadStrings(const std::string& uri, int version, const std::stri
   else
   {
     DBG(DBG_ERROR, "%s: strings are invalid\n", __FUNCTION__);
-    delete response;
   }
   return false;
 }
@@ -444,34 +409,18 @@ bool SMService::loadPresentationMap(const std::string& uri, int version)
   URIParser _uri(uri);
   WSRequest request(_uri);
   request.SetUserAgent(GetAgent());
-  WSResponse* response = new WSResponse(request);
-  switch (response->GetStatusCode())
-  {
-  // allow the redirection
-  case 301:
-  case 302:
-  {
-    WSRequest redir(response->Redirection());
-    delete response;
-    response = new WSResponse(redir);
-  }
-  break;
-  default:
-    break;
-  }
-  if (response->IsSuccessful())
+  WSResponse response(request, 1, false, true);
+  if (response.IsSuccessful())
   {
     // receive content data
     size_t len = 0, l = 0;
     std::string data;
     char buffer[4096];
-    while ((l = response->ReadContent(buffer, sizeof(buffer))))
+    while ((l = response.ReadContent(buffer, sizeof(buffer))))
     {
       data.append(buffer, l);
       len += l;
     }
-    delete response;
-    response = nullptr;
 
     if (!parsePresentationMap(data))
       return false;
@@ -491,7 +440,6 @@ bool SMService::loadPresentationMap(const std::string& uri, int version)
   else
   {
     DBG(DBG_ERROR, "%s: the presentation map is invalid\n", __FUNCTION__);
-    delete response;
     m_presentation.clear();
     m_searchCategories.clear();
   }
