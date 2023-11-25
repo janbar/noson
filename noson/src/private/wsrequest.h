@@ -56,6 +56,9 @@ namespace NSROOT
     WSRequest(const URIParser& uri, HRM_t method = HRM_GET);
     ~WSRequest();
 
+    // Clone for redirection: see RFC-9110 section 10.2.2 Location
+    WSRequest(const WSRequest& o, const URIParser& redirection);
+
     void RequestService(const std::string& url, HRM_t method = HRM_GET);
     void RequestAccept(CT_t contentType);
     void RequestAcceptEncoding(bool yesno);
@@ -71,6 +74,8 @@ namespace NSROOT
     const std::string& GetServer() const { return m_server; }
     unsigned GetPort() const { return m_port; }
     bool IsSecureURI() const { return m_secure_uri; }
+    HRM_t GetMethod() const { return m_service_method; }
+    const std::string& GetService() const { return m_service_url; }
 
   private:
     std::string m_server;

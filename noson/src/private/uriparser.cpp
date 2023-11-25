@@ -48,15 +48,11 @@ void URIParser::URIScan(char *uri, URI_t *parts)
   char *after_scheme = uri;
   memset(parts, '\0', sizeof(URI_t));
 
-  /* look for fragment identifier */
-  if ((p = strchr(uri, '#')) != NULL)
-  {
-    *p = '\0';
-    parts->fragment = ++p;
-  }
+  /* space is not allowed, therefore break on space */
   if ((p = strchr(uri, ' ')) != NULL)
     *p = '\0';
 
+  /* first look for scheme */
   for (p = after_scheme; *p; p++)
   {
     if (*p == '/' || *p == '#' || *p == '?')
@@ -82,6 +78,7 @@ void URIParser::URIScan(char *uri, URI_t *parts)
     }
   }
 
+  /* parse the rest after scheme */
   p = after_scheme;
   if (*p == '/')
   {
@@ -145,5 +142,25 @@ void URIParser::URIScan(char *uri, URI_t *parts)
   {
     /* NULL for "" */
     parts->relative = (*after_scheme) ? after_scheme : NULL;
+  }
+
+  /* parse fragment from path */
+  if (parts->relative)
+    after_scheme = parts->relative;
+  else if (parts->absolute)
+    after_scheme = parts->absolute;
+
+  /* look for fragment identifier */
+  if ((p = strchr(after_scheme, '#')) != NULL)
+  {
+    *p = '\0';
+    parts->fragment = ++p;
+    after_scheme = p;
+  }
+  /* parse params to follow */
+  if ((p = strchr(after_scheme, '?')) != NULL)
+  {
+    *p = '\0';
+    parts->params = ++p;
   }
 }

@@ -27,7 +27,7 @@
 
 namespace NSROOT
 {
-  
+
   class URIParser
   {
   public:
@@ -42,6 +42,7 @@ namespace NSROOT
     bool IsRelative() const { return m_parts.relative ? true : false; }
     const char *Path() const { return IsRelative() ? m_parts.relative : m_parts.absolute; }
     const char *Fragment() const { return m_parts.fragment; }
+    const char *Params() const { return m_parts.params; }
 
   private:
     // prevent copy
@@ -58,6 +59,7 @@ namespace NSROOT
       char      *absolute;
       char      *relative;
       char      *fragment;
+      char      *params;
     } URI_t;
 
     URI_t m_parts;
