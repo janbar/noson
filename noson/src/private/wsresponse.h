@@ -40,51 +40,81 @@ namespace NSROOT
   class WSResponse
   {
   public:
-    WSResponse(const WSRequest& request);
+    WSResponse(const WSRequest& request) : WSResponse(request, 1, true, false) { }
+    WSResponse(const WSRequest &request, int maxRedirs, bool trustedLocation, bool followAny);
     ~WSResponse();
 
-    bool IsSuccessful() const { return m_successful; }
-    bool IsChunkedTransfer() const { return m_contentChunked; }
-    size_t GetContentLength() const { return m_contentLength; }
-    size_t ReadContent(char *buf, size_t buflen);
-    size_t GetConsumed() const { return m_consumed; }
-    int GetStatusCode() const { return m_statusCode; }
-    const std::string& Redirection() const { return m_location; }
+    bool IsSuccessful() const { return p->IsSuccessful(); }
+    bool IsChunkedTransfer() const { return p->IsChunkedTransfer(); }
+    size_t GetContentLength() const { return p->GetContentLength(); }
+    size_t ReadContent(char *buf, size_t buflen) { return p->ReadContent(buf, buflen); }
+    size_t GetConsumed() const { return p->GetConsumed(); }
+    int GetStatusCode() const { return p->GetStatusCode(); }
+    const std::string& Redirection() const { return p->Redirection(); }
 
-    bool GetHeaderValue(const std::string& header, std::string& value);
+    bool GetHeaderValue(const std::string& header, std::string& value)
+    {
+      return p->GetHeaderValue(header, value);
+    }
 
+    // helpers
     static bool ReadHeaderLine(NetSocket *socket, const char *eol, std::string& line, size_t *len);
 
   private:
-    TcpSocket *m_socket;
-    bool m_successful;
-    int m_statusCode;
-    std::string m_serverInfo;
-    std::string m_etag;
-    std::string m_location;
-    CT_t m_contentType;
-    CE_t m_contentEncoding;
-    bool m_contentChunked;
-    size_t m_contentLength;
-    size_t m_consumed;
-    char* m_chunkBuffer;      ///< The chunk data buffer
-    char* m_chunkPtr;         ///< The next position to read data from the chunk
-    char* m_chunkEOR;         ///< The end of received data in the chunk
-    char* m_chunkEnd;         ///< The end of the chunk buffer
-    Decompressor *m_decoder;
-
-    typedef std::list<std::pair<std::string, std::string> > HeaderList;
-    HeaderList m_headers;
 
     // prevent copy
     WSResponse(const WSResponse&);
     WSResponse& operator=(const WSResponse&);
 
-    bool SendRequest(const WSRequest& request);
-    bool GetResponse();
-    size_t ReadChunk(void *buf, size_t buflen);
-    static int SocketStreamReader(void *hdl, void *buf, int sz);
-    static int ChunkStreamReader(void *hdl, void *buf, int sz);
+    class _response
+    {
+    public:
+      _response(const WSRequest& request);
+      ~_response();
+
+      bool IsSuccessful() const { return m_successful; }
+      bool IsChunkedTransfer() const { return m_contentChunked; }
+      size_t GetContentLength() const { return m_contentLength; }
+      size_t ReadContent(char *buf, size_t buflen);
+      size_t GetConsumed() const { return m_consumed; }
+      int GetStatusCode() const { return m_statusCode; }
+      const std::string& Redirection() const { return m_location; }
+
+      bool GetHeaderValue(const std::string& header, std::string& value);
+
+    private:
+      TcpSocket *m_socket;
+      bool m_successful;
+      int m_statusCode;
+      std::string m_serverInfo;
+      std::string m_etag;
+      std::string m_location;
+      CT_t m_contentType;
+      CE_t m_contentEncoding;
+      bool m_contentChunked;
+      size_t m_contentLength;
+      size_t m_consumed;
+      char* m_chunkBuffer;      ///< The chunk data buffer
+      char* m_chunkPtr;         ///< The next position to read data from the chunk
+      char* m_chunkEOR;         ///< The end of received data in the chunk
+      char* m_chunkEnd;         ///< The end of the chunk buffer
+      Decompressor *m_decoder;
+
+      typedef std::list<std::pair<std::string, std::string> > HeaderList;
+      HeaderList m_headers;
+
+      // prevent copy
+      _response(const _response&);
+      _response& operator=(const _response&);
+
+      bool SendRequest(const WSRequest& request);
+      bool GetResponse();
+      size_t ReadChunk(void *buf, size_t buflen);
+      static int SocketStreamReader(void *hdl, void *buf, int sz);
+      static int ChunkStreamReader(void *hdl, void *buf, int sz);
+    };
+
+    _response * p;
   };
 
 }

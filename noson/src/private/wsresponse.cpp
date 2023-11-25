@@ -35,6 +35,45 @@
 
 using namespace NSROOT;
 
+WSResponse::WSResponse(const WSRequest &request, int maxRedirs, bool trustedLocation, bool followAny)
+: p(0)
+{
+  p = new _response(request);
+  while (maxRedirs > 0)
+  {
+    --maxRedirs;
+    switch (p->GetStatusCode())
+    {
+    // handle redirection
+    case 301:
+    case 302:
+    {
+      URIParser uri(p->Redirection());
+      bool trusted = (uri.Scheme() && strncmp("https", uri.Scheme(), 5) == 0);
+      if (
+          /* relative */ !uri.Host() ||
+          /* same origin */ (request.GetServer() == uri.Host() && (!trustedLocation || trusted)) ||
+          /* follow any */ (followAny && (!trustedLocation || trusted))
+          )
+      {
+        DBG(DBG_DEBUG, "%s: (%d) LOCATION = %s\n", __FUNCTION__, p->GetStatusCode(), p->Redirection().c_str());
+        WSRequest redir(request, uri);
+        delete p;
+        p = new _response(redir);
+      }
+    }
+    default:
+      break;
+    }
+  }
+}
+
+WSResponse::~WSResponse()
+{
+  if (p)
+    delete p;
+}
+
 bool WSResponse::ReadHeaderLine(NetSocket *socket, const char *eol, std::string& line, size_t *len)
 {
   char buf[RESPONSE_BUFFER_SIZE];
@@ -88,7 +127,7 @@ bool WSResponse::ReadHeaderLine(NetSocket *socket, const char *eol, std::string&
   return true;
 }
 
-WSResponse::WSResponse(const WSRequest &request)
+WSResponse::_response::_response(const WSRequest &request)
 : m_socket(NULL)
 , m_successful(false)
 , m_statusCode(0)
@@ -133,14 +172,14 @@ WSResponse::WSResponse(const WSRequest &request)
   }
 }
 
-WSResponse::~WSResponse()
+WSResponse::_response::~_response()
 {
   SAFE_DELETE(m_decoder);
   SAFE_DELETE_ARRAY(m_chunkBuffer);
   SAFE_DELETE(m_socket);
 }
 
-bool WSResponse::SendRequest(const WSRequest &request)
+bool WSResponse::_response::SendRequest(const WSRequest &request)
 {
   std::string msg;
 
@@ -154,7 +193,7 @@ bool WSResponse::SendRequest(const WSRequest &request)
   return true;
 }
 
-bool WSResponse::GetResponse()
+bool WSResponse::_response::GetResponse()
 {
   size_t len;
   std::string strread;
@@ -163,7 +202,7 @@ bool WSResponse::GetResponse()
   bool ret = false;
 
   token[0] = 0;
-  while (ReadHeaderLine(m_socket, "\r\n", strread, &len))
+  while (WSResponse::ReadHeaderLine(m_socket, "\r\n", strread, &len))
   {
     const char *line = strread.c_str(), *val = NULL;
     int value_len = 0;
@@ -284,7 +323,7 @@ bool WSResponse::GetResponse()
   return ret;
 }
 
-size_t WSResponse::ReadChunk(void *buf, size_t buflen)
+size_t WSResponse::_response::ReadChunk(void *buf, size_t buflen)
 {
   size_t s = 0;
   if (m_contentChunked)
@@ -297,7 +336,7 @@ size_t WSResponse::ReadChunk(void *buf, size_t buflen)
       m_chunkBuffer = m_chunkPtr = m_chunkEOR = m_chunkEnd = NULL;
       std::string strread;
       size_t len = 0;
-      while (ReadHeaderLine(m_socket, "\r\n", strread, &len) && len == 0);
+      while (WSResponse::ReadHeaderLine(m_socket, "\r\n", strread, &len) && len == 0);
       DBG(DBG_PROTO, "%s: chunked data (%s)\n", __FUNCTION__, strread.c_str());
       std::string chunkStr("0x0");
       uint32_t chunkSize;
@@ -327,9 +366,9 @@ size_t WSResponse::ReadChunk(void *buf, size_t buflen)
   return s;
 }
 
-int WSResponse::SocketStreamReader(void *hdl, void *buf, int sz)
+int WSResponse::_response::SocketStreamReader(void *hdl, void *buf, int sz)
 {
-  WSResponse *resp = static_cast<WSResponse*>(hdl);
+  _response *resp = static_cast<_response*>(hdl);
   if (resp == NULL)
     return 0;
   size_t s = 0;
@@ -345,13 +384,13 @@ int WSResponse::SocketStreamReader(void *hdl, void *buf, int sz)
   return s;
 }
 
-int WSResponse::ChunkStreamReader(void *hdl, void *buf, int sz)
+int WSResponse::_response::ChunkStreamReader(void *hdl, void *buf, int sz)
 {
-  WSResponse *resp = static_cast<WSResponse*>(hdl);
+  _response *resp = static_cast<_response*>(hdl);
   return (resp == NULL ? 0 : resp->ReadChunk(buf, sz));
 }
 
-size_t WSResponse::ReadContent(char* buf, size_t buflen)
+size_t WSResponse::_response::ReadContent(char* buf, size_t buflen)
 {
   size_t s = 0;
   if (!m_contentChunked)
@@ -411,7 +450,7 @@ size_t WSResponse::ReadContent(char* buf, size_t buflen)
   return s;
 }
 
-bool WSResponse::GetHeaderValue(const std::string& header, std::string& value)
+bool WSResponse::_response::GetHeaderValue(const std::string& header, std::string& value)
 {
   for (HeaderList::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
   {
