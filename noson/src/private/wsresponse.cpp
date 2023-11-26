@@ -39,15 +39,12 @@ WSResponse::WSResponse(const WSRequest &request, int maxRedirs, bool trustedLoca
 : p(0)
 {
   p = new _response(request);
-  while (maxRedirs > 0)
+  while (0 < maxRedirs--)
   {
-    --maxRedirs;
-    switch (p->GetStatusCode())
+    int status = p->GetStatusCode();
+    if (status == 301 || status == 302)
     {
-    // handle redirection
-    case 301:
-    case 302:
-    {
+      // handle redirection
       URIParser uri(p->Redirection());
       bool trusted = (uri.Scheme() && strncmp("https", uri.Scheme(), 5) == 0);
       if (
@@ -60,11 +57,10 @@ WSResponse::WSResponse(const WSRequest &request, int maxRedirs, bool trustedLoca
         WSRequest redir(request, uri);
         delete p;
         p = new _response(redir);
+        continue;
       }
     }
-    default:
-      break;
-    }
+    break;
   }
 }
 
