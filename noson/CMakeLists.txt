@@ -32,7 +32,7 @@ endif ()
 
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 17)
 
 ###############################################################################
 # configure
@@ -332,7 +332,7 @@ set (noson_HEADERS ${HDR_FILES} ${STREAM_HDR_FILES})
 
 add_library (noson ${noson_SOURCES} ${noson_HEADERS})
 
-set_property (TARGET noson PROPERTY CXX_STANDARD 11)
+set_property (TARGET noson PROPERTY CXX_STANDARD 17)
 
 target_link_libraries (noson ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 if (ZLIB_FOUND)
