@@ -26,6 +26,9 @@ include_directories (
   ${CMAKE_BINARY_DIR}/noson/public
   ${CMAKE_SOURCE_DIR}/noson/src)
 
+find_package(FLAC)
+find_package(FLACXX)
+
 ###############################################################################
 # add targets
 add_executable (testdevice src/testdevice.cpp)
@@ -44,16 +47,20 @@ add_executable (testintrinsic src/testintrinsic.cpp)
 add_dependencies (testintrinsic noson)
 target_link_libraries (testintrinsic noson)
 
-add_executable (tests16le2flac src/tests16le2flac.cpp)
-add_dependencies (tests16le2flac noson)
-target_link_libraries (tests16le2flac noson)
-
+if (FLACXX_FOUND AND FLAC_FOUND)
+  include_directories (BEFORE SYSTEM ${FLACXX_INCLUDE_DIR})
+  add_executable (tests16le2flac src/tests16le2flac.cpp)
+  add_dependencies (tests16le2flac noson)
+  target_link_libraries (tests16le2flac noson)
+endif ()
 
 ###############################################################################
 # add unit tests
 include(UnitTestProject)
 
-unittest_project(NAME check_flac_encoder SOURCES src/check_flac_encoder.cpp TARGET noson)
+if (FLACXX_FOUND AND FLAC_FOUND)
+  unittest_project(NAME check_flac_encoder SOURCES src/check_flac_encoder.cpp TARGET noson)
+endif ()
 unittest_project(NAME check_compressor SOURCES src/check_compressor.cpp TARGET noson)
 unittest_project(NAME check_soap_parser SOURCES src/check_soap_parser.cpp TARGET noson)
 unittest_project(NAME check_intrinsic SOURCES src/check_intrinsic.cpp TARGET noson)
