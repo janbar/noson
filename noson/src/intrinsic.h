@@ -26,6 +26,11 @@
 
 namespace NSROOT
 {
+  namespace OS
+  {
+    class Atomic;
+  }
+
   class IntrinsicCounter
   {
   public:
@@ -40,8 +45,7 @@ namespace NSROOT
     int Decrement();
 
   private:
-    struct Counter;
-    Counter* m_ptr;
+    OS::Atomic * m_ptr;
 
     // Prevent copy
     IntrinsicCounter(const IntrinsicCounter& other);

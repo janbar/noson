@@ -72,6 +72,12 @@ namespace OS
     return pthread_create(thread, &_attr, func, arg) == 0;
   }
 
+#define thread_self() __thread_self()
+  inline thread_t __thread_self() { return pthread_self(); }
+
+#define thread_equal(a, b) __thread_equal(a, b)
+  inline int __thread_equal(thread_t t1, thread_t t2) { return pthread_equal(t1, t2); }
+
   typedef pthread_mutex_t mutex_t;
 
 #define mutex_init(a) __mutex_init(a)

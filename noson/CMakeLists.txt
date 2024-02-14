@@ -245,6 +245,7 @@ list (APPEND SRC_FILES
   src/renderingcontrol.cpp
   src/requestbroker.cpp
   src/service.cpp
+  src/sharedptr.cpp
   src/smaccount.cpp
   src/smapi.cpp
   src/smapimetadata.cpp
@@ -318,7 +319,10 @@ if (HAVE_FLAC)
   endif ()
 endif ()
 
-set (OS_SRC_FILES src/private/os/threads/threadpool.cpp)
+set (OS_SRC_FILES
+  src/private/os/threads/threadpool.cpp
+  src/private/os/threads/latch.cpp
+)
 
 if (MSVC)
   list (APPEND OS_SRC_FILES src/private/os/windows/winpthreads.c)

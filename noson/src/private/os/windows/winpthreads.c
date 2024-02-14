@@ -483,6 +483,7 @@ void pthread_testcancel(void)
 
 int pthread_cancel(pthread_t t)
 {
+#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
   if (t->p_state & PTHREAD_CANCEL_ASYNCHRONOUS)
   {
     /* Dangerous asynchronous cancelling */
@@ -511,6 +512,7 @@ int pthread_cancel(pthread_t t)
     ResumeThread(t->h);
   }
   else
+#endif
   {
     /* Safe deferred Cancelling */
     t->cancelled = 1;

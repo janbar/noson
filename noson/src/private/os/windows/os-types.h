@@ -62,6 +62,13 @@ __inline unsigned int sleep(unsigned int sec)
   return 0;
 }
 
+__inline int sched_yield()
+{
+  if (SwitchToThread())
+    return 0;
+  return (-1);
+}
+
 /* Using MS Visual C++ compilers */
 #if defined(_MSC_VER)
 

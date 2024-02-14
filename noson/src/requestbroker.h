@@ -23,6 +23,7 @@
 
 #include "local_config.h"
 #include "sharedptr.h"
+#include "intrinsic.h"
 #include "streamreader.h"
 
 #include <cstddef>

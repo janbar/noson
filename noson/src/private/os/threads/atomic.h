@@ -1,5 +1,6 @@
+#pragma once
 /*
- *      Copyright (C) 2014-2015 Jean-Luc Barriere
+ *      Copyright (C) 2014-2024 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -19,12 +20,222 @@
  *
  */
 
-#ifndef ATOMIC_H
-#define	ATOMIC_H
+#include "../os.h"
 
-#include "local_config.h"
+#if __cplusplus >= 201103L
 
-#ifdef __GNUC__
+#include <atomic>
+#ifdef NSROOT
+namespace NSROOT {
+#endif
+namespace OS
+{
+  class Atomic
+  {
+  private:
+    std::atomic<int> m_val;
+  public:
+    Atomic(int val) : m_val(val) {}
+    int load()
+    {
+      return m_val.load(std::memory_order_relaxed);
+    }
+    int operator()()
+    {
+      return load();
+    }
+    void store(int val)
+    {
+      m_val.store(val, std::memory_order_relaxed);
+    }
+    int operator=(int val)
+    {
+      store(val);
+      return val;
+    }
+    int add_fetch(int amount)
+    {
+      return m_val.fetch_add(amount, std::memory_order_relaxed) + amount;
+    }
+    int increment()
+    {
+      return add_fetch(1);
+    }
+    int sub_fetch(int amount)
+    {
+      return m_val.fetch_sub(amount, std::memory_order_relaxed) - amount;
+    }
+    int decrement()
+    {
+      return sub_fetch(1);
+    }
+  };
+}
+#ifdef NSROOT
+}
+#endif
+
+#elif defined _MSC_VER
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#ifdef NSROOT
+namespace NSROOT {
+#endif
+namespace OS
+{
+  class Atomic
+  {
+  private:
+    volatile LONG m_val;
+  public:
+    Atomic(int val) : m_val(val) {}
+    int load()
+    {
+      return (int)m_val;
+    }
+    int operator()()
+    {
+      return load();
+    }
+    void store(int val)
+    {
+      m_val = val;
+    }
+    int operator=(int val)
+    {
+      store(val);
+      return val;
+    }
+    int add_fetch(int amount)
+    {
+      return (int)InterlockedAdd(&m_val, amount);
+    }
+    int increment()
+    {
+      return (int)InterlockedIncrement(&m_val);
+    }
+    int sub_fetch(int amount)
+    {
+      return (int)InterlockedAdd(&m_val, (-amount));
+    }
+    int decrement()
+    {
+      return (int)InterlockedDecrement(&m_val);
+    }
+  };
+}
+#ifdef NSROOT
+}
+#endif
+
+#elif defined __APPLE__
+#include <libkern/OSAtomic.h>
+#ifdef NSROOT
+namespace NSROOT {
+#endif
+namespace OS
+{
+  class Atomic
+  {
+  private:
+    volatile int m_val;
+  public:
+    Atomic(int val) : m_val(val) {}
+    int load()
+    {
+      return m_val;
+    }
+    int operator()()
+    {
+      return load();
+    }
+    void store(int val)
+    {
+      m_val = val;
+    }
+    int operator=(int val)
+    {
+      store(val);
+      return val;
+    }
+    int add_fetch(int amount)
+    {
+      return OSAtomicAdd32(amount, &m_val);
+    }
+    int increment()
+    {
+      return OSAtomicIncrement32(&m_val);
+    }
+    int sub_fetch(int amount)
+    {
+      return OSAtomicAdd32((-amount), &m_val);
+    }
+    int decrement()
+    {
+      return OSAtomicDecrement32(&m_val);
+    }
+  };
+}
+#ifdef NSROOT
+}
+#endif
+
+#elif defined HAS_BUILTIN_SYNC_ADD_AND_FETCH
+#ifdef NSROOT
+namespace NSROOT {
+#endif
+namespace OS
+{
+  class Atomic
+  {
+  private:
+    volatile int m_val;
+  public:
+    Atomic(int val) : m_val(val) {}
+    int load()
+    {
+      return m_val;
+    }
+    int operator()()
+    {
+      return load();
+    }
+    void store(int val)
+    {
+      m_val = val;
+    }
+    int operator=(int val)
+    {
+      store(val);
+      return val;
+    }
+    int add_fetch(int amount)
+    {
+      return __sync_add_and_fetch(&m_val, amount);
+    }
+    int increment()
+    {
+      return add_fetch(1);
+    }
+    int sub_fetch(int amount)
+    {
+#if defined HAS_BUILTIN_SYNC_SUB_AND_FETCH
+      return __sync_sub_and_fetch(&m_val, amount);
+#else
+      return __sync_add_and_fetch(&m_val, (-amount));
+#endif
+    }
+    int decrement()
+    {
+      return sub_fetch(1);
+    }
+  };
+}
+#ifdef NSROOT
+}
+#endif
+
+#elif defined __GNUC__
 
 #if defined __arm__ && (!defined __thumb__ || defined __thumb2__)
 /* The __ARM_ARCH define is provided by gcc 4.8.  Construct it otherwise.  */
@@ -51,46 +262,37 @@
 #endif
 #endif
 
-namespace NSROOT
+#ifdef NSROOT
+namespace NSROOT {
+#endif
+namespace OS
 {
-  template<typename T>
-  class atomic
+  class Atomic
   {
-  public:
-    typedef volatile T atomic_t;
-
-    atomic(T val) : m_val(val) {}
-
-    atomic_t load()
-    {
-      return m_val;
-    }
-
   private:
-    atomic_t m_val;
-  };
-
-  template<>
-  class atomic<int>
-  {
+    volatile int m_val;
   public:
-    typedef volatile int atomic_t;
-
-    atomic(int val) : m_val(val) {}
-
+    Atomic(int val) : m_val(val) {}
     int __attribute__((always_inline)) load()
     {
       return m_val;
     }
-
     int __attribute__((always_inline)) operator()()
     {
       return load();
     }
-
+    void __attribute__((always_inline)) store(int val)
+    {
+      m_val = val;
+    }
+    int __attribute__((always_inline)) operator=(int val)
+    {
+      store(val);
+      return val;
+    }
     int __attribute__((always_inline)) add_fetch(int amount)
     {
-      atomic_t __val;
+      int __val;
 
 #if defined __mips__
       int temp;
@@ -201,24 +403,17 @@ namespace NSROOT
         : "memory");
 
 #else
-/* warning unknown architecture, atomic increment is not... */
-#ifndef ATOMIC_NOATOMIC
-#define ATOMIC_NOATOMIC
-#endif
-      __val = m_val += amount;
-
+#error Atomic add are not.
 #endif
       return __val;
     }
-
-    int __attribute__((always_inline)) operator++()
+    int __attribute__((always_inline)) increment()
     {
       return add_fetch(1);
     }
-
     int __attribute__((always_inline)) sub_fetch(int amount)
     {
-      atomic_t __val;
+      int __val;
 
 #if defined __mips__
       int temp;
@@ -329,30 +524,20 @@ namespace NSROOT
         : "memory");
 
 #else
-/* warning unknown architecture, atomic deccrement is not... */
-#ifndef ATOMIC_NOATOMIC
-#define ATOMIC_NOATOMIC
-#endif
-      __val = m_val -= amount;
-
+#error Atomic sub are not.
 #endif
       return __val;
     }
-
-    int __attribute__((always_inline)) operator--()
+    int __attribute__((always_inline)) decrement()
     {
       return sub_fetch(1);
     }
-
-  private:
-    atomic_t m_val;
   };
 }
+#ifdef NSROOT
+}
+#endif
 
 #else
-#ifndef ATOMIC_NOATOMIC
-#define ATOMIC_NOATOMIC
+#error Atomic operations for the architecture are not.
 #endif
-#endif
-
-#endif	/* ATOMIC_H */

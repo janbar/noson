@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <sched.h>
 #include <sys/time.h>
 #include <stdint.h>
 #include <sys/types.h>
@@ -50,7 +51,6 @@ typedef LONG HRESULT;
 
 #if defined(__APPLE__)
 #include <stdio.h> /* for fpos_t */
-#include <sched.h>
 #include <AvailabilityMacros.h>
 typedef int64_t   off64_t;
 typedef off_t     __off_t;
