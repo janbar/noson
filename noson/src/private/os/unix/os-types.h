@@ -38,7 +38,7 @@ typedef LONG HRESULT;
 #define E_OUTOFMEMORY              0x8007000EL
 #define E_FAIL                     0x8004005EL
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <sys/cdefs.h>
 #include <sys/syslimits.h>
 #define MAX_PATH PATH_MAX
@@ -60,7 +60,7 @@ typedef fpos_t    fpos64_t;
 #define stat64    stat
 #define statfs64  statfs
 #define fstat64   fstat
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <stdio.h> /* for fpos_t */
 typedef int64_t   off64_t;
 typedef off_t     __off_t;
