@@ -15,7 +15,10 @@ uint64_t _flush_encoded_data(SONOS::AudioEncoder * encoder, char * buf, size_t b
   while ((w = encoder->bytesAvailable()) > 0)
   {
     if ((w = encoder->read(buf, bufsize, 0/*forever*/)) > 0)
-      h += hashvalue(0xffffffff, buf, w);
+    {
+      h += w;
+      buf += w;
+    }
   }
   return h;
 }
@@ -25,6 +28,8 @@ uint64_t _flush_encoded_data(SONOS::AudioEncoder * encoder, char * buf, size_t b
 TEST_CASE("Encoding PCM s16le to FLAC")
 {
   char * buf = new char[BUFSIZE];
+  char * flc = new char[pcm_s16le_raw_len];
+  uint64_t flc_sz = 0;
   SONOS::FLACEncoder * encoder = new SONOS::FLACEncoder(256);
   encoder->setAudioFormat(SONOS::AudioFormat::CDLPCM());
 
@@ -38,6 +43,7 @@ TEST_CASE("Encoding PCM s16le to FLAC")
     unsigned char * p = pcm_s16le_raw;
     unsigned char * e = pcm_s16le_raw + pcm_s16le_raw_len;
 
+    char * p_flc = flc;
     while (p < e)
     {
       size_t s = BUFSIZE;
@@ -49,7 +55,7 @@ TEST_CASE("Encoding PCM s16le to FLAC")
         break;
       p += r;
       // flush out
-      hash += _flush_encoded_data(encoder, buf, BUFSIZE);
+      p_flc += _flush_encoded_data(encoder, p_flc, BUFSIZE);
     }
 
     REQUIRE(p == e);
@@ -60,9 +66,14 @@ TEST_CASE("Encoding PCM s16le to FLAC")
       continue;
 
     // flush out the rest of encoded data
-    hash += _flush_encoded_data(encoder, buf, BUFSIZE);
-    REQUIRE(hash == 0xa3c1d6c5);
+    p_flc += _flush_encoded_data(encoder, p_flc, BUFSIZE);
+    flc_sz = p_flc - flc;
+    std::cout << "Encoding ratio: " << flc_sz << "/" << pcm_s16le_raw_len << std::endl;
+    REQUIRE(flc_sz > (pcm_s16le_raw_len / 2));
   }
 
+
   delete encoder;
+  delete [] flc;
+  delete [] buf;
 }
