@@ -180,14 +180,14 @@ int FLACEncoder::encode(const char * data, int len)
         m_pcm[i] = (unsigned char)(*data) - 128;
         break;
       case 16:
-        m_pcm[i] = read16le(data);
+        m_pcm[i] = read_b16le(data);
         break;
       case 24:
-        m_pcm[i] = read24le(data);
+        m_pcm[i] = read_b24le(data);
         break;
       case 32:
         // remove lower LSB
-        m_pcm[i] = (read32le(data) >> 8);
+        m_pcm[i] = (read_b32le(data) >> 8);
         break;
       default:
         m_pcm[i] = 0;

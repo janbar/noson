@@ -240,7 +240,7 @@ FilePicReader::Picture * FilePicReader::ExtractFLACPicture(const std::string& fi
     // get last block flag. if true next loop will stop
     isLast = ((*buf & 0x80) != 0);
     // get the current block size
-    unsigned v = (read32be(buf) & 0xffffff) - 4;
+    unsigned v = (read_b32be(buf) & 0xffffff) - 4;
     if (v > MAX_PICTURE_SIZE)
       break;
 
@@ -250,7 +250,7 @@ FilePicReader::Picture * FilePicReader::ExtractFLACPicture(const std::string& fi
     {
       DBG(DBG_PROTO, "%s: picture type (%.2x)\n", __FUNCTION__, buf[7]);
       // check picture type matches with requirement
-      if (read32be(buf + 4) == pictureType || pictureType == -1)
+      if (read_b32be(buf + 4) == pictureType || pictureType == -1)
       {
         unsigned mime_type_len;
         unsigned desc_len;
@@ -258,9 +258,9 @@ FilePicReader::Picture * FilePicReader::ExtractFLACPicture(const std::string& fi
         char * picbuf = new char [v];
         // read data block and check for sanity
         if (fread(picbuf, 1, v, file) != v ||
-                (mime_type_len = read32be(picbuf)) > v - 4 ||
-                (desc_len = read32be(picbuf + 4 + mime_type_len)) > v - 8 - mime_type_len ||
-                (data_len = read32be(picbuf + mime_type_len + desc_len + 24)) > v - 28 - desc_len - mime_type_len)
+                (mime_type_len = read_b32be(picbuf)) > v - 4 ||
+                (desc_len = read_b32be(picbuf + 4 + mime_type_len)) > v - 8 - mime_type_len ||
+                (data_len = read_b32be(picbuf + mime_type_len + desc_len + 24)) > v - 28 - desc_len - mime_type_len)
         {
           delete [] picbuf;
           break;
@@ -384,20 +384,20 @@ static inline void _parse_id3v2_frame_header(char * data, unsigned int version, 
   case 2:
     memcpy(fh->frame_id, data, 3);
     fh->frame_id[3] = 0;
-    fh->frame_size = (unsigned)read24be(data + 3);
+    fh->frame_size = (unsigned)read_b24be(data + 3);
     fh->compression = 0;
     fh->data_length_indicator = 0;
     break;
   case 3:
     memcpy(fh->frame_id, data, 4);
-    fh->frame_size = (unsigned)read32be(data + 4);
+    fh->frame_size = (unsigned)read_b32be(data + 4);
     fh->compression = data[9] & 0x40;
     fh->data_length_indicator = 0;
     break;
   case 4:
   default:
     memcpy(fh->frame_id, data, 4);
-    fh->frame_size = (unsigned)read32be(data + 4);
+    fh->frame_size = (unsigned)read_b32be(data + 4);
     fh->compression = data[9] & 0x4;
     fh->data_length_indicator = data[9] & 0x1;
     break;
@@ -671,7 +671,7 @@ int FilePicReader::parse_id3v2(FILE * file, long id3v2_offset, Picture ** pic, o
     if (fread(extended_header_data, 1, 6, file) != 6)
       return -1;
 
-    extended_header_size = (unsigned)read32be(extended_header_data);
+    extended_header_size = (unsigned)read_b32be(extended_header_data);
 
     fseek(file, extended_header_size - 6, SEEK_CUR);
     frame_data_pos += extended_header_size;
@@ -766,8 +766,8 @@ FilePicReader::Picture * FilePicReader::ExtractOGGSPicture(const std::string& fi
       break;
     }
     //char stream_structure_version = read8(buf + 4);
-    unsigned char header_type_flag = (unsigned char)read8(buf + 5);
-    unsigned char number_page_segments = (unsigned char)read8(buf + 26);
+    unsigned char header_type_flag = (unsigned char)read_b8(buf + 5);
+    unsigned char number_page_segments = (unsigned char)read_b8(buf + 26);
 
     uint32_t segment_table = 0;
     if (fread(lacing, 1, number_page_segments, file) != number_page_segments)
@@ -777,7 +777,7 @@ FilePicReader::Picture * FilePicReader::ExtractOGGSPicture(const std::string& fi
     }
 
     for (int i = 0; i < number_page_segments; ++i)
-      segment_table += (unsigned char)read8(lacing + i);
+      segment_table += (unsigned char)read_b8(lacing + i);
 
     // bit 0x04: this is the last page of a logical bitstream (eos)
     if ((header_type_flag & 0x04) == 0x04)
@@ -828,7 +828,7 @@ FilePicReader::Picture * FilePicReader::ExtractOGGSPicture(const std::string& fi
     }
 
     // check for vorbis comment header
-    unsigned char block = (unsigned char)read8(packet.data);
+    unsigned char block = (unsigned char)read_b8(packet.data);
     if (block == 0x03 && packet.datalen > 7 &&
         memcmp(packet.data + 1, "vorbis", 6) == 0)
     {
@@ -895,12 +895,12 @@ bool FilePicReader::parse_comment(packet_t * packet, Picture ** pic, PictureType
   bool gotoLast = false;
   unsigned char * ve = packet->data + packet->datalen;
   unsigned char * vp = packet->data + 7; // pass magic string
-  vp += read32le(vp) + 4; // pass vendor string
-  int count = read32le(vp); // comment list length;
+  vp += read_b32le(vp) + 4; // pass vendor string
+  int count = read_b32le(vp); // comment list length;
   vp += 4;
   while (count > 0)
   {
-    int len = read32le(vp);
+    int len = read_b32le(vp);
     vp += 4;
     if ((vp + len) > ve)
       break; // buffer overflow
@@ -911,15 +911,15 @@ bool FilePicReader::parse_comment(packet_t * packet, Picture ** pic, PictureType
       char * picbuf = nullptr;
       size_t lenbuf = Base64::b64decode(vp + 23, len - 23, &picbuf);
       // check picture type matches with requirement
-      if (lenbuf > 8 && (read32be(picbuf) == pictureType || pictureType == -1))
+      if (lenbuf > 8 && (read_b32be(picbuf) == pictureType || pictureType == -1))
       {
         unsigned mime_type_len;
         unsigned desc_len;
         unsigned data_len;
         // check for sanity
-        if ((mime_type_len = read32be(picbuf + 4)) > lenbuf - 8 ||
-                (desc_len = read32be(picbuf + 8 + mime_type_len)) > lenbuf - 12 - mime_type_len ||
-                (data_len = read32be(picbuf + mime_type_len + desc_len + 28)) > lenbuf - 32 - desc_len - mime_type_len)
+        if ((mime_type_len = read_b32be(picbuf + 4)) > lenbuf - 8 ||
+                (desc_len = read_b32be(picbuf + 8 + mime_type_len)) > lenbuf - 12 - mime_type_len ||
+                (data_len = read_b32be(picbuf + mime_type_len + desc_len + 28)) > lenbuf - 32 - desc_len - mime_type_len)
         {
           delete [] picbuf;
           break;
@@ -1015,15 +1015,15 @@ int FilePicReader::nextChild(unsigned char * buf, uint64_t * remaining, FILE * f
   if (fread(buf, 1, M4A_HEADER_SIZE, fp) == M4A_HEADER_SIZE)
   {
     *remaining -= M4A_HEADER_SIZE;
-    *child = (unsigned)read32be(buf + 4);
-    *childSize = (uint32_t)read32be(buf);
+    *child = (unsigned)read_b32be(buf + 4);
+    *childSize = (uint32_t)read_b32be(buf);
     if (*childSize == 1)
     {
       // size of 1 means the real size follows the header in next 8 bytes (64bits)
       if (*remaining < 8 || fread(buf, 1, 8, fp) != 8)
         return -1; // error
       *remaining -= 8;
-      *childSize = (((uint64_t)read32be(buf) << 32) | (uint32_t)read32be(buf + 4)) - M4A_HEADER_SIZE - 8;
+      *childSize = (((uint64_t)read_b32be(buf) << 32) | (uint32_t)read_b32be(buf + 4)) - M4A_HEADER_SIZE - 8;
     }
     else
     {
@@ -1054,7 +1054,7 @@ int FilePicReader::loadDataValue(uint64_t * remaining, FILE * fp, char ** alloc,
     *remaining -= size;
     *allocSize = size;
     *alloc = _alloc;
-    return (read32be(_alloc) & 0x00ffffff); // return datatype
+    return (read_b32be(_alloc) & 0x00ffffff); // return datatype
   }
   return r;
 }
