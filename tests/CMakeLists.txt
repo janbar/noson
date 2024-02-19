@@ -64,3 +64,5 @@ endif ()
 unittest_project(NAME check_compressor SOURCES src/check_compressor.cpp TARGET noson)
 unittest_project(NAME check_soap_parser SOURCES src/check_soap_parser.cpp TARGET noson)
 unittest_project(NAME check_intrinsic SOURCES src/check_intrinsic.cpp TARGET noson)
+unittest_project(NAME check_builtin SOURCES src/check_builtin.cpp TARGET noson)
+

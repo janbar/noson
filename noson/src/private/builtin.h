@@ -100,22 +100,28 @@ static CC_INLINE void int8_to_string(int8_t num, BUILTIN_BUFFER *str)
   snprintf(str->data, sizeof(BUILTIN_BUFFER), "%d", num);
 }
 
+#define uint_to_strdec __uintstrdec
+extern unsigned uint_to_strdec(unsigned u, char *str, unsigned len, int pad);
+
 #define uint32_to_string __uint32str
 static CC_INLINE void uint32_to_string(uint32_t num, BUILTIN_BUFFER *str)
 {
-  snprintf(str->data, sizeof(BUILTIN_BUFFER), "%lu", (unsigned long)num);
+  unsigned len = uint_to_strdec(num, str->data, 10, 0);
+  str->data[len] = '\0';
 }
 
 #define uint16_to_string __uint16str
 static CC_INLINE void uint16_to_string(uint16_t num, BUILTIN_BUFFER *str)
 {
-  snprintf(str->data, sizeof(BUILTIN_BUFFER), "%u", num);
+  unsigned len = uint_to_strdec(num, str->data, 5, 0);
+  str->data[len] = '\0';
 }
 
 #define uint8_to_string __uint8str
 static CC_INLINE void uint8_to_string(uint8_t num, BUILTIN_BUFFER *str)
 {
-  snprintf(str->data, sizeof(BUILTIN_BUFFER), "%u", num);
+  unsigned len = uint_to_strdec(num, str->data, 3, 0);
+  str->data[len] = '\0';
 }
 
 #define double_to_string __doublestr
