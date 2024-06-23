@@ -601,7 +601,7 @@ std::string System::GetLogoForService(const SMServicePtr& service, const std::st
 
   const std::string& typeId = service->GetServiceType();
   for (ElementList::const_iterator it = logos.begin(); it != logos.end(); ++it)
-    if ((*it)->GetKey() == typeId && (*it)->GetAttribut("placement") == placement)
+    if ((*it)->GetKey() == typeId && (*it)->GetAttribut("placement").find(placement) != std::string::npos)
       return ((*it)->data());
   return Element::Nil().data();
 }
@@ -864,7 +864,7 @@ void System::CB_ContentDirectory(void* handle)
 bool System::LoadMSLogo(ElementList& logos)
 {
   WSRequest request(URIParser(URI_MSLOGO));
-  WSResponse response(request);
+  WSResponse response(request, 1, false, true);
   if (!response.IsSuccessful())
     return false;
 
