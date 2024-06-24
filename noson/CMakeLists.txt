@@ -30,6 +30,11 @@ if (MSVC)
   set (CMAKE_STATIC_LIBRARY_PREFIX "lib")
 endif ()
 
+if(APPLE)
+    # ignore macports
+    set(CMAKE_IGNORE_PATH "/opt/local/bin;/opt/local/include;/opt/local/lib")
+endif()
+
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_STANDARD 11)
