@@ -27,6 +27,7 @@
 #include "sajson.h"
 #include "cppdef.h"
 
+#include <cstdint>
 #include <string>
 
 /**
