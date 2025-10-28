@@ -30,7 +30,7 @@ size_t Base64::b64encode(const void * data, size_t len, char ** b64)
   char * r = new char [b64len];
   memset(r, '=', b64len);
 
-  unsigned char * p = (unsigned char*) data;
+  const unsigned char * p = (const unsigned char*) data;
   size_t j = 0, pad = len % 3;
   const size_t last = len - pad;
 
@@ -57,7 +57,7 @@ size_t Base64::b64decode(const void * b64, size_t len, char ** data)
 {
   if (len == 0) return 0;
 
-  unsigned char *p = (unsigned char*) b64;
+  const unsigned char *p = (const unsigned char*) b64;
   size_t j = 0,
       pad1 = len % 4 || p[len - 1] == '=',
       pad2 = pad1 && (len % 4 > 2 || p[len - 2] != '=');
