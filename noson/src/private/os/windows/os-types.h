@@ -42,7 +42,7 @@ typedef SOCKET net_socket_t;
 #endif
 
 #ifndef _SSIZE_T_DEFINED
-#ifdef  _WIN64
+#if (defined(_WIN64) || defined(_M_ARM64))
 typedef __int64    ssize_t;
 #else
 typedef _W64 int   ssize_t;

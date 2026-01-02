@@ -23,18 +23,21 @@
 #include "os-threads.h"
 #include "atomic.h"
 
+// Compatibility with C++98 remains
+#include <cstddef> // for NULL
+
 #ifdef NSROOT
 namespace NSROOT {
 #endif
 namespace OS
 {
 
-  class CLatch
+  class Latch
   {
   public:
-    CLatch(bool _px);
-    CLatch() : CLatch(true) { }
-    ~CLatch();
+    Latch();
+    Latch(bool _px);
+    ~Latch();
 
     /* Locks the latch for exclusive ownership,
      * blocks if the latch is not available
@@ -58,12 +61,18 @@ namespace OS
      */
     bool try_lock_shared();
 
+#if __cplusplus >= 201103L
+    // Prevent copy
+    Latch(const Latch& other) = delete;
+    Latch& operator=(const Latch& other) = delete;
+#endif
+
   private:
     mutable Atomic s_spin;
     thread_t x_owner;
 
-    volatile int x_wait;                /* counts requests in wait for X  */
-    volatile int x_flag;                /* X status: 0, 1, 2, or 3        */
+    int x_wait;                         /* counts requests in wait for X  */
+    int x_flag;                         /* X status: 0, 1, 2, or 3        */
 
     mutex_t x_gate_lock;
     condition_t x_gate;                 /* wait for release of X          */
@@ -81,9 +90,11 @@ namespace OS
     TNode * s_freed;
     TNode * s_nodes;
 
+#if __cplusplus < 201103L
     // Prevent copy
-    CLatch(const CLatch& other);
-    CLatch& operator=(const CLatch& other);
+    Latch(const Latch& other);
+    Latch& operator=(const Latch& other);
+#endif
 
     void spin_lock()
     {
@@ -97,32 +108,35 @@ namespace OS
     }
     void spin_unlock() { s_spin.store(0); }
 
+    void init();
     TNode * find_node(const thread_t& id);
     TNode * new_node(const thread_t& id);
     void free_node(TNode * n);
   };
 
-  class CReadLock
+  class ReadLock
   {
   private:
-    CLatch *p = nullptr;
-    bool owns = false;
+    Latch *p;
+    bool owns;
 
-    CReadLock(const CReadLock& other);
-    CReadLock& operator=(const CReadLock& other);
+#if __cplusplus < 201103L
+    ReadLock(const ReadLock& other);
+    ReadLock& operator=(const ReadLock& other);
+#endif
 
   public:
 
     static struct adopt_lock_t { } adopt_lock;
 
-    CReadLock() { }
+    ReadLock() : p(NULL), owns(false) { }
 
-    CReadLock(CLatch& latch) : p(&latch), owns(true) { latch.lock_shared(); }
+    ReadLock(Latch& latch) : p(&latch), owns(true) { latch.lock_shared(); }
 
     /* Assume the calling thread already has ownership of the shared lock */
-    CReadLock(CLatch& latch, adopt_lock_t) : p(&latch), owns(true) { }
+    ReadLock(Latch& latch, adopt_lock_t) : p(&latch), owns(true) { }
 
-    ~CReadLock()
+    ~ReadLock()
     {
       if (owns)
       {
@@ -130,9 +144,9 @@ namespace OS
       }
     }
 
-    void swap(CReadLock& rl)
+    void swap(ReadLock& rl)
     {
-      CLatch * _p = p;
+      Latch * _p = p;
       bool _owns = owns;
       p = rl.p;
       owns = rl.owns;
@@ -147,7 +161,7 @@ namespace OS
 
     void lock()
     {
-      if (!owns && p != nullptr)
+      if (!owns && p != NULL)
       {
         p->lock_shared();
         owns = true;
@@ -165,30 +179,37 @@ namespace OS
 
     bool try_lock()
     {
-      if (!owns && p != nullptr)
+      if (!owns && p != NULL)
       {
         owns = p->try_lock_shared();
       }
       return owns;
     }
+
+#if __cplusplus >= 201103L
+    ReadLock(const ReadLock& other) = delete;
+    ReadLock& operator=(const ReadLock& other) = delete;
+#endif
   };
 
-  class CWriteLock
+  class WriteLock
   {
   private:
-    CLatch *p = nullptr;
-    bool owns = false;
+    Latch *p;
+    bool owns;
 
-    CWriteLock(const CWriteLock& other);
-    CWriteLock& operator=(const CWriteLock& other);
+#if __cplusplus < 201103L
+    WriteLock(const WriteLock& other);
+    WriteLock& operator=(const WriteLock& other);
+#endif
 
   public:
 
-    CWriteLock() = default;
+    WriteLock() : p(NULL), owns(false) { }
 
-    explicit CWriteLock(CLatch& latch) : p(&latch), owns(true) { latch.lock(); }
+    explicit WriteLock(Latch& latch) : p(&latch), owns(true) { latch.lock(); }
 
-    ~CWriteLock()
+    ~WriteLock()
     {
       if (owns)
       {
@@ -196,9 +217,9 @@ namespace OS
       }
     }
 
-    void swap(CWriteLock& wl)
+    void swap(WriteLock& wl)
     {
-      CLatch * _p = p;
+      Latch * _p = p;
       bool _owns = owns;
       p = wl.p;
       owns = wl.owns;
@@ -213,7 +234,7 @@ namespace OS
 
     void lock()
     {
-      if (!owns && p != nullptr)
+      if (!owns && p != NULL)
       {
         p->lock();
         owns = true;
@@ -228,6 +249,11 @@ namespace OS
         p->unlock();
       }
     }
+
+#if __cplusplus >= 201103L
+    WriteLock(const WriteLock& other) = delete;
+    WriteLock& operator=(const WriteLock& other) = delete;
+#endif
   };
 
 }

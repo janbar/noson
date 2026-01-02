@@ -27,7 +27,7 @@ namespace NSROOT
 {
   struct LockGuard::Lockable
   {
-    OS::CMutex mutex;
+    OS::Mutex mutex;
   };
 }
 

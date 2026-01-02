@@ -38,7 +38,7 @@ namespace NSROOT
   struct AVTransportLastInfo
   {
     AVTransportLastInfo() : expiry(), vars() { }
-    OS::CTimeout expiry;
+    OS::Timeout expiry;
     ElementList vars;
   };
 

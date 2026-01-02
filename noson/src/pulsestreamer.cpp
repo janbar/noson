@@ -219,7 +219,7 @@ void PulseStreamer::streamSink(handle * handle)
     AudioEncoder * enc = new FLACEncoder();
     AudioStream ai(*src, *enc);
     // the source is muted for a short time to limit output rate on startup
-    OS::CTimeout muted(PULSESTREAMER_TM_MUTE);
+    OS::Timeout muted(PULSESTREAMER_TM_MUTE);
     src->mute(true);
     ai.start();
 

@@ -31,7 +31,7 @@
 namespace NSROOT
 {
 
-  class EventBroker : public OS::CWorker
+  class EventBroker : public OS::Worker
   {
   public:
     EventBroker(EventHandlerThread* handler, SHARED_PTR<TcpSocket>& sockPtr);

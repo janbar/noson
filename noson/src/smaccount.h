@@ -34,7 +34,7 @@ namespace NSROOT
 
   namespace OS
   {
-    class CMutex;
+    class Mutex;
   }
 
   class SMAccount;
@@ -71,7 +71,7 @@ namespace NSROOT
     static SMAccountList CreateAccounts(const std::string& type);
 
   private:
-    OS::CMutex* m_mutex;
+    OS::Mutex* m_mutex;
     std::string m_type;
     std::string m_serialNum;
     Credentials m_auth;

@@ -49,7 +49,7 @@ namespace NSROOT
 Service::Service(const std::string& serviceHost, unsigned servicePort)
 : m_host(serviceHost)
 , m_port(servicePort)
-, m_mutex(new OS::CMutex)
+, m_mutex(new OS::Mutex)
 {
 }
 
@@ -61,7 +61,7 @@ Service::~Service()
 
 ElementList Service::GetLastFault()
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   return m_fault;
 }
 
@@ -186,7 +186,7 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
 
 void Service::SetFault(const ElementList& vars)
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   m_fault = vars;
   for (ElementList::const_iterator it = vars.begin(); it != vars.end(); ++it)
     DBG(DBG_ERROR, "%s: %s (%s)\n", __FUNCTION__, (*it)->GetKey().c_str(), (*it)->c_str());

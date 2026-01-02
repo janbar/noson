@@ -19,7 +19,7 @@
 
 NSROOT::IntrinsicCounter* g_counter = 0;
 
-class WorkerInc : public NSROOT::OS::CWorker
+class WorkerInc : public NSROOT::OS::Worker
 {
   virtual void Process()
   {
@@ -30,7 +30,7 @@ class WorkerInc : public NSROOT::OS::CWorker
   }
 };
 
-class WorkerDec : public NSROOT::OS::CWorker
+class WorkerDec : public NSROOT::OS::Worker
 {
   virtual void Process()
   {
@@ -47,7 +47,7 @@ int main(int argc, char** argv)
   if (argc > 1)
     val = atoi(argv[1]);
   g_counter = new NSROOT::IntrinsicCounter(val);
-  NSROOT::OS::CThreadPool pool(20);
+  NSROOT::OS::ThreadPool pool(20);
   pool.Suspend();
   for (int i = 0; i < 5; ++i)
   {

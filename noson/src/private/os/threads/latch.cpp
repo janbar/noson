@@ -21,6 +21,8 @@
 
 #include "latch.h"
 
+// Compatibility with C++98 remains
+
 #include <cassert>
 
 #ifdef NSROOT
@@ -29,7 +31,21 @@ using namespace NSROOT::OS;
 using namespace OS;
 #endif
 
-CLatch::TNode * CLatch::find_node(const thread_t& id)
+void Latch::init()
+{
+  mutex_init(&x_gate_lock);
+  cond_init(&x_gate);
+  mutex_init(&s_gate_lock);
+  cond_init(&s_gate);
+
+  /* preallocate free list with 2 nodes */
+  TNode * n1 = new_node(thread_t());
+  TNode * n2 = new_node(thread_t());
+  free_node(n1);
+  free_node(n2);
+}
+
+Latch::TNode * Latch::find_node(const thread_t& id)
 {
   TNode * p = s_nodes;
   while (p != NULL && thread_equal(p->id, id) == 0)
@@ -39,7 +55,7 @@ CLatch::TNode * CLatch::find_node(const thread_t& id)
   return p;
 }
 
-CLatch::TNode * CLatch::new_node(const thread_t& id)
+Latch::TNode * Latch::new_node(const thread_t& id)
 {
   TNode * p;
   if (s_freed == NULL)
@@ -69,7 +85,7 @@ CLatch::TNode * CLatch::new_node(const thread_t& id)
   return p;
 }
 
-void CLatch::free_node(TNode * n)
+void Latch::free_node(TNode * n)
 {
   /* remove from list */
   if (n == s_nodes)
@@ -95,7 +111,18 @@ void CLatch::free_node(TNode * n)
   s_freed = n;
 }
 
-CLatch::CLatch(bool _px)
+Latch::Latch()
+: s_spin(0)
+, x_wait(0)
+, x_flag(0)
+, px(true)
+, s_freed(NULL)
+, s_nodes(NULL)
+{
+  init();
+}
+
+Latch::Latch(bool _px)
 : s_spin(0)
 , x_wait(0)
 , x_flag(0)
@@ -103,28 +130,19 @@ CLatch::CLatch(bool _px)
 , s_freed(NULL)
 , s_nodes(NULL)
 {
-  mutex_init(&x_gate_lock);
-  cond_init(&x_gate);
-  mutex_init(&s_gate_lock);
-  cond_init(&s_gate);
-
-  /* preallocate free list with 2 nodes */
-  TNode * n1 = new_node(thread_t());
-  TNode * n2 = new_node(thread_t());
-  free_node(n1);
-  free_node(n2);
+  init();
 }
 
-CLatch::~CLatch()
+Latch::~Latch()
 {
   /* destroy free nodes */
-  while (s_freed != nullptr) {
+  while (s_freed != NULL) {
     TNode * n = s_freed;
     s_freed = s_freed->_next;
     delete n;
   }
   /* it should be empty, but still tries to destroy any existing busy node */
-  while (s_nodes != nullptr) {
+  while (s_nodes != NULL) {
     TNode * n = s_nodes;
     s_nodes = s_nodes->_next;
     delete n;
@@ -155,7 +173,7 @@ CLatch::~CLatch()
  */
 #define EXIT_TIMEOUT 1000
 
-void CLatch::lock()
+void Latch::lock()
 {
   thread_t tid = thread_self();
 
@@ -164,7 +182,7 @@ void CLatch::lock()
   if (!thread_equal(x_owner, tid))
   {
     /* increments the count of request in wait */
-    ++x_wait;
+    x_wait += 1;
     for (;;)
     {
       /* if flag is 0 or 2 then it hold X with no wait,
@@ -173,7 +191,7 @@ void CLatch::lock()
       if (x_flag == X_STEP_0 || x_flag == X_STEP_2)
       {
         x_flag = X_STEP_1;
-        --x_wait;
+        x_wait -= 1;
         break;
       }
       else
@@ -222,13 +240,13 @@ void CLatch::lock()
   else
   {
     /* recursive X lock */
-    ++x_flag;
+    x_flag += 1;
   }
 
   spin_unlock();
 }
 
-void CLatch::unlock()
+void Latch::unlock()
 {
   thread_t tid = thread_self();
 
@@ -236,9 +254,10 @@ void CLatch::unlock()
   if (thread_equal(x_owner, tid))
   {
     /* decrement recursive lock */
-    if (--x_flag == X_STEP_2)
+    x_flag -= 1;
+    if (x_flag == X_STEP_2)
     {
-      x_owner = {};
+      x_owner = thread_t(0);
       /* hand-over to a request in wait for X, else release */
       if (x_wait == 0)
       {
@@ -261,7 +280,7 @@ void CLatch::unlock()
   }
 }
 
-void CLatch::lock_shared()
+void Latch::lock_shared()
 {
   thread_t tid = thread_self();
 
@@ -313,7 +332,7 @@ void CLatch::lock_shared()
   spin_unlock();
 }
 
-void CLatch::unlock_shared()
+void Latch::unlock_shared()
 {
   thread_t tid = thread_self();
 
@@ -352,7 +371,7 @@ void CLatch::unlock_shared()
   }
 }
 
-bool CLatch::try_lock_shared()
+bool Latch::try_lock_shared()
 {
   thread_t tid = thread_self();
 

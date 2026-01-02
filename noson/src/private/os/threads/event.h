@@ -22,26 +22,28 @@
 
 #include "condition.h"
 
+// Compatibility with C++98 remains
+
 #ifdef NSROOT
 namespace NSROOT {
 #endif
 namespace OS
 {
 
-  class CEvent
+  class Event
   {
   public:
-    CEvent(bool autoReset = true)
+    Event(bool autoReset = true)
     : m_notified(false)
     , m_notifyOne(false)
     , m_waitingCount(0)
     , m_autoReset(autoReset) {}
 
-    ~CEvent() {}
+    ~Event() {}
 
     void Broadcast()
     {
-      CLockGuard lock(m_mutex);
+      LockGuard lock(m_mutex);
       m_notifyOne = false;
       m_notified  = true;
       m_condition.Broadcast();
@@ -49,7 +51,7 @@ namespace OS
 
     void Signal()
     {
-      CLockGuard lock(m_mutex);
+      LockGuard lock(m_mutex);
       m_notifyOne = true;
       m_notified  = true;
       m_condition.Signal();
@@ -57,7 +59,7 @@ namespace OS
 
     bool Wait()
     {
-      CLockGuard lock(m_mutex);
+      LockGuard lock(m_mutex);
       ++m_waitingCount;
       bool notified = m_condition.Wait(m_mutex, m_notified);
       --m_waitingCount;
@@ -68,7 +70,7 @@ namespace OS
 
     bool Wait(unsigned timeout)
     {
-      CLockGuard lock(m_mutex);
+      LockGuard lock(m_mutex);
       ++m_waitingCount;
       bool notified = m_condition.Wait(m_mutex, m_notified, timeout);
       --m_waitingCount;
@@ -79,17 +81,23 @@ namespace OS
 
     void Reset()
     {
-      CLockGuard lock(m_mutex);
+      LockGuard lock(m_mutex);
       __reset(true);
     }
+
+#if __cplusplus >= 201103L
+    // Prevent copy
+    Event(const Event& other) = delete;
+    Event& operator=(const Event& other) = delete;
+#endif
 
   private:
     volatile bool             m_notified;
     volatile bool             m_notifyOne;
     unsigned                  m_waitingCount;
     bool                      m_autoReset;
-    CCondition<volatile bool> m_condition;
-    CMutex                    m_mutex;
+    Condition<volatile bool>  m_condition;
+    Mutex                     m_mutex;
 
     void __reset(bool force)
     {
@@ -97,11 +105,12 @@ namespace OS
         m_notified = false;
     }
 
+#if __cplusplus < 201103L
     // Prevent copy
-    CEvent(const CEvent& other);
-    CEvent& operator=(const CEvent& other);
+    Event(const Event& other);
+    Event& operator=(const Event& other);
+#endif
   };
-
 }
 #ifdef NSROOT
 }

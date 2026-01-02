@@ -27,7 +27,7 @@ namespace NSROOT
 {
   struct FrameBuffer::Lockable
   {
-    OS::CMutex mutex;
+    OS::Mutex mutex;
   };
 }
 
@@ -101,25 +101,25 @@ int FrameBuffer::capacity() const
 
 int FrameBuffer::bytesAvailable() const
 {
-  OS::CLockGuard g(m_ringlock->mutex);
+  OS::LockGuard g(m_ringlock->mutex);
   return (m_unread ? m_read->packet->size : 0);
 }
 
 unsigned FrameBuffer::bytesUnread() const
 {
-  OS::CLockGuard g(m_ringlock->mutex);
+  OS::LockGuard g(m_ringlock->mutex);
   return m_unread;
 }
 
 bool FrameBuffer::full() const
 {
-  OS::CLockGuard g(m_ringlock->mutex);
+  OS::LockGuard g(m_ringlock->mutex);
   return (m_unread && m_read == m_write);
 }
 
 void FrameBuffer::clear()
 {
-  OS::CLockGuard g(m_ringlock->mutex);
+  OS::LockGuard g(m_ringlock->mutex);
   // reset of unread implies the reset of packet size
   // so clean all frames in the buffer
   for (std::vector<Frame*>::iterator it = m_buffer.begin(); it != m_buffer.end(); ++it)
@@ -140,7 +140,7 @@ int FrameBuffer::write(const char * data, int len)
     _packet->size = len;
     memcpy(_packet->data, data, len);
     {
-      OS::CLockGuard g(m_ringlock->mutex);
+      OS::LockGuard g(m_ringlock->mutex);
       if (m_write->packet)
       {
         // overwriting a packet implies to update unread because the data will be destroyed,
@@ -168,7 +168,7 @@ void FrameBuffer::writePacket(FramePacket* packet)
 {
   if (packet)
   {
-    OS::CLockGuard g(m_ringlock->mutex);
+    OS::LockGuard g(m_ringlock->mutex);
     if (m_write->packet)
     {
       // overwriting a packet implies to update unread because the data will be destroyed,
@@ -187,7 +187,7 @@ FramePacket * FrameBuffer::read()
 {
   FramePacket * p = nullptr;
   {
-    OS::CLockGuard g(m_ringlock->mutex);
+    OS::LockGuard g(m_ringlock->mutex);
     if (m_unread)
     {
       p = m_read->packet;

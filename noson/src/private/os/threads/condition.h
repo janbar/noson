@@ -30,15 +30,15 @@ namespace OS
 {
 
   template <typename P>
-  class CCondition
+  class Condition
   {
   public:
-    CCondition()
+    Condition()
     {
       cond_init(&m_condition);
     }
 
-    ~CCondition()
+    ~Condition()
     {
       cond_destroy(&m_condition);
     }
@@ -53,16 +53,16 @@ namespace OS
       cond_signal(&m_condition);
     }
 
-    bool Wait(CMutex& mutex, P& predicate)
+    bool Wait(Mutex& mutex, P& predicate)
     {
       while(!predicate)
         cond_wait(&m_condition, mutex.NativeHandle());
       return true;
     }
 
-    bool Wait(CMutex& mutex, P& predicate, unsigned timeout)
+    bool Wait(Mutex& mutex, P& predicate, unsigned timeout)
     {
-      CTimeout _timeout(timeout);
+      Timeout _timeout(timeout);
       while (!predicate)
       {
         // wait for time left
@@ -74,18 +74,26 @@ namespace OS
       return true;
     }
 
-    bool Wait(CMutex& mutex, CTimeout& timeout)
+    bool Wait(Mutex& mutex, Timeout& timeout)
     {
       cond_timedwait(&m_condition, mutex.NativeHandle(), timeout.TimeLeft());
       return (timeout.TimeLeft() > 0 ? true : false);
     }
 
+#if __cplusplus >= 201103L
+    // Prevent copy
+    Condition(const Condition<P>& other) = delete;
+    Condition<P>& operator=(const Condition<P>& other) = delete;
+#endif
+
   private:
     condition_t m_condition;
 
+#if __cplusplus < 201103L
     // Prevent copy
-    CCondition(const CCondition<P>& other);
-    CCondition<P>& operator=(const CCondition<P>& other);
+    Condition(const Condition<P>& other);
+    Condition<P>& operator=(const Condition<P>& other);
+#endif
   };
 
 }

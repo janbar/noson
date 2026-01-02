@@ -58,7 +58,7 @@ namespace NSROOT
 }
 
 SMAPI::SMAPI(const System& system)
-: m_mutex(new OS::CMutex)
+: m_mutex(new OS::Mutex)
 , m_deviceSerialNumber()
 , m_deviceHouseholdID()
 , m_soapHeader()
@@ -83,7 +83,7 @@ SMAPI::~SMAPI()
 
 bool SMAPI::Init(const SMServicePtr& smsvc, const std::string& locale)
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   m_valid = false;
   // store selected service
   m_service = smsvc;
@@ -145,7 +145,7 @@ bool SMAPI::Init(const SMServicePtr& smsvc, const std::string& locale)
 
 ElementList SMAPI::AvailableSearchCategories() const
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   if (m_valid)
     return m_service->SearchCategories();
   return ElementList();
@@ -196,7 +196,7 @@ const std::string& SMAPI::GetUsername()
 
 bool SMAPI::GetSessionId(const std::string& user, const std::string& password, SMOAKeyring::Data& auth)
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   ElementList vars;
   ElementList args;
   args.push_back(ElementPtr(new Element("username", user)));
@@ -231,7 +231,7 @@ bool SMAPI::GetSessionId(const std::string& user, const std::string& password, S
 
 bool SMAPI::GetDeviceLinkCode(std::string& regUrl, std::string& linkCode)
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   SMAccount::Credentials oa = m_service->GetAccount()->GetCredentials();
   ElementList vars;
   ElementList args;
@@ -264,7 +264,7 @@ bool SMAPI::GetDeviceLinkCode(std::string& regUrl, std::string& linkCode)
   uint16_t poll = 0;
   string_to_uint16(m_service->GetPolicy()->GetAttribut("PollInterval").c_str(), &poll);
   if (!m_authLinkTimeout)
-    m_authLinkTimeout = new OS::CTimeout();
+    m_authLinkTimeout = new OS::Timeout();
   m_authLinkTimeout->Set((poll < 60 ? 60 : poll) * 1000);
   m_authLinkCode = vars.GetValue("linkCode");
   m_authLinkDeviceId = vars.GetValue("linkDeviceId");
@@ -278,7 +278,7 @@ bool SMAPI::GetDeviceLinkCode(std::string& regUrl, std::string& linkCode)
 
 bool SMAPI::GetAppLink(std::string& regUrl, std::string& linkCode)
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   SMAccount::Credentials oa = m_service->GetAccount()->GetCredentials();
   ElementList vars;
   ElementList args;
@@ -323,7 +323,7 @@ bool SMAPI::GetAppLink(std::string& regUrl, std::string& linkCode)
   uint16_t poll = 0;
   string_to_uint16(m_service->GetPolicy()->GetAttribut("PollInterval").c_str(), &poll);
   if (!m_authLinkTimeout)
-    m_authLinkTimeout = new OS::CTimeout();
+    m_authLinkTimeout = new OS::Timeout();
   m_authLinkTimeout->Set(poll * 1000);
   m_authLinkCode = vars.GetValue("linkCode");
   m_authLinkDeviceId = vars.GetValue("linkDeviceId");
@@ -401,7 +401,7 @@ bool SMAPI::GetDeviceAuthToken(SMOAKeyring::Data& auth)
 
 const std::string& SMAPI::GetFaultString() const
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   if (m_fault.GetValue("TAG") == "Fault")
     return m_fault.GetValue("faultstring");
   return m_fault.GetValue("errorstring");
@@ -584,7 +584,7 @@ ElementList SMAPI::DoCall(const std::string& action, const ElementList& args)
 
 void SMAPI::SetFault(const ElementList& vars)
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   m_fault = vars;
   for (ElementList::const_iterator it = vars.begin(); it != vars.end(); ++it)
     DBG(DBG_DEBUG, "%s: %s (%s)\n", __FUNCTION__, (*it)->GetKey().c_str(), (*it)->c_str());

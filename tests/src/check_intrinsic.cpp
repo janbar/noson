@@ -9,7 +9,7 @@
 
 SONOS::IntrinsicCounter* g_counter = 0;
 
-class WorkerInc : public SONOS::OS::CWorker
+class WorkerInc : public SONOS::OS::Worker
 {
   virtual void Process()
   {
@@ -20,7 +20,7 @@ class WorkerInc : public SONOS::OS::CWorker
   }
 };
 
-class WorkerDec : public SONOS::OS::CWorker
+class WorkerDec : public SONOS::OS::Worker
 {
   virtual void Process()
   {
@@ -35,7 +35,7 @@ TEST_CASE("Stress atomic counter")
 {
   int val = 0;
   g_counter = new SONOS::IntrinsicCounter(val);
-  SONOS::OS::CThreadPool pool(4);
+  SONOS::OS::ThreadPool pool(4);
   pool.Suspend();
   pool.Enqueue(new WorkerInc());
   pool.Enqueue(new WorkerDec());
@@ -50,7 +50,7 @@ TEST_CASE("Stress atomic counter")
 
 SONOS::LockedNumber<int>* g_locked;
 
-class WorkerLockInc : public SONOS::OS::CWorker
+class WorkerLockInc : public SONOS::OS::Worker
 {
   virtual void Process()
   {
@@ -61,7 +61,7 @@ class WorkerLockInc : public SONOS::OS::CWorker
   }
 };
 
-class WorkerLockDec : public SONOS::OS::CWorker
+class WorkerLockDec : public SONOS::OS::Worker
 {
   virtual void Process()
   {
@@ -76,7 +76,7 @@ TEST_CASE("Stress locked number")
 {
   int val = 0;
   g_locked = new SONOS::LockedNumber<int>(val);
-  SONOS::OS::CThreadPool pool(4);
+  SONOS::OS::ThreadPool pool(4);
   pool.Suspend();
   pool.Enqueue(new WorkerLockInc());
   pool.Enqueue(new WorkerLockDec());

@@ -29,19 +29,19 @@ namespace NSROOT
 {
   struct IODevice::Lockable
   {
-    OS::CMutex mutex;
+    OS::Mutex mutex;
   };
 }
 
 IODevice::IODevice()
 : m_lock(new Lockable())
-, m_readyRead(new OS::CCondition<bool>())
+, m_readyRead(new OS::Condition<bool>())
 {
 }
 
 IODevice::~IODevice()
 {
-  delete static_cast<OS::CCondition<bool>*>(m_readyRead);
+  delete static_cast<OS::Condition<bool>*>(m_readyRead);
   delete m_lock;
 }
 
@@ -64,8 +64,8 @@ int IODevice::read(char* data, int maxlen, unsigned timeout)
   m_lock->mutex.Lock();
   if (bytesAvailable() == 0)
   {
-    OS::CTimeout _timeout(timeout);
-    OS::CCondition<bool>* _condition = static_cast<OS::CCondition<bool>*>(m_readyRead);
+    OS::Timeout _timeout(timeout);
+    OS::Condition<bool>* _condition = static_cast<OS::Condition<bool>*>(m_readyRead);
     bool signaled = _condition->Wait(m_lock->mutex, _timeout);
     if (!signaled)
     {
@@ -92,6 +92,6 @@ void IODevice::connectOutput(IODevice* io)
 
 void IODevice::readyRead()
 {
-  OS::CCondition<bool>* _condition = static_cast<OS::CCondition<bool>*>(m_readyRead);
+  OS::Condition<bool>* _condition = static_cast<OS::Condition<bool>*>(m_readyRead);
   _condition->Broadcast();
 }

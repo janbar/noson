@@ -45,11 +45,11 @@ Subscription::SubscriptionThread::~SubscriptionThread()
 namespace NSROOT
 {
 
-  class SubscriptionThreadImpl : public Subscription::SubscriptionThread, private OS::CThread
+  class SubscriptionThreadImpl : public Subscription::SubscriptionThread, private OS::Thread
   {
   public:
     SubscriptionThreadImpl(const std::string& host, unsigned port, const std::string& url, unsigned bindingPort, unsigned ttl)
-    : CThread()
+    : OS::Thread()
     , m_SID()
     , m_host(host)
     , m_port(port)
@@ -77,17 +77,17 @@ namespace NSROOT
 
     virtual bool Start()
     {
-      return OS::CThread::StartThread();
+      return OS::Thread::StartThread();
     }
 
     virtual void Stop()
     {
-      OS::CThread::StopThread(false);
+      OS::Thread::StopThread(false);
       m_event.Signal();
-      OS::CThread::StopThread(true);
+      OS::Thread::StopThread(true);
     }
 
-    virtual bool IsRunning() { return OS::CThread::IsRunning(); }
+    virtual bool IsRunning() { return OS::Thread::IsRunning(); }
 
     virtual void AskRenewal()
     {
@@ -118,8 +118,8 @@ namespace NSROOT
     bool m_configured;
     bool m_renewable;
     std::string m_myIP;
-    OS::CTimeout m_timeout;
-    OS::CEvent m_event;
+    OS::Timeout m_timeout;
+    OS::Event m_event;
 
     virtual void* Process();
     bool Configure();

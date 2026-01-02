@@ -31,7 +31,7 @@ namespace NSROOT
 {
   namespace OS
   {
-    class CMutex;
+    class Mutex;
   }
 
   class Service
@@ -63,7 +63,7 @@ namespace NSROOT
     ElementList Request(const std::string& action, const ElementList& args);
 
   private:
-    OS::CMutex* m_mutex;
+    OS::Mutex* m_mutex;
     ElementList m_fault;
 
     void SetFault(const ElementList& vars);

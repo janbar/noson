@@ -49,8 +49,8 @@
 using namespace SONOS;
 
 System::System(void* CBHandle, EventCB eventCB)
-: m_mutex(new OS::CMutex)
-, m_cbzgt(new OS::CEvent)
+: m_mutex(new OS::Mutex)
+, m_cbzgt(new OS::Event)
 , m_connected(false)
 , m_subId(0)
 , m_eventHandler(SONOS_LISTENER_PORT)
@@ -109,55 +109,66 @@ bool System::Discover(const std::string& url)
   if (!uri.Scheme() || !uri.Host() || !uri.Port())
     return ret;
 
-  OS::CLockGuard lock(*m_mutex);
-  m_connected = false;
-  m_deviceHost.assign(uri.Host());
-  m_devicePort = uri.Port();
-
-  // close all subscriptions
-  SAFE_DELETE(m_musicServices);
-  SAFE_DELETE(m_contentDirectory);
-  SAFE_DELETE(m_alarmClock);
-  SAFE_DELETE(m_deviceProperties);
-  SAFE_DELETE(m_groupTopology);
-
-  // subscribe to ZoneGroupTopology events
-  m_groupTopology = new ZoneGroupTopology(uri.Host(), uri.Port(), m_subscriptionPool, this, CB_ZGTopology);
-
-  // Wait event notification
-  lock.Unlock();
-  ret = m_cbzgt->Wait(CB_TIMEOUT);
-  lock.Lock();
-
-  if (!ret)
   {
-    DBG(DBG_WARN, "%s: notification wasn't received after timeout: fall back on manual call\n", __FUNCTION__);
-    if ((ret = m_groupTopology->GetZoneGroupState()))
-      CB_ZGTopology(this); // ring the listener manually
-    else
-      return ret;
+    // begin critical section
+    OS::LockGuard g(*m_mutex);
+
+    m_connected = false;
+    m_deviceHost.assign(uri.Host());
+    m_devicePort = uri.Port();
+
+    // close all subscriptions
+    SAFE_DELETE(m_musicServices);
+    SAFE_DELETE(m_contentDirectory);
+    SAFE_DELETE(m_alarmClock);
+    SAFE_DELETE(m_deviceProperties);
+    SAFE_DELETE(m_groupTopology);
+
+    // subscribe to ZoneGroupTopology events
+    m_groupTopology = new ZoneGroupTopology(uri.Host(), uri.Port(), m_subscriptionPool, this, CB_ZGTopology);
+
+    // end critical section
   }
 
-  // DeviceProperties
-  m_deviceProperties = new DeviceProperties(m_deviceHost, m_devicePort);
-  ElementList vars;
-  m_deviceProperties->GetHouseholdID(vars);
-  m_householdID = vars.GetValue("CurrentHouseholdID");
-  m_deviceProperties->GetZoneInfo(vars);
-  m_serialNumber = vars.GetValue("SerialNumber");
-  m_softwareVersion = vars.GetValue("SoftwareVersion");
+  // Wait event notification
+  ret = m_cbzgt->Wait(CB_TIMEOUT);
 
-  // music services
-  m_musicServices = new MusicServices(uri.Host(), uri.Port());
-  m_smservices = m_musicServices->GetAvailableServices();
+  {
+    // begin critical section
+    OS::LockGuard g(*m_mutex);
 
-  // subscribe to AlarmClock events
-  m_alarmClock = new AlarmClock(uri.Host(), uri.Port(), m_subscriptionPool, this, CB_AlarmClock);
+    if (!ret)
+    {
+      DBG(DBG_WARN, "%s: notification wasn't received after timeout: fall back on manual call\n", __FUNCTION__);
+      if ((ret = m_groupTopology->GetZoneGroupState()))
+        CB_ZGTopology(this); // ring the listener manually
+      else
+        return ret;
+    }
 
-  // subscribe to ContentDirectory events
-  m_contentDirectory = new ContentDirectory(uri.Host(), uri.Port(), m_subscriptionPool, this, CB_ContentDirectory);
+    // DeviceProperties
+    m_deviceProperties = new DeviceProperties(m_deviceHost, m_devicePort);
+    ElementList vars;
+    m_deviceProperties->GetHouseholdID(vars);
+    m_householdID = vars.GetValue("CurrentHouseholdID");
+    m_deviceProperties->GetZoneInfo(vars);
+    m_serialNumber = vars.GetValue("SerialNumber");
+    m_softwareVersion = vars.GetValue("SoftwareVersion");
 
-  m_connected = ret;
+    // music services
+    m_musicServices = new MusicServices(uri.Host(), uri.Port());
+    m_smservices = m_musicServices->GetAvailableServices();
+
+    // subscribe to AlarmClock events
+    m_alarmClock = new AlarmClock(uri.Host(), uri.Port(), m_subscriptionPool, this, CB_AlarmClock);
+
+    // subscribe to ContentDirectory events
+    m_contentDirectory = new ContentDirectory(uri.Host(), uri.Port(), m_subscriptionPool, this, CB_ContentDirectory);
+
+    m_connected = ret;
+
+    // end critical section
+  }
   return ret;
 }
 
@@ -181,7 +192,7 @@ void System::RenewSubscriptions()
 
 ZoneList System::GetZoneList() const
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   ZoneList list;
   if (m_groupTopology)
   {
@@ -195,7 +206,7 @@ ZoneList System::GetZoneList() const
 
 ZonePlayerList System::GetZonePlayerList() const
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   if (m_groupTopology)
     return *(m_groupTopology->GetZonePlayerList().Get());
   return ZonePlayerList();
@@ -233,7 +244,7 @@ PlayerPtr System::GetPlayer(const ZonePlayerPtr& zonePlayer, void* CBHandle, Eve
   // Find the zone of the player
   ZonePtr zone;
   {
-    OS::CLockGuard lock(*m_mutex);
+    OS::LockGuard lock(*m_mutex);
     if (!m_groupTopology || !zonePlayer)
       return PlayerPtr();
     Locked<ZoneList>::pointer zones = m_groupTopology->GetZoneList().Get();
@@ -246,7 +257,7 @@ PlayerPtr System::GetPlayer(const ZonePlayerPtr& zonePlayer, void* CBHandle, Eve
 
 bool System::IsConnected() const
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   return m_connected;
 }
 
@@ -704,7 +715,7 @@ bool System::FindDeviceDescription(std::string& url)
   sock.Open(SOCKET_AF_INET4, true);
   sock.SetMulticastTTL(4);
 
-  OS::CTimeout timeout(DISCOVER_TIMEOUT);
+  OS::Timeout timeout(DISCOVER_TIMEOUT);
   while (!ret && timeout.TimeLeft() > 0 && !laddr.empty())
   {
     std::pair<std::string, unsigned> addr = laddr.front();

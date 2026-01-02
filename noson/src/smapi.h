@@ -34,8 +34,8 @@ namespace NSROOT
 
   namespace OS
   {
-    class CMutex;
-    class CTimeout;
+    class Mutex;
+    class Timeout;
   };
 
   class URIParser;
@@ -128,7 +128,7 @@ namespace NSROOT
     const std::string& GetFaultString() const;
 
   private:
-    OS::CMutex* m_mutex;
+    OS::Mutex* m_mutex;
     std::string m_language;
     std::string m_deviceSerialNumber;
     std::string m_deviceHouseholdID;
@@ -141,7 +141,7 @@ namespace NSROOT
     bool m_valid;
 
     bool m_authTokenExpired;
-    OS::CTimeout* m_authLinkTimeout;
+    OS::Timeout* m_authLinkTimeout;
     std::string m_authLinkCode;
     std::string m_authLinkDeviceId;
 

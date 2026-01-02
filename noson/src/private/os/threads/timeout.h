@@ -62,11 +62,11 @@ namespace OS
 #endif
   }
 
-  class CTimeout
+  class Timeout
   {
   public:
-    CTimeout() : m_time(0) { }
-    CTimeout(unsigned millisec) : m_time(0) { Set(millisec); }
+    Timeout() : m_time(0) { }
+    Timeout(unsigned millisec) : m_time(0) { Set(millisec); }
 
     void Set(unsigned millisec)
     {
@@ -89,32 +89,32 @@ namespace OS
       return (time > m_time ? 0 : static_cast<unsigned>(m_time - time));
     }
 
-    bool operator==(const CTimeout& other) const
+    bool operator==(const Timeout& other) const
     {
       return m_time == other.m_time;
     }
 
-    bool operator!=(const CTimeout& other) const
+    bool operator!=(const Timeout& other) const
     {
       return m_time != other.m_time;
     }
 
-    bool operator<(const CTimeout& other) const
+    bool operator<(const Timeout& other) const
     {
       return m_time < other.m_time;
     }
 
-    bool operator>(const CTimeout& other) const
+    bool operator>(const Timeout& other) const
     {
       return m_time > other.m_time;
     }
 
-    bool operator>=(const CTimeout& other) const
+    bool operator>=(const Timeout& other) const
     {
       return !(m_time < other.m_time);
     }
 
-    bool operator<=(const CTimeout& other) const
+    bool operator<=(const Timeout& other) const
     {
       return !(m_time > other.m_time);
     }

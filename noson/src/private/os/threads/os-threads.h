@@ -22,6 +22,9 @@
 
 #include "../os.h"
 
+// Compatibility with C++98 remains
+#include <cstddef> // for NULL
+
 #if defined(_MSC_VER)
 #include "../windows/winpthreads.h"
 #else

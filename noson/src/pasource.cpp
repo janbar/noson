@@ -33,18 +33,18 @@ using namespace NSROOT;
 namespace NSROOT
 {
 
-class PASourceWorker : private OS::CThread
+class PASourceWorker : private OS::Thread
 {
 public:
   explicit PASourceWorker(PASource * source);
   virtual ~PASourceWorker() override;
 
-  bool isRunning() { return OS::CThread::IsRunning(); }
-  bool isFinished() { return OS::CThread::IsStopped() && !OS::CThread::IsRunning(); }
-  bool isInterruptionRequested() { return OS::CThread::IsStopped() && OS::CThread::IsRunning(); }
-  void start() { OS::CThread::StartThread(true); }
-  void requestInterruption() { OS::CThread::StopThread(false); }
-  bool waitFinished() { return OS::CThread::WaitThread(-1); }
+  bool isRunning() { return OS::Thread::IsRunning(); }
+  bool isFinished() { return OS::Thread::IsStopped() && !OS::Thread::IsRunning(); }
+  bool isInterruptionRequested() { return OS::Thread::IsStopped() && OS::Thread::IsRunning(); }
+  void start() { OS::Thread::StartThread(true); }
+  void requestInterruption() { OS::Thread::StopThread(false); }
+  bool waitFinished() { return OS::Thread::WaitThread(-1); }
 
 private:
   void * Process() override;
@@ -171,7 +171,7 @@ void PASource::freePA()
 }
 
 PASourceWorker::PASourceWorker(PASource* source)
-: OS::CThread()
+: OS::Thread()
 , m_source(source)
 {
 }
@@ -191,7 +191,7 @@ void* PASourceWorker::Process()
     assert(bytesPerFrame >= MIN_FRAME_SIZE && bytesPerFrame <= MAX_FRAME_SIZE);
     int bsize = bytesPerFrame * FRAME_BUFFER;
     char * buf = new char[bsize];
-    while (!OS::CThread::IsStopped())
+    while (!OS::Thread::IsStopped())
     {
       // Record some data
       if (pa_simple_read(m_source->m_pa, buf, bsize, &m_source->m_pa_error) < 0)

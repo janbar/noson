@@ -23,6 +23,8 @@
 #include "thread.h"
 #include "event.h"
 
+// Compatibility with C++98 remains
+#include <cstddef> // for NULL
 #include <queue>
 #include <set>
 
@@ -32,19 +34,19 @@ namespace NSROOT {
 namespace OS
 {
 
-  class CWorker;
+  class Worker;
 
-  class CWorkerThread;
+  class WorkerThread;
 
-  class CThreadPool
+  class ThreadPool
   {
-    friend class CWorkerThread;
+    friend class WorkerThread;
   public:
-    CThreadPool();
-    CThreadPool(unsigned size);
-    ~CThreadPool();
+    ThreadPool();
+    ThreadPool(unsigned size);
+    ~ThreadPool();
 
-    bool Enqueue(CWorker* worker);
+    bool Enqueue(Worker* worker);
 
     unsigned GetMaxSize() const { return m_size; }
 
@@ -77,37 +79,37 @@ namespace OS
     volatile bool m_suspended;
     volatile bool m_empty;
 
-    std::queue<CWorker*>      m_queue;
-    std::set<CWorkerThread*>  m_pool;
-    mutable CMutex            m_mutex;
-    CCondition<volatile bool> m_condition;
-    CEvent                    m_queueFill;
-    CEvent                    m_queueEmpty;
+    std::queue<Worker*>       m_queue;
+    std::set<WorkerThread*>   m_pool;
+    mutable Mutex             m_mutex;
+    Condition<volatile bool>  m_condition;
+    Event                     m_queueFill;
+    Event                     m_queueEmpty;
 
-    CWorker* PopQueue(CWorkerThread* _thread);
-    void WaitQueue(CWorkerThread* _thread);
-    void StartThread(CWorkerThread* _thread);
-    void FinalizeThread(CWorkerThread* _thread);
+    Worker* PopQueue(WorkerThread* _thread);
+    void WaitQueue(WorkerThread* _thread);
+    void StartThread(WorkerThread* _thread);
+    void FinalizeThread(WorkerThread* _thread);
     void __resize();
   };
 
-  class CWorker
+  class Worker
   {
-    friend class CThreadPool;
+    friend class ThreadPool;
   public:
-    CWorker() : m_queued(false) { }
-    virtual ~CWorker() { }
+    Worker() : m_queued(false) { }
+    virtual ~Worker() { }
     virtual void Process() = 0;
 
   private:
     bool m_queued;
   };
 
-  class CWorkerThread : public CThread
+  class WorkerThread : public Thread
   {
   public:
-    CWorkerThread(CThreadPool& pool)
-    : CThread()
+    WorkerThread(ThreadPool& pool)
+    : Thread()
     , m_threadPool(pool) { m_finalizeOnStop = true; }
 
     void* Process(void)
@@ -116,7 +118,7 @@ namespace OS
 
       while (!IsStopped())
       {
-        CWorker* worker = m_threadPool.PopQueue(this);
+        Worker* worker = m_threadPool.PopQueue(this);
         if (worker != NULL)
         {
           worker->Process();
@@ -141,7 +143,7 @@ namespace OS
     }
 
   private:
-    CThreadPool& m_threadPool;
+    ThreadPool& m_threadPool;
   };
 
 }

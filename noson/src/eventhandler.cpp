@@ -60,20 +60,20 @@ EventHandlerThread::~EventHandlerThread()
 
 namespace NSROOT
 {
-  class SubscriptionHandlerThread : private OS::CThread
+  class SubscriptionHandlerThread : private OS::Thread
   {
   public:
     SubscriptionHandlerThread(EventSubscriber *handle, unsigned subid);
     virtual ~SubscriptionHandlerThread();
     EventSubscriber *GetHandle() { return m_handle; }
-    bool IsRunning() { return OS::CThread::IsRunning(); }
+    bool IsRunning() { return OS::Thread::IsRunning(); }
     void PostMessage(const EventMessagePtr& msg);
 
   private:
     EventSubscriber *m_handle;
     unsigned m_subId;
-    mutable OS::CMutex m_mutex;
-    OS::CEvent m_queueContent;
+    mutable OS::Mutex m_mutex;
+    OS::Event m_queueContent;
     std::list<EventMessagePtr> m_msgQueue;
 
     bool Start();
@@ -83,7 +83,7 @@ namespace NSROOT
 }
 
 SubscriptionHandlerThread::SubscriptionHandlerThread(EventSubscriber *handle, unsigned subid)
-: OS::CThread()
+: OS::Thread()
 , m_handle(handle)
 , m_subId(subid)
 , m_mutex()
@@ -104,21 +104,21 @@ SubscriptionHandlerThread::~SubscriptionHandlerThread()
 
 bool SubscriptionHandlerThread::Start()
 {
-  if (OS::CThread::IsRunning())
+  if (OS::Thread::IsRunning())
     return true;
-  return OS::CThread::StartThread();
+  return OS::Thread::StartThread();
 }
 
 void SubscriptionHandlerThread::Stop()
 {
-  if (OS::CThread::IsRunning())
+  if (OS::Thread::IsRunning())
   {
     DBG(DBG_DEBUG, "%s: subscription thread (%p:%u)\n", __FUNCTION__, m_handle, m_subId);
     // Set stopping. don't wait as we need to signal the thread first
-    OS::CThread::StopThread(false);
+    OS::Thread::StopThread(false);
     m_queueContent.Signal();
     // Wait for thread to stop
-    OS::CThread::StopThread(true);
+    OS::Thread::StopThread(true);
     DBG(DBG_DEBUG, "%s: subscription thread (%p:%u) stopped\n", __FUNCTION__, m_handle, m_subId);
   }
 }
@@ -126,7 +126,7 @@ void SubscriptionHandlerThread::Stop()
 void SubscriptionHandlerThread::PostMessage(const EventMessagePtr& msg)
 {
   // Critical section
-  OS::CLockGuard lock(m_mutex);
+  OS::LockGuard lock(m_mutex);
   m_msgQueue.push_back(msg);
   m_queueContent.Signal();
 }
@@ -138,10 +138,10 @@ void *SubscriptionHandlerThread::Process()
     while (!m_msgQueue.empty() && !IsStopped())
     {
       // Critical section
-      OS::CLockGuard lock(m_mutex);
+      m_mutex.Lock();
       EventMessagePtr msg = m_msgQueue.front();
       m_msgQueue.pop_front();
-      lock.Unlock();
+      m_mutex.Unlock();
       // Do work
       m_handle->HandleEventMessage(msg);
     }
@@ -158,7 +158,7 @@ void *SubscriptionHandlerThread::Process()
 
 namespace NSROOT
 {
-  class BasicEventHandler : public EventHandlerThread, private OS::CThread
+  class BasicEventHandler : public EventHandlerThread, private OS::Thread
   {
   public:
     BasicEventHandler(unsigned bindingPort);
@@ -179,8 +179,8 @@ namespace NSROOT
     virtual void DispatchEvent(const EventMessagePtr& msg);
 
   private:
-    OS::CMutex m_mutex;
-    OS::CThreadPool m_threadpool;
+    OS::Mutex m_mutex;
+    OS::ThreadPool m_threadpool;
     TcpServerSocket *m_socket;
 
     // About subscriptions
@@ -198,7 +198,7 @@ namespace NSROOT
 }
 
 BasicEventHandler::BasicEventHandler(unsigned bindingPort)
-: EventHandlerThread(bindingPort), OS::CThread()
+: EventHandlerThread(bindingPort), OS::Thread()
 , m_socket(new TcpServerSocket)
 , m_RBList(RBList())
 {
@@ -214,7 +214,7 @@ BasicEventHandler::~BasicEventHandler()
   UnregisterAllRequestBroker();
   m_threadpool.Suspend();
   {
-    OS::CLockGuard lock(m_mutex);
+    OS::LockGuard lock(m_mutex);
     for (subscriptions_t::iterator it = m_subscriptions.begin(); it != m_subscriptions.end(); ++it)
       delete it->second;
     m_subscriptions.clear();
@@ -225,31 +225,31 @@ BasicEventHandler::~BasicEventHandler()
 
 bool BasicEventHandler::Start()
 {
-  if (OS::CThread::IsRunning())
+  if (OS::Thread::IsRunning())
     return true;
-  return OS::CThread::StartThread();
+  return OS::Thread::StartThread();
 }
 
 void BasicEventHandler::Stop()
 {
-  if (OS::CThread::IsRunning())
+  if (OS::Thread::IsRunning())
   {
     DBG(DBG_DEBUG, "%s: event handler thread (%p)\n", __FUNCTION__, this);
-    OS::CThread::StopThread(false);
+    OS::Thread::StopThread(false);
     if (m_socket->IsValid())
     {
       WSRequest req(m_listenerAddress, m_port);
       req.RequestService("/", HRM_HEAD);
       WSResponse resp(req);
     }
-    OS::CThread::StopThread(true);
+    OS::Thread::StopThread(true);
     DBG(DBG_DEBUG, "%s: event handler thread (%p) stopped\n", __FUNCTION__, this);
   }
 }
 
 bool BasicEventHandler::IsRunning()
 {
-  return OS::CThread::IsRunning();
+  return OS::Thread::IsRunning();
 }
 
 void BasicEventHandler::RegisterRequestBroker(RequestBrokerPtr rb)
@@ -305,7 +305,7 @@ std::vector<RequestBrokerPtr> BasicEventHandler::AllRequestBroker()
 unsigned BasicEventHandler::CreateSubscription(EventSubscriber* sub)
 {
   unsigned id = 0;
-  OS::CLockGuard lock(m_mutex);
+  OS::LockGuard lock(m_mutex);
   subscriptions_t::const_reverse_iterator it = m_subscriptions.rbegin();
   if (it != m_subscriptions.rend())
     id = it->first;
@@ -322,7 +322,7 @@ unsigned BasicEventHandler::CreateSubscription(EventSubscriber* sub)
 
 bool BasicEventHandler::SubscribeForEvent(unsigned subid, EVENT_t event)
 {
-  OS::CLockGuard lock(m_mutex);
+  OS::LockGuard lock(m_mutex);
   // Only for registered subscriber
   subscriptions_t::const_iterator it1 = m_subscriptions.find(subid);
   if (it1 == m_subscriptions.end())
@@ -340,7 +340,7 @@ bool BasicEventHandler::SubscribeForEvent(unsigned subid, EVENT_t event)
 
 void BasicEventHandler::RevokeSubscription(unsigned subid)
 {
-  OS::CLockGuard lock(m_mutex);
+  OS::LockGuard lock(m_mutex);
   subscriptions_t::iterator it;
   it = m_subscriptions.find(subid);
   if (it != m_subscriptions.end())
@@ -352,7 +352,7 @@ void BasicEventHandler::RevokeSubscription(unsigned subid)
 
 void BasicEventHandler::RevokeAllSubscriptions(EventSubscriber *sub)
 {
-  OS::CLockGuard lock(m_mutex);
+  OS::LockGuard lock(m_mutex);
   std::vector<subscriptions_t::iterator> its;
   for (subscriptions_t::iterator it = m_subscriptions.begin(); it != m_subscriptions.end(); ++it)
   {
@@ -368,7 +368,7 @@ void BasicEventHandler::RevokeAllSubscriptions(EventSubscriber *sub)
 
 void BasicEventHandler::DispatchEvent(const EventMessagePtr& msg)
 {
-  OS::CLockGuard lock(m_mutex);
+  OS::LockGuard lock(m_mutex);
   std::vector<std::list<unsigned>::iterator> revoked;
   std::list<unsigned>::iterator it1 = m_subscriptionsByEvent[msg->event].begin();
   while (it1 != m_subscriptionsByEvent[msg->event].end())
@@ -401,7 +401,7 @@ void *BasicEventHandler::Process()
   if (bound)
   {
     AnnounceStatus(EVENTHANDLER_STARTED);
-    while (!OS::CThread::IsStopped())
+    while (!OS::Thread::IsStopped())
     {
       if (!m_socket->ListenConnection())
       {

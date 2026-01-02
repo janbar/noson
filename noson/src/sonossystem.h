@@ -38,8 +38,8 @@ namespace NSROOT
 {
   namespace OS
   {
-    class CMutex;
-    class CEvent;
+    class Mutex;
+    class Event;
   }
 
   class ZoneGroupTopology;
@@ -165,8 +165,8 @@ namespace NSROOT
     const std::string& GetSystemLocalUri();
 
   private:
-    mutable OS::CMutex* m_mutex;
-    OS::CEvent* m_cbzgt;
+    mutable OS::Mutex* m_mutex;
+    OS::Event* m_cbzgt;
     bool m_connected;
     unsigned m_subId;
     EventHandler m_eventHandler;

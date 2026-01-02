@@ -35,6 +35,7 @@ namespace OS
   private:
     std::atomic<int> m_val;
   public:
+    Atomic() : m_val(0) {}
     Atomic(int val) : m_val(val) {}
     int load()
     {
@@ -88,6 +89,7 @@ namespace OS
   private:
     volatile LONG m_val;
   public:
+    Atomic() : m_val(0) {}
     Atomic(int val) : m_val(val) {}
     int load()
     {
@@ -140,6 +142,7 @@ namespace OS
   private:
     volatile int m_val;
   public:
+    Atomic() : m_val(0) {}
     Atomic(int val) : m_val(val) {}
     int load()
     {
@@ -191,6 +194,7 @@ namespace OS
   private:
     volatile int m_val;
   public:
+    Atomic() : m_val(0) {}
     Atomic(int val) : m_val(val) {}
     int load()
     {
@@ -272,6 +276,7 @@ namespace OS
   private:
     volatile int m_val;
   public:
+    Atomic() : m_val(0) {}
     Atomic(int val) : m_val(val) {}
     int __attribute__((always_inline)) load()
     {

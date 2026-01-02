@@ -25,7 +25,7 @@
 using namespace NSROOT;
 
 SMAccount::SMAccount(const std::string& type)
-: m_mutex(new OS::CMutex)
+: m_mutex(new OS::Mutex)
 , m_type(type)
 , m_serialNum("")
 , m_auth("", "", "", "")
@@ -33,7 +33,7 @@ SMAccount::SMAccount(const std::string& type)
 }
 
 SMAccount::SMAccount(const std::string& type, const std::string& serialNum)
-: m_mutex(new OS::CMutex)
+: m_mutex(new OS::Mutex)
 , m_type(type)
 , m_serialNum(serialNum)
 , m_auth("", "", "", "")
@@ -47,13 +47,13 @@ SMAccount::~SMAccount()
 
 const SMAccount::Credentials& SMAccount::GetCredentials() const
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   return m_auth;
 }
 
 void SMAccount::SetCredentials(const Credentials& auth)
 {
-  OS::CLockGuard lock(*m_mutex);
+  OS::LockGuard lock(*m_mutex);
   m_auth.devId = auth.devId;
   m_auth.key = auth.key;
   m_auth.token = auth.token;
