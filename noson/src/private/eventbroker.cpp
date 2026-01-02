@@ -40,7 +40,7 @@ void EventBroker::Process()
   if (!m_handler || !m_sockPtr || !m_sockPtr->IsValid())
     return;
 
-  struct timeval socket_timeout = { 0, 500000 };
+  struct timeval socket_timeout = { 3, 0 };
   WSRequestBroker rb(m_sockPtr.get(), socket_timeout);
   std::string resp;
 
