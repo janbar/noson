@@ -32,7 +32,7 @@
 #define EVENTHANDLER_STARTED        "STARTED"   // Message on started
 #define EVENTHANDLER_STOPPED        "STOPPED"   // Message on stopped
 #define EVENTHANDLER_FAILED         "FAILED"    // Message on failed
-#define EVENTHANDLER_THREADS        10          // Max worker threads
+#define EVENTHANDLER_THREADS        16          // Max worker threads
 
 namespace NSROOT
 {
