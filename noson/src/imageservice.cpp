@@ -21,6 +21,7 @@
 #include "data/datareader.h"
 #include "filepicreader.h"
 #include "private/urlencoder.h"
+#include "private/wsstatic.h"
 
 #include <map>
 #include <cstring>
@@ -53,7 +54,7 @@ bool ImageService::HandleRequest(handle * handle)
 {
   if (!IsAborted())
   {
-    const std::string& requrl = RequestBroker::GetRequestURI(handle);
+    const std::string& requrl = RequestBroker::GetRequestURIPath(handle);
     if (requrl.compare(0, strlen(IMAGESERVICE_URI), IMAGESERVICE_URI) == 0 ||
             requrl.compare(0, strlen(IMAGESERVICE_FAVICON), IMAGESERVICE_FAVICON) == 0)
     {
@@ -131,10 +132,7 @@ std::string ImageService::MakeFilePictureURI(const std::string& filePath)
 
 void ImageService::ProcessGET(handle * handle)
 {
-  const std::string& uri = RequestBroker::GetRequestURI(handle);
-  // extract the resource uri without trailing args
-  std::string resUri = uri.substr(0, uri.find('?'));
-  ResourceMap::const_iterator it = m_resources.find(resUri);
+  ResourceMap::const_iterator it = m_resources.find(RequestBroker::GetRequestURIPath(handle));
   if (it == m_resources.end())
     Reply400(handle);
   else if (!it->second || !it->second->delegate)
@@ -142,16 +140,18 @@ void ImageService::ProcessGET(handle * handle)
   else
   {
     const RequestBroker::ResourcePtr& res = it->second;
-    StreamReader::STREAM * stream = res->delegate->OpenStream(RequestBroker::buildDelegateUrl(*res, uri));
+    StreamReader::STREAM * stream = res->delegate->OpenStream(
+        RequestBroker::buildDelegateUrl(*res, RequestBroker::GetRequestURIParams(handle))
+        );
     if (stream && stream->contentLength)
     {
       // override content type with stream type
       const char * contentType = stream->contentType != nullptr ? stream->contentType : res->contentType.c_str();
       std::string resp;
       resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
-          .append("Content-Type: ").append(contentType).append("\r\n")
-          .append("Content-Length: ").append(std::to_string(stream->contentLength)).append("\r\n")
-          .append("\r\n");
+          .append("Content-Type: ").append(contentType).append(WS_CRLF)
+          .append("Content-Length: ").append(std::to_string(stream->contentLength)).append(WS_CRLF)
+          .append(WS_CRLF);
       if (RequestBroker::Reply(handle, resp.c_str(), resp.length()))
       {
         while (res->delegate->ReadStream(stream) > 0)
@@ -173,10 +173,7 @@ void ImageService::ProcessGET(handle * handle)
 
 void ImageService::ProcessHEAD(handle * handle)
 {
-  const std::string& uri = RequestBroker::GetRequestURI(handle);
-  // extract the resource uri without trailing args
-  std::string resUri = uri.substr(0, uri.find('?'));
-  ResourceMap::const_iterator it = m_resources.find(resUri);
+  ResourceMap::const_iterator it = m_resources.find(RequestBroker::GetRequestURIPath(handle));
   if (it == m_resources.end())
     Reply400(handle);
   else if (!it->second || !it->second->delegate)
@@ -184,7 +181,9 @@ void ImageService::ProcessHEAD(handle * handle)
   else
   {
     const RequestBroker::ResourcePtr& res = it->second;
-    StreamReader::STREAM * stream = res->delegate->OpenStream(RequestBroker::buildDelegateUrl(*res, uri));
+    StreamReader::STREAM * stream = res->delegate->OpenStream(
+        RequestBroker::buildDelegateUrl(*res, RequestBroker::GetRequestURIParams(handle))
+        );
     if (stream && stream->contentLength)
     {
       // override content type with stream type
@@ -192,8 +191,8 @@ void ImageService::ProcessHEAD(handle * handle)
       res->delegate->CloseStream(stream);
       std::string resp;
       resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
-          .append("Content-Type: ").append(contentType).append("\r\n")
-          .append("\r\n");
+          .append("Content-Type: ").append(contentType).append(WS_CRLF)
+          .append(WS_CRLF);
       RequestBroker::Reply(handle, resp.c_str(), resp.length());
     }
     else if (stream)
@@ -212,7 +211,7 @@ void ImageService::Reply500(handle * handle)
 {
   std::string resp;
   resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_Internal_Server_Error))
-      .append("\r\n");
+      .append(WS_CRLF);
   RequestBroker::Reply(handle, resp.c_str(), resp.length());
 }
 
@@ -220,7 +219,7 @@ void ImageService::Reply400(handle * handle)
 {
   std::string resp;
   resp.append(RequestBroker::MakeResponseHeader(RequestBroker::Status_Bad_Request))
-      .append("\r\n");
+      .append(WS_CRLF);
   RequestBroker::Reply(handle, resp.c_str(), resp.length());
 }
 
@@ -228,6 +227,6 @@ void ImageService::Reply404(handle * handle)
 {
   std::string resp;
   resp.append(RequestBroker::MakeResponseHeader(RequestBroker::Status_Not_Found))
-      .append("\r\n");
+      .append(WS_CRLF);
   RequestBroker::Reply(handle, resp.c_str(), resp.length());
 }

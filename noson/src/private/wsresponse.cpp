@@ -21,9 +21,8 @@
 
 #include "wsresponse.h"
 #include "securesocket.h"
-#include "debug.h"
-#include "cppdef.h"
 #include "compressor.h"
+#include "debug.h"
 
 #include <cstdlib>  // for atol
 #include <cstdio>
@@ -32,11 +31,11 @@
 #define HTTP_TOKEN_MAXSIZE    20
 #define HTTP_HEADER_MAXSIZE   4000
 #define RESPONSE_BUFFER_SIZE  4000
+#define CHUNK_MAX_SIZE        0x1FFFF
 
 using namespace NSROOT;
 
-WSResponse::WSResponse(const WSRequest &request, int maxRedirs, bool trustedLocation, bool followAny)
-: p(0)
+void WSResponse::init(const WSRequest &request, int maxRedirs, bool trustedLocation, bool followAny)
 {
   p = new _response(request);
   while (0 < maxRedirs--)
@@ -68,6 +67,7 @@ WSResponse::~WSResponse()
 {
   if (p)
     delete p;
+  p = nullptr;
 }
 
 bool WSResponse::ReadHeaderLine(NetSocket *socket, const char *eol, std::string& line, size_t *len)
@@ -77,7 +77,7 @@ bool WSResponse::ReadHeaderLine(NetSocket *socket, const char *eol, std::string&
   int p = 0, p_eol = 0, l_eol;
   size_t l = 0;
 
-  if (eol != NULL)
+  if (eol != nullptr)
     s_eol = eol;
   else
     s_eol = "\n";
@@ -124,25 +124,26 @@ bool WSResponse::ReadHeaderLine(NetSocket *socket, const char *eol, std::string&
 }
 
 WSResponse::_response::_response(const WSRequest &request)
-: m_socket(NULL)
+: m_socket(nullptr)
 , m_successful(false)
 , m_statusCode(0)
 , m_serverInfo()
 , m_etag()
 , m_location()
-, m_contentType(CT_NONE)
-, m_contentEncoding(CE_NONE)
+, m_contentTypeStr()
+, m_contentType(WS_CTYPE_None)
+, m_contentEncoding(WS_CENCODING_None)
 , m_contentChunked(false)
 , m_contentLength(0)
 , m_consumed(0)
-, m_chunkBuffer(NULL)
-, m_chunkPtr(NULL)
-, m_chunkEOR(NULL)
-, m_chunkEnd(NULL)
-, m_decoder(NULL)
+, m_chunkBuffer(nullptr)
+, m_chunkPtr(nullptr)
+, m_chunkEOR(nullptr)
+, m_chunkEnd(nullptr)
+, m_decoder(nullptr)
 {
   if (request.IsSecureURI())
-    m_socket = SSLSessionFactory::Instance().NewSocket();
+    m_socket = SSLSessionFactory::Instance().NewClientSocket();
   else
     m_socket = new TcpSocket();
   if (!m_socket)
@@ -170,9 +171,15 @@ WSResponse::_response::_response(const WSRequest &request)
 
 WSResponse::_response::~_response()
 {
-  SAFE_DELETE(m_decoder);
-  SAFE_DELETE_ARRAY(m_chunkBuffer);
-  SAFE_DELETE(m_socket);
+  if (m_decoder)
+    delete m_decoder;
+  m_decoder = nullptr;
+  if (m_chunkBuffer)
+    delete [] m_chunkBuffer;
+  m_chunkBuffer = m_chunkPtr = m_chunkEOR = m_chunkEnd = nullptr;
+  if (m_socket)
+    delete m_socket;
+  m_socket = nullptr;
 }
 
 bool WSResponse::_response::SendRequest(const WSRequest &request)
@@ -198,9 +205,9 @@ bool WSResponse::_response::GetResponse()
   bool ret = false;
 
   token[0] = 0;
-  while (WSResponse::ReadHeaderLine(m_socket, "\r\n", strread, &len))
+  while (WSResponse::ReadHeaderLine(m_socket, WS_CRLF, strread, &len))
   {
-    const char *line = strread.c_str(), *val = NULL;
+    const char *line = strread.c_str(), *val = nullptr;
     int value_len = 0;
 
     DBG(DBG_PROTO, "%s: %s\n", __FUNCTION__, line);
@@ -266,49 +273,33 @@ bool WSResponse::_response::GetResponse()
 
     if (token_len)
     {
-      m_headers.front().second.append(val);
-      switch (token_len)
+      m_headers.front().second.assign(val);
+      switch (ws_header_from_upperstr(token))
       {
-        case 4:
-          if (memcmp(token, "ETAG", token_len) == 0)
-            m_etag.append(val);
+        case WS_HEADER_Etag:
+          m_etag.assign(val);
           break;
-        case 6:
-          if (memcmp(token, "SERVER", token_len) == 0)
-            m_serverInfo.append(val);
+        case WS_HEADER_Server:
+          m_serverInfo.assign(val);
           break;
-        case 8:
-          if (memcmp(token, "LOCATION", token_len) == 0)
-            m_location.append(val);
+        case WS_HEADER_Location:
+          m_location.assign(val);
           break;
-        case 12:
-          if (memcmp(token, "CONTENT-TYPE", token_len) == 0)
-            m_contentType = ContentTypeFromMime(val);
+        case WS_HEADER_Content_Type:
+          m_contentTypeStr.assign(val);
+          m_contentType = ws_ctype_from_str(val);
           break;
-        case 14:
-          if (memcmp(token, "CONTENT-LENGTH", token_len) == 0)
-            m_contentLength = atol(val);
+        case WS_HEADER_Content_Length:
+          m_contentLength = atol(val);
           break;
-        case 16:
-          if (memcmp(token, "CONTENT-ENCODING", token_len) == 0)
-          {
-            if (value_len > 6 && memcmp(val, "deflate", 7) == 0)
-              m_contentEncoding = CE_DEFLATE;
-            else if (value_len > 3 && memcmp(val, "gzip", 4) == 0)
-              m_contentEncoding = CE_GZIP;
-            else
-            {
-              m_contentEncoding = CE_UNKNOWN;
-              DBG(DBG_ERROR, "%s: unsupported content encoding (%s) %d\n", __FUNCTION__, val, value_len);
-            }
-          }
+        case WS_HEADER_Content_Encoding:
+          m_contentEncoding = ws_cencoding_from_str(val);
+          if (m_contentEncoding == WS_CENCODING_UNKNOWN)
+            DBG(DBG_ERROR, "%s: unsupported content encoding (%s)\n", __FUNCTION__, val);
           break;
-        case 17:
-          if (memcmp(token, "TRANSFER-ENCODING", token_len) == 0)
-          {
-            if (value_len > 6 && memcmp(val, "chunked", 7) == 0)
-              m_contentChunked = true;
-          }
+        case WS_HEADER_Transfer_Encoding:
+          if (value_len > 6 && memcmp(val, "chunked", 7) == 0)
+            m_contentChunked = true;
           break;
         default:
           break;
@@ -328,16 +319,23 @@ size_t WSResponse::_response::ReadChunk(void *buf, size_t buflen)
     if (m_chunkPtr >= m_chunkEnd)
     {
       // process next chunk
-      SAFE_DELETE_ARRAY(m_chunkBuffer);
-      m_chunkBuffer = m_chunkPtr = m_chunkEOR = m_chunkEnd = NULL;
+      if (m_chunkBuffer)
+        delete [] m_chunkBuffer;
+      m_chunkBuffer = m_chunkPtr = m_chunkEOR = m_chunkEnd = nullptr;
       std::string strread;
       size_t len = 0;
-      while (WSResponse::ReadHeaderLine(m_socket, "\r\n", strread, &len) && len == 0);
+      while (WSResponse::ReadHeaderLine(m_socket, WS_CRLF, strread, &len) && len == 0);
       DBG(DBG_PROTO, "%s: chunked data (%s)\n", __FUNCTION__, strread.c_str());
       std::string chunkStr("0x0");
       uint32_t chunkSize;
       if (!strread.empty() && sscanf(chunkStr.append(strread).c_str(), "%x", &chunkSize) == 1 && chunkSize > 0)
       {
+        // check chunk-size overflow
+        if (chunkSize > CHUNK_MAX_SIZE)
+        {
+          DBG(DBG_ERROR, "%s: chunk-size overflow (req=%u) (max=%u)\n", __FUNCTION__, chunkSize, (unsigned)CHUNK_MAX_SIZE);
+          return 0;
+        }
         if (!(m_chunkBuffer = new char[chunkSize]))
           return 0;
         m_chunkPtr = m_chunkEOR = m_chunkBuffer;
@@ -365,7 +363,7 @@ size_t WSResponse::_response::ReadChunk(void *buf, size_t buflen)
 int WSResponse::_response::SocketStreamReader(void *hdl, void *buf, int sz)
 {
   _response *resp = static_cast<_response*>(hdl);
-  if (resp == NULL)
+  if (resp == nullptr)
     return 0;
   size_t s = 0;
   // let read on unknown length
@@ -383,7 +381,7 @@ int WSResponse::_response::SocketStreamReader(void *hdl, void *buf, int sz)
 int WSResponse::_response::ChunkStreamReader(void *hdl, void *buf, int sz)
 {
   _response *resp = static_cast<_response*>(hdl);
-  return (resp == NULL ? 0 : resp->ReadChunk(buf, sz));
+  return (resp == nullptr ? 0 : resp->ReadChunk(buf, sz));
 }
 
 size_t WSResponse::_response::ReadContent(char* buf, size_t buflen)
@@ -391,7 +389,7 @@ size_t WSResponse::_response::ReadContent(char* buf, size_t buflen)
   size_t s = 0;
   if (!m_contentChunked)
   {
-    if (m_contentEncoding == CE_NONE)
+    if (m_contentEncoding == WS_CENCODING_None)
     {
       // let read on unknown length
       if (!m_contentLength)
@@ -403,9 +401,9 @@ size_t WSResponse::_response::ReadContent(char* buf, size_t buflen)
       }
       m_consumed += s;
     }
-    else if (m_contentEncoding == CE_GZIP || m_contentEncoding == CE_DEFLATE)
+    else if (m_contentEncoding == WS_CENCODING_Gzip || m_contentEncoding == WS_CENCODING_Deflate)
     {
-      if (m_decoder == NULL)
+      if (m_decoder == nullptr)
         m_decoder = new Decompressor(&SocketStreamReader, this);
       if (m_decoder->HasOutputData())
         s = m_decoder->ReadOutput(buf, buflen);
@@ -422,13 +420,13 @@ size_t WSResponse::_response::ReadContent(char* buf, size_t buflen)
   }
   else
   {
-    if (m_contentEncoding == CE_NONE)
+    if (m_contentEncoding == WS_CENCODING_None)
     {
       s = ReadChunk(buf, buflen);
     }
-    else if (m_contentEncoding == CE_GZIP || m_contentEncoding == CE_DEFLATE)
+    else if (m_contentEncoding == WS_CENCODING_Gzip || m_contentEncoding == WS_CENCODING_Deflate)
     {
-      if (m_decoder == NULL)
+      if (m_decoder == nullptr)
         m_decoder = new Decompressor(&ChunkStreamReader, this);
       if (m_decoder->HasOutputData())
         s = m_decoder->ReadOutput(buf, buflen);

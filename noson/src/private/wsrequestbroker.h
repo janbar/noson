@@ -24,7 +24,7 @@
 
 #include "local_config.h"
 #include "os/os.h"
-#include "wsrequest.h"
+#include "wsresponse.h"
 
 #include <string>
 #include <vector>
@@ -33,37 +33,37 @@
 namespace NSROOT
 {
 
-  class NetSocket;
+  class TcpSocket;
 
   class WSRequestBroker
   {
   public:
-    WSRequestBroker(NetSocket* socket, timeval timeout);
+    WSRequestBroker(TcpSocket* socket, timeval timeout);
     ~WSRequestBroker();
-
-    // testing the broker
-    //WSRequestBroker(const WSRequest& request);
 
     void SetTimeout(timeval timeout);
     bool IsParsed() const { return m_parsed; }
-    HRM_t GetParsedMethod() const { return m_parsedMethod; }
-    const std::string& GetParsedURI() const { return m_parsedURI; }
-    const std::string& GetParsedQueryProtocol() const { return m_parsedQueryProtocol; }
-    const std::string& GetParsedNamedEntry(const std::string& name);
+    std::string GetHostAddrInfo() const;
+    WS_METHOD GetRequestMethod() const { return m_parsedMethod; }
+    const std::string& GetRequestURIPath() const { return m_parsedURIPath; }
+    const std::string& GetRequestURIParams() const { return m_parsedURIParams; }
+    const std::string& GetRequestProtocol() const { return m_parsedProtocol; }
+    const std::string& GetRequestHeader(const std::string& name);
     bool HasContent() const { return (m_contentLength > 0); }
     size_t GetContentLength() const { return m_contentLength; }
     size_t ReadContent(char *buf, size_t buflen);
     size_t GetConsumed() const { return m_consumed; }
 
-    static bool ReadHeaderLine(NetSocket *socket, const char *eol, std::string& line, size_t *len);
-    static void Tokenize(const std::string& str, const char *delimiters, std::vector<std::string>& tokens, bool trimnull = false);
+    static void Tokenize(const std::string& str, char delimiter, std::vector<std::string>& tokens, bool trimnull = false);
+    static bool NormalizeURI(const std::string& in, std::string& outpath, std::string& outparams);
 
   private:
-    NetSocket* m_socket;
+    TcpSocket* m_socket;
     bool m_parsed;
-    HRM_t m_parsedMethod;
-    std::string m_parsedURI;
-    std::string m_parsedQueryProtocol;
+    WS_METHOD m_parsedMethod;
+    std::string m_parsedURIPath;
+    std::string m_parsedURIParams;
+    std::string m_parsedProtocol;
     bool m_contentChunked;
     size_t m_contentLength;
     size_t m_consumed;
@@ -78,6 +78,7 @@ namespace NSROOT
     WSRequestBroker(const WSRequestBroker&);
     WSRequestBroker& operator=(const WSRequestBroker&);
 
+    bool ReadHeaderLine(const char *eol, std::string& line, size_t *len);
     bool ParseQuery();
     size_t ReadChunk(void *buf, size_t buflen);
   };

@@ -118,7 +118,7 @@ void Alarm::SetRecurrence(const std::string& days)
 {
   char mask = 0;
   std::vector<std::string> tokens;
-  tokenize(days, ",", tokens, true);
+  tokenize(days, ",", "", tokens, true);
   for (std::vector<std::string>::const_iterator it = tokens.begin(); it != tokens.end(); ++it)
   {
     if (*it == DayTable[Day_SUNDAY])

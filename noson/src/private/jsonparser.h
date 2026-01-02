@@ -22,12 +22,11 @@
 #ifndef JSONPARSER_H
 #define	JSONPARSER_H
 
-#include <local_config.h>
+#include "local_config.h"
 #include "wsresponse.h"
 #include "sajson.h"
-#include "cppdef.h"
+#include "os/os.h"
 
-#include <cstdint>
 #include <string>
 
 /**
@@ -73,10 +72,14 @@ namespace JSON
   class Document
   {
   public:
-    Document(NSROOT::WSResponse& resp);
+    explicit Document(NSROOT::WSResponse& resp);
+    Document(const std::string& content);
+
     ~Document()
     {
-      SAFE_DELETE(m_document);
+      if (m_document)
+        delete m_document;
+      m_document = nullptr;
     }
 
     bool IsValid() const
@@ -87,6 +90,9 @@ namespace JSON
     Node GetRoot() const;
 
   private:
+    explicit Document(const Document&);
+    Document& operator=(const Document&);
+
     bool m_isValid;
     sajson::document *m_document;
   };

@@ -36,7 +36,7 @@ int main() {
 
   SONOS::WSRequest req(dest_url, 443);
   req.RequestAcceptEncoding(true);
-  req.RequestService("/", SONOS::HRM_GET);
+  req.RequestService("/", WS_METHOD_Get);
   SONOS::WSResponse resp(req);
   if (resp.IsSuccessful())
   {

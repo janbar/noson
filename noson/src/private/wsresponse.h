@@ -23,7 +23,7 @@
 #define	WSRESPONSE_H
 
 #include "local_config.h"
-#include "wscontent.h"
+#include "wsstatic.h"
 #include "wsrequest.h"
 
 #include <cstddef>  // for size_t
@@ -40,8 +40,10 @@ namespace NSROOT
   class WSResponse
   {
   public:
-    WSResponse(const WSRequest& request) : WSResponse(request, 1, true, false) { }
-    WSResponse(const WSRequest &request, int maxRedirs, bool trustedLocation, bool followAny);
+    WSResponse(const WSRequest& request)
+    { init(request, 1, true, false); }
+    WSResponse(const WSRequest &request, int maxRedirs, bool trustedLocation, bool followAny)
+    { init(request, maxRedirs, trustedLocation, followAny); }
     ~WSResponse();
 
     bool IsSuccessful() const { return p->IsSuccessful(); }
@@ -61,6 +63,7 @@ namespace NSROOT
     static bool ReadHeaderLine(NetSocket *socket, const char *eol, std::string& line, size_t *len);
 
   private:
+    void init(const WSRequest &request, int maxRedirs, bool trustedLocation, bool followAny);
 
     // prevent copy
     WSResponse(const WSResponse&);
@@ -89,8 +92,9 @@ namespace NSROOT
       std::string m_serverInfo;
       std::string m_etag;
       std::string m_location;
-      CT_t m_contentType;
-      CE_t m_contentEncoding;
+      std::string m_contentTypeStr;
+      WS_CTYPE m_contentType;
+      WS_CENCODING m_contentEncoding;
       bool m_contentChunked;
       size_t m_contentLength;
       size_t m_consumed;

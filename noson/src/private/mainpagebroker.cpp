@@ -19,6 +19,7 @@
 #include "mainpagebroker.h"
 #include "../eventhandler.h"
 #include "debug.h"
+#include "wsstatic.h"
 #include "tinyxml2.h"
 #include "xmldict.h"
 
@@ -35,7 +36,7 @@ bool MainPageBroker::HandleRequest(handle * handle)
 {
   if (!IsAborted())
   {
-    if (RequestBroker::GetRequestURI(handle).compare(MAINPAGE_URI) == 0)
+    if (RequestBroker::GetRequestURIPath(handle).compare(MAINPAGE_URI) == 0)
     {
       switch (RequestBroker::GetRequestMethod(handle))
       {
@@ -140,9 +141,9 @@ void MainPageBroker::ProcessGET(handle * handle)
     data.append("</tbody></table>");
   }
   data.append(_end);
-  resp.append("Content-Type: text/html\r\n")
-      .append("Content-Length: ").append(std::to_string(data.length())).append("\r\n")
-      .append("\r\n");
+  resp.append("Content-Type: text/html" WS_CRLF)
+      .append("Content-Length: ").append(std::to_string(data.length())).append(WS_CRLF)
+      .append(WS_CRLF);
   RequestBroker::Reply(handle, resp.c_str(), resp.length());
   RequestBroker::Reply(handle, data.c_str(), data.length());
   return;
@@ -152,8 +153,8 @@ void MainPageBroker::ProcessHEAD(handle * handle)
 {
   std::string resp;
   resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK));
-  resp.append("Content-Type: text/html\r\n")
-      .append("\r\n");
+  resp.append("Content-Type: text/html" WS_CRLF)
+      .append(WS_CRLF);
   RequestBroker::Reply(handle, resp.c_str(), resp.length());
   return;
 }

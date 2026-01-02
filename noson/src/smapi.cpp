@@ -471,12 +471,12 @@ ElementList SMAPI::DoCall(const std::string& action, const ElementList& args)
   // end envelope
   content.append("</s:Envelope>");
 
-  WSRequest request(*m_uri, HRM_POST);
+  WSRequest request(*m_uri, WS_METHOD_Post);
   request.SetUserAgent(m_service->GetAgent());
   request.SetHeader("X-Sonos-SWGen", "1");
   request.SetHeader("Accept-Language", m_language);
   request.SetHeader("SOAPAction", soapaction);
-  request.SetContentCustom(CT_XML, content.c_str());
+  request.SetContentCustom("text/xml", content.c_str());
   WSResponse response(request);
 
   // don't check response status code

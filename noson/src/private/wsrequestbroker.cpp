@@ -19,26 +19,30 @@
  *
  */
 
+#include <filesystem>
+
 #include "wsrequestbroker.h"
+#include "urlencoder.h"
+#include "uriparser.h"
 #include "socket.h"
 #include "debug.h"
 #include "builtin.h"
-#include "cppdef.h"
 
 #define HTTP_TOKEN_MAXSIZE    20
 #define HTTP_HEADER_MAXSIZE   4000
 #define QUERY_BUFFER_SIZE     4000
+#define CHUNK_MAX_SIZE        0x1FFFF
 
 using namespace NSROOT;
 
-bool WSRequestBroker::ReadHeaderLine(NetSocket *socket, const char *eol, std::string& line, size_t *len)
+bool WSRequestBroker::ReadHeaderLine(const char *eol, std::string& line, size_t *len)
 {
   char buf[QUERY_BUFFER_SIZE];
   const char *s_eol;
   int p = 0, p_eol = 0, l_eol;
   size_t l = 0;
 
-  if (eol != NULL)
+  if (eol != nullptr)
     s_eol = eol;
   else
     s_eol = "\n";
@@ -47,7 +51,7 @@ bool WSRequestBroker::ReadHeaderLine(NetSocket *socket, const char *eol, std::st
   line.clear();
   do
   {
-    if (socket->ReceiveData(&buf[p], 1) > 0)
+    if (m_socket->ReceiveData(&buf[p], 1) > 0)
     {
       if (buf[p++] == s_eol[p_eol])
       {
@@ -84,33 +88,79 @@ bool WSRequestBroker::ReadHeaderLine(NetSocket *socket, const char *eol, std::st
   return true;
 }
 
-void WSRequestBroker::Tokenize(const std::string& str, const char *delimiters, std::vector<std::string>& tokens, bool trimnull)
+void WSRequestBroker::Tokenize(const std::string& str, char delimiter, std::vector<std::string>& tokens, bool trimnull)
 {
   std::string::size_type pa = 0, pb = 0;
   unsigned n = 0;
   // Counter n will break infinite loop. Max count is 255 tokens
-  while ((pb = str.find_first_of(delimiters, pb)) != std::string::npos && ++n < 255)
+  while ((pb = str.find_first_of(delimiter, pb)) != std::string::npos && ++n < 255)
   {
     tokens.push_back(str.substr(pa, pb - pa));
     do
     {
       pa = ++pb;
-    }
-    while (trimnull && str.find_first_of(delimiters, pb) == pb);
+    } while (trimnull && str.find_first_of(delimiter, pb) == pb);
   }
   tokens.push_back(str.substr(pa));
 }
 
-WSRequestBroker::WSRequestBroker(NetSocket* socket, timeval timeout)
+bool WSRequestBroker::NormalizeURI(const std::string& in, std::string& outpath, std::string& outparams)
+{
+  // parse uri
+  URIParser parser(in);
+  if (!parser.Path())
+    return false;
+  unsigned len = 0;
+  std::vector<std::string> dirty;
+  std::vector<std::string> clean;
+  std::vector<std::string>::const_iterator it;
+  // decode and split path by dirname
+  Tokenize(urldecode(parser.Path()), '/'/*SLASH*/, dirty, true);
+  // rebuild normalized path
+  it = dirty.cbegin();
+  while (it != dirty.cend())
+  {
+    if (*it == "..")
+    {
+      // check a path traversal attempt
+      if (clean.empty())
+        return false;
+      clean.pop_back();
+    }
+    else if (*it != ".")
+    {
+      clean.push_back(*it);
+      len += it->size() + 1;
+    }
+    ++it;
+  }
+  // store path string
+  outpath.clear();
+  outpath.reserve(len);
+  it = clean.cbegin();
+  while (it != clean.cend())
+  {
+    outpath.append("/").append(*it);
+    ++it;
+  }
+  // store params string
+  if (parser.Params())
+    outparams.assign(parser.Params());
+  else
+    outparams.clear();
+  return true;
+}
+
+WSRequestBroker::WSRequestBroker(TcpSocket* socket, timeval timeout)
 : m_socket(socket)
 , m_parsed(false)
-, m_parsedMethod(HRM_HEAD)
+, m_parsedMethod(WS_METHOD_Head)
 , m_contentChunked(false)
 , m_contentLength(0)
 , m_consumed(0)
-, m_chunkBuffer(NULL)
-, m_chunkPtr(NULL)
-, m_chunkEnd(NULL)
+, m_chunkBuffer(nullptr)
+, m_chunkPtr(nullptr)
+, m_chunkEnd(nullptr)
 {
   m_socket->SetTimeout(timeout);
   m_parsed = ParseQuery();
@@ -118,7 +168,9 @@ WSRequestBroker::WSRequestBroker(NetSocket* socket, timeval timeout)
 
 WSRequestBroker::~WSRequestBroker()
 {
-  SAFE_DELETE_ARRAY(m_chunkBuffer);
+  if (m_chunkBuffer)
+    delete [] m_chunkBuffer;
+  m_chunkBuffer = m_chunkPtr = m_chunkEnd = nullptr;
 }
 
 void WSRequestBroker::SetTimeout(timeval timeout)
@@ -126,7 +178,12 @@ void WSRequestBroker::SetTimeout(timeval timeout)
   m_socket->SetTimeout(timeout);
 }
 
-const std::string& WSRequestBroker::GetParsedNamedEntry(const std::string& name)
+std::string WSRequestBroker::GetHostAddrInfo() const
+{
+  return m_socket->GetHostAddrInfo();
+}
+
+const std::string& WSRequestBroker::GetRequestHeader(const std::string& name)
 {
   static std::string emptyStr = "";
   entries_t::const_iterator it = m_namedEntries.find(name);
@@ -142,11 +199,11 @@ bool WSRequestBroker::ParseQuery()
   char token[HTTP_TOKEN_MAXSIZE + 1];
   int n = 0, token_len = 0;
   bool ret = false;
-  
+
   token[0] = 0;
-  while (ReadHeaderLine(m_socket, "\r\n", strread, &len))
+  while (ReadHeaderLine(WS_CRLF, strread, &len))
   {
-    const char *line = strread.c_str(), *val = NULL;
+    const char *line = strread.c_str(), *val = nullptr;
     int value_len = 0;
 
     DBG(DBG_PROTO, "%s: %s\n", __FUNCTION__, line);
@@ -159,27 +216,20 @@ bool WSRequestBroker::ParseQuery()
     if (++n == 1)
     {
       std::vector<std::string> query;
-      Tokenize(strread, " "/*SP*/, query, true);
+      Tokenize(strread, ' '/*SP*/, query, true);
       if (query.size() == 3)
       {
-        m_parsedQueryProtocol = query[2];
-        m_parsedURI = query[1];
-        const std::string& _method = query[0];
-        if (_method == "GET")
-          m_parsedMethod = HRM_GET;
-        else if (_method == "POST")
-          m_parsedMethod = HRM_POST;
-        else if (_method == "HEAD")
-          m_parsedMethod = HRM_HEAD;
-        else if (_method == "SUBSCRIBE")
-          m_parsedMethod = HRM_SUBSCRIBE;
-        else if (_method == "UNSUBSCRIBE")
-          m_parsedMethod = HRM_UNSUBSCRIBE;
-        else if (_method == "NOTIFY")
-          m_parsedMethod = HRM_NOTIFY;
-        else
+        // check the requested method
+        WS_METHOD method = ws_method_from_str(query[0].c_str());
+        if (method == WS_METHOD_UNKNOWN)
           return false;
-        // Clear entries
+        m_parsedMethod = method;
+        // check and normalize the requested uri
+        if (!NormalizeURI(query[1], m_parsedURIPath, m_parsedURIParams))
+          return false;
+        // set the requested protocol
+        m_parsedProtocol = query[2];
+        // Clear entries for next step
         m_namedEntries.clear();
         ret = true;
       }
@@ -225,13 +275,19 @@ bool WSRequestBroker::ParseQuery()
     if (token_len && val)
     {
       m_namedEntries[token].append(val);
-      if (token_len == 14 && memcmp(token, "CONTENT-LENGTH", token_len) == 0)
+      switch (ws_header_from_upperstr(token))
+      {
+      case WS_HEADER_Content_Length:
       {
         uint32_t num;
         if (string_to_uint32(val, &num) == 0)
           m_contentLength = (size_t)num;
         else
           ret = false;
+        break;
+      }
+      default:
+        break;
       }
     }
   }
@@ -244,18 +300,25 @@ size_t WSRequestBroker::ReadChunk(void *buf, size_t buflen)
   size_t s = 0;
   if (m_contentChunked)
   {
-    if (m_chunkPtr == NULL || m_chunkPtr >= m_chunkEnd)
+    if (m_chunkPtr == nullptr || m_chunkPtr >= m_chunkEnd)
     {
-      SAFE_DELETE_ARRAY(m_chunkBuffer);
-      m_chunkBuffer = m_chunkPtr = m_chunkEnd = NULL;
+      if (m_chunkBuffer)
+        delete [] m_chunkBuffer;
+      m_chunkBuffer = m_chunkPtr = m_chunkEnd = nullptr;
       std::string strread;
       size_t len = 0;
-      while (ReadHeaderLine(m_socket, "\r\n", strread, &len) && len == 0);
+      while (ReadHeaderLine(WS_CRLF, strread, &len) && len == 0);
       DBG(DBG_PROTO, "%s: chunked data (%s)\n", __FUNCTION__, strread.c_str());
       std::string chunkStr("0x0");
       uint32_t chunkSize = 0;
       if (!strread.empty() && sscanf(chunkStr.append(strread).c_str(), "%x", &chunkSize) == 1 && chunkSize > 0)
       {
+        // check chunk-size overflow
+        if (chunkSize > CHUNK_MAX_SIZE)
+        {
+          DBG(DBG_ERROR, "%s: chunk-size overflow (req=%u) (max=%u)\n", __FUNCTION__, chunkSize, (unsigned)CHUNK_MAX_SIZE);
+          return 0;
+        }
         if (!(m_chunkBuffer = new char[chunkSize]))
           return 0;
         m_chunkPtr = m_chunkBuffer;

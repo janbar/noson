@@ -28,7 +28,6 @@
 #include "private/debug.h"
 #include "private/eventbroker.h"
 #include "private/wsresponse.h"
-#include "private/wsstatus.h"
 
 #include <vector>
 #include <map>
@@ -166,7 +165,7 @@ namespace NSROOT
     // Implements EventHandlerThread
     virtual bool Start();
     virtual void Stop();
-    virtual bool IsRunning();
+    virtual bool HasStarted();
     virtual void RegisterRequestBroker(RequestBrokerPtr rb);
     virtual void UnregisterRequestBroker(const std::string& name);
     virtual void UnregisterAllRequestBroker();
@@ -239,7 +238,7 @@ void BasicEventHandler::Stop()
     if (m_socket->IsValid())
     {
       WSRequest req(m_listenerAddress, m_port);
-      req.RequestService("/", HRM_HEAD);
+      req.RequestService("/", WS_METHOD_Head);
       WSResponse resp(req);
     }
     OS::Thread::StopThread(true);
@@ -247,7 +246,7 @@ void BasicEventHandler::Stop()
   }
 }
 
-bool BasicEventHandler::IsRunning()
+bool BasicEventHandler::HasStarted()
 {
   return OS::Thread::IsRunning();
 }

@@ -73,7 +73,7 @@ namespace NSROOT
     unsigned GetPort() const { return m_port; }
     virtual bool Start() = 0;
     virtual void Stop() = 0;
-    virtual bool IsRunning() = 0;
+    virtual bool HasStarted() = 0;
     virtual unsigned CreateSubscription(EventSubscriber *sub) = 0;
     virtual bool SubscribeForEvent(unsigned subid, EVENT_t event) = 0;
     virtual void RevokeSubscription(unsigned subid) = 0;
@@ -106,7 +106,7 @@ namespace NSROOT
     void Stop() { if (m_imp) m_imp->Stop(); }
     std::string GetAddress() const { return m_imp ? m_imp->GetAddress() : ""; }
     unsigned GetPort() const { return m_imp ? m_imp->GetPort(): 0; }
-    bool IsRunning() { return m_imp ? m_imp->IsRunning() : false; }
+    bool IsRunning() { return m_imp ? m_imp->HasStarted() : false; }
 
     void RegisterRequestBroker(RequestBrokerPtr rb) { if (m_imp) m_imp->RegisterRequestBroker(rb); }
     void UnregisterRequestBroker(const std::string& name) { if (m_imp) m_imp->UnregisterRequestBroker(name); }

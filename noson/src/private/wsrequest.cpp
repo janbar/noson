@@ -33,10 +33,11 @@ WSRequest::WSRequest(const std::string& server, unsigned port)
 , m_port(port)
 , m_secure_uri(false)
 , m_service_url()
-, m_service_method(HRM_GET)
+, m_service_method(WS_METHOD_Get)
 , m_charset(REQUEST_STD_CHARSET)
-, m_accept(CT_NONE)
-, m_contentType(CT_FORM)
+, m_accept()
+, m_contentType(WS_CTYPE_Form)
+, m_contentTypeStr()
 , m_contentData()
 {
   if (port == 443)
@@ -50,23 +51,25 @@ WSRequest::WSRequest(const std::string& server, unsigned port, bool secureURI)
 , m_port(port)
 , m_secure_uri(secureURI)
 , m_service_url()
-, m_service_method(HRM_GET)
+, m_service_method(WS_METHOD_Get)
 , m_charset(REQUEST_STD_CHARSET)
-, m_accept(CT_NONE)
-, m_contentType(CT_FORM)
+, m_accept()
+, m_contentType(WS_CTYPE_Form)
+, m_contentTypeStr()
 , m_contentData()
 {
   // by default allow content encoding if possible
   RequestAcceptEncoding(true);
 }
 
-WSRequest::WSRequest(const URIParser& uri, HRM_t method)
+WSRequest::WSRequest(const URIParser& uri, WS_METHOD method)
 : m_port(0)
 , m_secure_uri(false)
 , m_service_method(method)
 , m_charset(REQUEST_STD_CHARSET)
-, m_accept(CT_NONE)
-, m_contentType(CT_FORM)
+, m_accept()
+, m_contentType(WS_CTYPE_Form)
+, m_contentTypeStr()
 , m_contentData()
 {
   if (uri.Host())
@@ -105,6 +108,7 @@ WSRequest::WSRequest(const WSRequest& o, const URIParser& redirection)
 , m_charset(o.m_charset)
 , m_accept(o.m_accept)
 , m_contentType(o.m_contentType)
+, m_contentTypeStr(o.m_contentTypeStr)
 , m_contentData(o.m_contentData)
 , m_headers(o.m_headers)
 , m_userAgent(o.m_userAgent)
@@ -151,13 +155,13 @@ WSRequest::WSRequest(const WSRequest& o, const URIParser& redirection)
    */
 }
 
-void WSRequest::RequestService(const std::string& url, HRM_t method)
+void WSRequest::RequestService(const std::string& url, WS_METHOD method)
 {
   m_service_url = url;
   m_service_method = method;
 }
 
-void WSRequest::RequestAccept(CT_t contentType)
+void WSRequest::RequestAccept(const std::string& contentType)
 {
   m_accept = contentType;
 }
@@ -166,12 +170,12 @@ void WSRequest::RequestAcceptEncoding(bool yesno)
 {
 #if HAVE_ZLIB
   if (yesno)
-    SetHeader("Accept-Encoding", "gzip, deflate");
+    SetHeader(ws_header_to_str(WS_HEADER_Accept_Encoding), "gzip, deflate");
   else
-    SetHeader("Accept-Encoding", "");
+    SetHeader(ws_header_to_str(WS_HEADER_Accept_Encoding), "");
 #else
   (void)yesno;
-  SetHeader("Accept-Encoding", "");
+  SetHeader(ws_header_to_str(WS_HEADER_Accept_Encoding), "");
 #endif
 }
 
@@ -182,16 +186,17 @@ void WSRequest::SetUserAgent(const std::string& value)
 
 void WSRequest::SetContentParam(const std::string& param, const std::string& value)
 {
-  if (m_contentType != CT_FORM)
+  if (m_contentType != WS_CTYPE_Form)
     return;
   if (!m_contentData.empty())
     m_contentData.append("&");
   m_contentData.append(param).append("=").append(urlencode(value));
 }
 
-void WSRequest::SetContentCustom(CT_t contentType, const char *content)
+void WSRequest::SetContentCustom(const std::string& contentType, const char *content)
 {
-  m_contentType = contentType;
+  m_contentType = WS_CTYPE_UNKNOWN;
+  m_contentTypeStr = contentType;
   m_contentData = content;
 }
 
@@ -203,32 +208,42 @@ void WSRequest::SetHeader(const std::string& field, const std::string& value)
 void WSRequest::ClearContent()
 {
   m_contentData.clear();
-  m_contentType = CT_FORM;
+  m_contentType = WS_CTYPE_Form;
+  m_contentTypeStr.clear();
 }
 
 void WSRequest::MakeMessage(std::string& msg) const
 {
   switch (m_service_method)
   {
-  case HRM_GET:
+  case WS_METHOD_Get:
     MakeMessageGET(msg);
     break;
-  case HRM_POST:
+  case WS_METHOD_Post:
     MakeMessagePOST(msg);
     break;
-  case HRM_HEAD:
+  case WS_METHOD_Head:
     MakeMessageHEAD(msg);
     break;
-  case HRM_SUBSCRIBE:
+  case WS_METHOD_Subscribe:
     MakeMessageHEAD(msg, "SUBSCRIBE");
     break;
-  case HRM_UNSUBSCRIBE:
+  case WS_METHOD_Unsubscribe:
     MakeMessageHEAD(msg, "UNSUBSCRIBE");
     break;
-  case HRM_NOTIFY:
+  case WS_METHOD_Notify:
     MakeMessagePOST(msg, "NOTIFY");
     break;
-  default:
+  case WS_METHOD_Put:
+    MakeMessagePOST(msg, "PUT");
+    break;
+  case WS_METHOD_Delete:
+    MakeMessageHEAD(msg, "DELETE");
+    break;
+  case WS_METHOD_Options:
+    MakeMessageHEAD(msg, "OPTIONS");
+    break;
+  case WS_METHOD_UNKNOWN:
     break;
   }
 }
@@ -242,20 +257,20 @@ void WSRequest::MakeMessageGET(std::string& msg, const char* method) const
   msg.append(method).append(" ").append(m_service_url);
   if (!m_contentData.empty())
     msg.append("?").append(m_contentData);
-  msg.append(" " REQUEST_PROTOCOL "\r\n");
+  msg.append(" " REQUEST_PROTOCOL WS_CRLF);
   snprintf(buf, sizeof(buf), "%u", m_port);
-  msg.append("Host: ").append(m_server).append(":").append(buf).append("\r\n");
+  msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ").append(m_server).append(":").append(buf).append(WS_CRLF);
   if (m_userAgent.empty())
-    msg.append("User-Agent: " REQUEST_USER_AGENT "\r\n");
+    msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": " REQUEST_USER_AGENT WS_CRLF);
   else
-    msg.append("User-Agent: ").append(m_userAgent).append("\r\n");
-  msg.append("Connection: " REQUEST_CONNECTION "\r\n");
-  if (m_accept != CT_NONE)
-    msg.append("Accept: ").append(MimeFromContentType(m_accept)).append("\r\n");
-  msg.append("Accept-Charset: ").append(m_charset).append("\r\n");
+    msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": ").append(m_userAgent).append(WS_CRLF);
+  msg.append(ws_header_to_str(WS_HEADER_Connection)).append(": " REQUEST_CONNECTION WS_CRLF);
+  if (!m_accept.empty())
+    msg.append(ws_header_to_str(WS_HEADER_Accept)).append(": ").append(m_accept).append(WS_CRLF);
+  msg.append(ws_header_to_str(WS_HEADER_Accept_Charset)).append(": ").append(m_charset).append(WS_CRLF);
   for (std::map<std::string, std::string>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
-    msg.append(it->first).append(": ").append(it->second).append("\r\n");
-  msg.append("\r\n");
+    msg.append(it->first).append(": ").append(it->second).append(WS_CRLF);
+  msg.append(WS_CRLF);
 }
 
 void WSRequest::MakeMessagePOST(std::string& msg, const char* method) const
@@ -265,27 +280,30 @@ void WSRequest::MakeMessagePOST(std::string& msg, const char* method) const
 
   msg.clear();
   msg.reserve(256);
-  msg.append(method).append(" ").append(m_service_url).append(" " REQUEST_PROTOCOL "\r\n");
+  msg.append(method).append(" ").append(m_service_url).append(" " REQUEST_PROTOCOL WS_CRLF);
   snprintf(buf, sizeof(buf), "%u", m_port);
-  msg.append("Host: ").append(m_server).append(":").append(buf).append("\r\n");
+  msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ").append(m_server).append(":").append(buf).append(WS_CRLF);
   if (m_userAgent.empty())
-    msg.append("User-Agent: " REQUEST_USER_AGENT "\r\n");
+    msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": " REQUEST_USER_AGENT WS_CRLF);
   else
-    msg.append("User-Agent: ").append(m_userAgent).append("\r\n");
-  msg.append("Connection: " REQUEST_CONNECTION "\r\n");
-  if (m_accept != CT_NONE)
-    msg.append("Accept: ").append(MimeFromContentType(m_accept)).append("\r\n");
-  msg.append("Accept-Charset: ").append(m_charset).append("\r\n");
-  if (content_len)
+    msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": ").append(m_userAgent).append(WS_CRLF);
+  msg.append(ws_header_to_str(WS_HEADER_Connection)).append(": " REQUEST_CONNECTION WS_CRLF);
+  if (!m_accept.empty())
+    msg.append(ws_header_to_str(WS_HEADER_Accept)).append(": ").append(m_accept).append(WS_CRLF);
+  msg.append(ws_header_to_str(WS_HEADER_Accept_Charset)).append(": ").append(m_charset).append(WS_CRLF);
+  if (m_contentType != WS_CTYPE_None && content_len)
   {
     snprintf(buf, sizeof(buf), "%lu", (unsigned long)content_len);
-    msg.append("Content-Type: ").append(MimeFromContentType(m_contentType));
-    msg.append("; charset=" REQUEST_STD_CHARSET "\r\n");
-    msg.append("Content-Length: ").append(buf).append("\r\n");
+    if (m_contentType == WS_CTYPE_UNKNOWN)
+      msg.append(ws_header_to_str(WS_HEADER_Content_Type)).append(": ").append(m_contentTypeStr);
+    else
+      msg.append(ws_header_to_str(WS_HEADER_Content_Type)).append(": ").append(ws_ctype_to_str(m_contentType));
+    msg.append("; charset=" REQUEST_STD_CHARSET WS_CRLF);
+    msg.append(ws_header_to_str(WS_HEADER_Content_Length)).append(": ").append(buf).append(WS_CRLF);
   }
   for (std::map<std::string, std::string>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
-    msg.append(it->first).append(": ").append(it->second).append("\r\n");
-  msg.append("\r\n");
+    msg.append(it->first).append(": ").append(it->second).append(WS_CRLF);
+  msg.append(WS_CRLF);
   if (content_len)
     msg.append(m_contentData);
 }
@@ -299,18 +317,18 @@ void WSRequest::MakeMessageHEAD(std::string& msg, const char* method) const
   msg.append(method).append(" ").append(m_service_url);
   if (!m_contentData.empty())
     msg.append("?").append(m_contentData);
-  msg.append(" " REQUEST_PROTOCOL "\r\n");
+  msg.append(" " REQUEST_PROTOCOL WS_CRLF);
   snprintf(buf, sizeof(buf), "%u", m_port);
-  msg.append("Host: ").append(m_server).append(":").append(buf).append("\r\n");
+  msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ").append(m_server).append(":").append(buf).append(WS_CRLF);
   if (m_userAgent.empty())
-    msg.append("User-Agent: " REQUEST_USER_AGENT "\r\n");
+    msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": " REQUEST_USER_AGENT WS_CRLF);
   else
-    msg.append("User-Agent: ").append(m_userAgent).append("\r\n");
-  msg.append("Connection: " REQUEST_CONNECTION "\r\n");
-  if (m_accept != CT_NONE)
-    msg.append("Accept: ").append(MimeFromContentType(m_accept)).append("\r\n");
-  msg.append("Accept-Charset: ").append(m_charset).append("\r\n");
+    msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": ").append(m_userAgent).append(WS_CRLF);
+  msg.append(ws_header_to_str(WS_HEADER_Connection)).append(": " REQUEST_CONNECTION WS_CRLF);
+  if (!m_accept.empty())
+    msg.append(ws_header_to_str(WS_HEADER_Accept)).append(": ").append(m_accept).append(WS_CRLF);
+  msg.append(ws_header_to_str(WS_HEADER_Accept_Charset)).append(": ").append(m_charset).append(WS_CRLF);
   for (std::map<std::string, std::string>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
-    msg.append(it->first).append(": ").append(it->second).append("\r\n");
-  msg.append("\r\n");
+    msg.append(it->first).append(": ").append(it->second).append(WS_CRLF);
+  msg.append(WS_CRLF);
 }

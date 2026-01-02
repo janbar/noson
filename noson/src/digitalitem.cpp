@@ -78,7 +78,7 @@ DigitalItem::DigitalItem(const std::string& objectID, const std::string& parentI
   if ((it = vars.FindKey(DIDL_QNAME_UPNP "class")) != vars.end())
   {
     std::vector<std::string> tokens;
-    tokenize((*it)->c_str(), ".", tokens);
+    tokenize((*it)->c_str(), ".", "", tokens);
     if (tokens.size() >= 2 && tokens[0] == "object")
     {
       if (tokens[1] == TypeTable[Type_container])

@@ -195,7 +195,7 @@ void FilePicReader::readParameters(const std::string& streamUrl, std::vector<std
 {
   size_t s = streamUrl.find('?');
   if (s != std::string::npos)
-    tokenize(streamUrl.substr(s + 1), "&", params, true);
+    tokenize(streamUrl.substr(s + 1), "&", "", params, true);
 }
 
 std::string FilePicReader::getParamValue(const std::vector<std::string>& params, const std::string& name)

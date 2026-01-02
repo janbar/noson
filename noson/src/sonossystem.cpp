@@ -38,6 +38,7 @@
 #include "private/os/threads/event.h"
 #include "private/cppdef.h"
 #include "private/xmldict.h"
+#include "private/wsstatic.h"
 
 #include <cassert>
 #include <set>
@@ -513,13 +514,13 @@ SMServicePtr System::GetServiceForMedia(const std::string& mediaUri)
   if (p)
   {
     std::vector<std::string> args;
-    tokenize(++p, "&", args, true);
+    tokenize(++p, "&", "", args, true);
     std::string sid;
     std::string sn;
     for (std::vector<std::string>::const_iterator ita = args.begin(); ita != args.end(); ++ita)
     {
       std::vector<std::string> tokens;
-      tokenize(*ita, "=", tokens);
+      tokenize(*ita, "=", "", tokens);
       if (tokens.size() != 2)
         break;
       if (tokens[0] == "sid")
@@ -698,12 +699,12 @@ bool System::FindDeviceDescription(std::string& url)
 #define HTTP_TOKEN_MAXSIZE  20
 
   static const char* msearch =
-  "M-SEARCH * HTTP/1.1\r\n"
-  "HOST: " SSDP_ADDR ":" SSDP_STRP "\r\n"
-  "MAN: \"ssdp:discover\"\r\n"
-  "MX: 1\r\n"
-  "ST: " DISCOVER_ST "\r\n"
-  "\r\n";
+  "M-SEARCH * HTTP/1.1" WS_CRLF
+  "HOST: " SSDP_ADDR ":" SSDP_STRP WS_CRLF
+  "MAN: \"ssdp:discover\"" WS_CRLF
+  "MX: 1" WS_CRLF
+  "ST: " DISCOVER_ST WS_CRLF
+  WS_CRLF;
 
   static struct timeval socket_timeout = { 0, 500000 };
 
@@ -730,7 +731,7 @@ bool System::FindDeviceDescription(std::string& url)
     std::string strread;
     size_t len = 0;
     unsigned _context = 0;
-    while (_context != 0xF && WSResponse::ReadHeaderLine(&sock, "\r\n", strread, &len))
+    while (_context != 0xF && WSResponse::ReadHeaderLine(&sock, WS_CRLF, strread, &len))
     {
       const char* line = strread.c_str();
       if (_context == 0 && strstr(line, "HTTP/1."))

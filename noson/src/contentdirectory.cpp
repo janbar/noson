@@ -154,7 +154,7 @@ void ContentDirectory::HandleEventMessage(EventMessagePtr msg)
           {
             prop->ContainerUpdateIDs.clear();
             std::vector<std::string> tokens;
-            tokenize((*++it).c_str(), ",", tokens);
+            tokenize((*++it).c_str(), ",", "", tokens);
             std::vector<std::string>::const_iterator itt = tokens.begin();
             while (itt != tokens.end())
             {

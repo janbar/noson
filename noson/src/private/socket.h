@@ -34,7 +34,7 @@
 #define SOCKET_READ_TIMEOUT_USEC      0
 #define SOCKET_READ_ATTEMPT           3
 #define SOCKET_BUFFER_SIZE            1472
-#define SOCKET_CONNECTION_REQUESTS    5
+#define SOCKET_LISTEN_QUEUE_SIZE      50
 
 namespace NSROOT
 {
@@ -89,7 +89,7 @@ namespace NSROOT
      * @param rcvbuf the size of read buffer, else 0 for SOCKET_RCVBUF_MINSIZE
      * @return true on success, else false
      */
-    virtual bool Connect(const char *server, unsigned port, int rcvbuf);
+    virtual bool Connect(const char* server, unsigned port, int rcvbuf);
 
     /**
      * Send data into the socket.
@@ -161,7 +161,7 @@ namespace NSROOT
   {
   public:
     TcpServerSocket();
-    ~TcpServerSocket();
+    virtual ~TcpServerSocket();
 
     /**
      * @return the last error occuring on call
@@ -191,7 +191,7 @@ namespace NSROOT
      * @param queueSize the maximum length for the queue of pending connections
      * @return true on success, else false
      */
-    bool ListenConnection(int queueSize = SOCKET_CONNECTION_REQUESTS);
+    bool ListenConnection(int queueSize = SOCKET_LISTEN_QUEUE_SIZE);
 
     /**
      * Await a connection.
@@ -199,6 +199,11 @@ namespace NSROOT
      * @return true on success, else false
      */
     bool AcceptConnection(TcpSocket& socket);
+
+    /**
+     * @return the address string of the accepted remote
+     */
+    std::string GetRemoteAddrInfo();
 
     /**
      * Close the socket.
@@ -312,7 +317,7 @@ namespace NSROOT
     UdpSocket& operator=(const UdpSocket&);
   };
 
-  class UdpServerSocket
+  class UdpServerSocket : public NetSocket
   {
   public:
     UdpServerSocket();
@@ -340,7 +345,15 @@ namespace NSROOT
      * @param port
      * @return true on success, else false
      */
-    bool Bind(unsigned port);
+    bool Bind(unsigned port, bool reuse = false);
+
+    /**
+     * Bind the socket to the given local address and port.
+     * @param addr
+     * @param port
+     * @return true on success, else false
+     */
+    bool Bind(const char* addr, unsigned port, bool reuse = false);
 
     /**
      * Configure hop limit value to be used for multicast packets on the opened
@@ -362,7 +375,6 @@ namespace NSROOT
      * Wait for incoming data.
      * @return the size of datagram else 0 when timeout occurred
      */
-    size_t AwaitIncoming(timeval timeout);
     size_t AwaitIncoming();
 
     /**
@@ -370,6 +382,31 @@ namespace NSROOT
      * datagram
      */
     std::string GetRemoteAddrInfo() const;
+
+    /**
+     * A stub routine returns always false.
+     * @return false
+     */
+    bool SendData(const char*, size_t) { return false; }
+
+    /**
+     * Await incoming then read data from the datagram buffer.
+     * @param buf the pointer to write received data
+     * @param n the number of byte to read
+     * @return the number of received byte
+     */
+    size_t ReceiveData(void* buf, size_t n)
+    {
+      size_t r = 0;
+      if (IsValid())
+      {
+        if ((r = ReadData(buf, n)) > 0)
+          return r;
+        if (AwaitIncoming() > 0)
+          return ReadData(buf, n);
+      }
+      return r;
+    }
 
     /**
      * Read remaining data from the datagram buffer.
@@ -393,37 +430,10 @@ namespace NSROOT
     char* m_bufptr;
     size_t m_buflen;
     size_t m_rcvlen;
-    struct timeval m_timeout;
 
     // prevent copy
     UdpServerSocket(const UdpServerSocket&);
     UdpServerSocket& operator=(const UdpServerSocket&);
-  };
-
-  class UdpMessageReader : public NetSocket
-  {
-  public:
-    UdpMessageReader(UdpServerSocket& boundSocket)
-    : NetSocket()
-    , m_bound(boundSocket) { }
-
-    bool SendData(const char* buf, size_t size) { (void)buf; (void)size; return false; };
-
-    size_t ReceiveData(void* buf, size_t n)
-    {
-      size_t r = 0;
-      if (m_bound.IsValid())
-      {
-        if ((r = m_bound.ReadData(buf, n)) > 0)
-          return r;
-        if (m_bound.AwaitIncoming(m_timeout) > 0)
-          return m_bound.ReadData(buf, n);
-      }
-      return r;
-    }
-
-  private:
-    UdpServerSocket& m_bound;
   };
 
 }

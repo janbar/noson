@@ -88,9 +88,9 @@ ElementList Service::Request(const std::string& action, const ElementList& args)
   content.append("</s:Envelope>");
 
   WSRequest request(m_host, m_port);
-  request.RequestService(GetControlURL(), HRM_POST);
+  request.RequestService(GetControlURL(), WS_METHOD_Post);
   request.SetHeader("SOAPAction", soapaction);
-  request.SetContentCustom(CT_XML, content.c_str());
+  request.SetContentCustom("text/xml", content.c_str());
   WSResponse response(request);
 
   if (!response.IsSuccessful())

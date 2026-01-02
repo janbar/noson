@@ -20,7 +20,6 @@
  */
 
 #include "uriparser.h"
-#include "cppdef.h"
 
 #include <ctype.h> // for toupper
 #include <cstring> // for strchr
@@ -39,7 +38,9 @@ URIParser::URIParser(const std::string& location)
 
 URIParser::~URIParser()
 {
-  SAFE_DELETE_ARRAY(m_buffer);
+  if (m_buffer)
+    delete [] m_buffer;
+  m_buffer = nullptr;
 }
 
 void URIParser::URIScan(char *uri, URI_t *parts)
@@ -49,7 +50,7 @@ void URIParser::URIScan(char *uri, URI_t *parts)
   memset(parts, '\0', sizeof(URI_t));
 
   /* space is not allowed, therefore break on space */
-  if ((p = strchr(uri, ' ')) != NULL)
+  if ((p = strchr(uri, ' ')) != nullptr)
     *p = '\0';
 
   /* first look for scheme */
@@ -67,7 +68,7 @@ void URIParser::URIScan(char *uri, URI_t *parts)
               && toupper(after_scheme[2]) == 'L')
       {
         /* ignore IETF's URL: pre-prefix */
-        parts->scheme = NULL;
+        parts->scheme = nullptr;
       }
       else
       {
@@ -89,7 +90,7 @@ void URIParser::URIScan(char *uri, URI_t *parts)
       /* terminate scheme */
       *p = '\0';
       /* look for end of host:port if any */
-      if ((p = strchr(parts->host, '/')) != NULL)
+      if ((p = strchr(parts->host, '/')) != nullptr)
       {
         /* terminate host:port */
         *p = '\0';
@@ -97,14 +98,14 @@ void URIParser::URIScan(char *uri, URI_t *parts)
         parts->absolute = p + 1;
       }
       /* look for user:pass from host */
-      if ((p = strchr(parts->host, '@')) != NULL)
+      if ((p = strchr(parts->host, '@')) != nullptr)
       {
         /* terminate user:pass */
         *p = '\0';
         parts->user = parts->host;
         parts->host = p + 1;
         /* look for pass from user */
-        if ((p = strchr(parts->user, ':')) != NULL)
+        if ((p = strchr(parts->user, ':')) != nullptr)
         {
           /* terminate user */
           *p = '\0';
@@ -112,7 +113,7 @@ void URIParser::URIScan(char *uri, URI_t *parts)
         }
       }
       /* look for port from [host] */
-      if ((p = strchr(parts->host, ']')) != NULL)
+      if ((p = strchr(parts->host, ']')) != nullptr)
       {
         /* terminate host */
         *p = '\0';
@@ -123,7 +124,7 @@ void URIParser::URIScan(char *uri, URI_t *parts)
       else
       {
         /* look for port from host */
-        if ((p = strchr(parts->host, ':')) != NULL)
+        if ((p = strchr(parts->host, ':')) != nullptr)
         if (p)
         {
           /* terminate host */
@@ -140,8 +141,8 @@ void URIParser::URIScan(char *uri, URI_t *parts)
   }
   else
   {
-    /* NULL for "" */
-    parts->relative = (*after_scheme) ? after_scheme : NULL;
+    /* nullptr for "" */
+    parts->relative = (*after_scheme) ? after_scheme : nullptr;
   }
 
   /* parse fragment from path */
@@ -151,14 +152,14 @@ void URIParser::URIScan(char *uri, URI_t *parts)
     after_scheme = parts->absolute;
 
   /* look for fragment identifier */
-  if ((p = strchr(after_scheme, '#')) != NULL)
+  if ((p = strchr(after_scheme, '#')) != nullptr)
   {
     *p = '\0';
     parts->fragment = ++p;
     after_scheme = p;
   }
   /* parse params to follow */
-  if ((p = strchr(after_scheme, '?')) != NULL)
+  if ((p = strchr(after_scheme, '?')) != nullptr)
   {
     *p = '\0';
     parts->params = ++p;

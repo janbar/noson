@@ -19,6 +19,7 @@
 #include "upnpnotificationbroker.h"
 #include "../eventhandler.h"
 #include "debug.h"
+#include "wsstatic.h"
 #include "tinyxml2.h"
 #include "xmldict.h"
 
@@ -77,7 +78,7 @@ void UPNPNotificationBroker::Reply500(handle * handle)
 {
   std::string resp;
   resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_Internal_Server_Error))
-      .append("\r\n");
+      .append(WS_CRLF);
   RequestBroker::Reply(handle, resp.c_str(), resp.length());
 }
 
@@ -232,7 +233,7 @@ void UPNPNotificationBroker::Process(handle * handle)
   handle->handler->DispatchEvent(EventMessagePtr(msg));
   std::string resp;
   resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
-      .append("\r\n");
+      .append(WS_CRLF);
   RequestBroker::Reply(handle, resp.c_str(), resp.length());
   return;
 }

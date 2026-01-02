@@ -23,7 +23,7 @@
 #define	WSREQUEST_H
 
 #include "local_config.h"
-#include "wscontent.h"
+#include "wsstatic.h"
 #include "uriparser.h"
 
 #include <cstddef>  // for size_t
@@ -31,40 +31,30 @@
 #include <map>
 
 #define REQUEST_PROTOCOL      "HTTP/1.1"
-#define REQUEST_USER_AGENT    "libnoson/" LIBVERSION
-#define REQUEST_CONNECTION    "close" // "keep-alive"
+#define REQUEST_USER_AGENT    LIBTAG "/" LIBVERSION
+#define REQUEST_CONNECTION    "close"
 #define REQUEST_STD_CHARSET   "utf-8"
 
 namespace NSROOT
 {
-
-  typedef enum
-  {
-    HRM_GET,
-    HRM_POST,
-    HRM_HEAD,
-    HRM_SUBSCRIBE,
-    HRM_UNSUBSCRIBE,
-    HRM_NOTIFY,
-  } HRM_t;
 
   class WSRequest
   {
   public:
     WSRequest(const std::string& server, unsigned port);
     WSRequest(const std::string& server, unsigned port, bool secureURI);
-    WSRequest(const URIParser& uri, HRM_t method = HRM_GET);
+    WSRequest(const URIParser& uri, WS_METHOD method = WS_METHOD_Get);
     ~WSRequest();
 
     // Clone for redirection: see RFC-9110 section 10.2.2 Location
     WSRequest(const WSRequest& o, const URIParser& redirection);
 
-    void RequestService(const std::string& url, HRM_t method = HRM_GET);
-    void RequestAccept(CT_t contentType);
+    void RequestService(const std::string& url, WS_METHOD method = WS_METHOD_Get);
+    void RequestAccept(const std::string& contentType);
     void RequestAcceptEncoding(bool yesno);
     void SetUserAgent(const std::string& value);
     void SetContentParam(const std::string& param, const std::string& value);
-    void SetContentCustom(CT_t contentType, const char *content);
+    void SetContentCustom(const std::string& contentType, const char *content);
     void SetHeader(const std::string& field, const std::string& value);
     const std::string& GetContent() const { return m_contentData; }
     void ClearContent();
@@ -74,7 +64,7 @@ namespace NSROOT
     const std::string& GetServer() const { return m_server; }
     unsigned GetPort() const { return m_port; }
     bool IsSecureURI() const { return m_secure_uri; }
-    HRM_t GetMethod() const { return m_service_method; }
+    WS_METHOD GetMethod() const { return m_service_method; }
     const std::string& GetService() const { return m_service_url; }
 
   private:
@@ -82,10 +72,11 @@ namespace NSROOT
     unsigned m_port;
     bool m_secure_uri;
     std::string m_service_url;
-    HRM_t m_service_method;
+    WS_METHOD m_service_method;
     std::string m_charset;
-    CT_t m_accept;
-    CT_t m_contentType;
+    std::string m_accept;
+    WS_CTYPE m_contentType;
+    std::string m_contentTypeStr;
     std::string m_contentData;
     std::map<std::string, std::string> m_headers;
     std::string m_userAgent;

@@ -35,8 +35,14 @@ namespace NSROOT
   public:
     static SSLSessionFactory& Instance();
     static void Destroy();
-    bool isEnabled() const { return m_enabled; }
-    SecureSocket* NewSocket();
+    bool IsEnabled() const { return m_enabled; }
+
+    /**
+     * Create a new client socket.
+     * Ownership of the returned pointer is transferred to the caller.
+     * @return new pointer to socket or nullptr on failure
+     */
+    SecureSocket* NewClientSocket();
 
   private:
     SSLSessionFactory();
@@ -45,13 +51,44 @@ namespace NSROOT
     SSLSessionFactory& operator=(const SSLSessionFactory&);
 
     static SSLSessionFactory* m_instance;
-    bool m_enabled;   ///< SSL feature status
-    void* m_ctx;      ///< SSL default context for the application
+    void* m_client_ctx;       ///< SSL default client context
+    bool m_enabled;           ///< SSL feature status
+  };
+
+  class SSLServerContext
+  {
+  public:
+    SSLServerContext() : m_server_ctx(nullptr) { }
+    ~SSLServerContext();
+
+    /**
+     * Initialize the server context with the given identity.
+     * The certificate and key must match for the operation to succeed.
+     * @param certfile the string path of the certificate file (pem)
+     * @param pkeyfile the string path of the private key file (pem)
+     * @return true on success, else false
+     */
+    bool InitContext(const std::string& certfile, const std::string& pkeyfile);
+
+    /**
+     * Create a new server socket with this context.
+     * Ownership of the returned pointer is transferred to the caller.
+     * @return new pointer to socket or nullptr on failure
+     */
+    SecureSocket* NewServerSocket();
+
+  private:
+    SSLServerContext(const SSLServerContext& other);
+    SSLServerContext& operator=(const SSLServerContext& other);
+
+    void* m_server_ctx;       ///< SSL server context
   };
 
   class SecureSocket : public TcpSocket
   {
     friend class SSLSessionFactory;
+    friend class SSLServerContext;
+    friend class SecureServerSocket;
   public:
     virtual ~SecureSocket();
 
@@ -60,9 +97,10 @@ namespace NSROOT
     bool SendData(const char* buf, size_t size);
     size_t ReceiveData(void* buf, size_t n);
     void Disconnect();
-    bool IsValid() const;
 
     bool IsCertificateValid(std::string& info);
+
+    const char* GetSSLError();
 
   private:
     SecureSocket(void* ssl);
@@ -71,6 +109,23 @@ namespace NSROOT
     void* m_cert;     ///< X509 certificate
     bool m_connected; ///< SSL session state
     int m_ssl_error;  ///< SSL error code
+    char* m_errmsg;   ///< error message buffer
+  };
+
+  class SecureServerSocket
+  {
+  public:
+    /**
+     * Await a connection.
+     * @param listener the tcp server socket to accept new connection
+     * @param socket the secure socket to connect on new request
+     * @return true on success, else false
+     */
+    static bool AcceptConnection(TcpServerSocket& listener,
+                                 SecureSocket& socket);
+  private:
+    SecureServerSocket() { }
+    ~SecureServerSocket() { }
   };
 }
 

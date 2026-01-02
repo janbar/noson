@@ -174,7 +174,7 @@ bool SubscriptionThreadImpl::Configure()
 bool SubscriptionThreadImpl::SubscribeForEvent(bool renew)
 {
   WSRequest request(m_host, m_port);
-  request.RequestService(m_url, HRM_SUBSCRIBE);
+  request.RequestService(m_url, WS_METHOD_Subscribe);
   // is renewable ?
   if (renew && m_renewable && m_timeout.TimeLeft() > 0)
   {
@@ -207,7 +207,7 @@ bool SubscriptionThreadImpl::UnSubscribeForEvent()
   if (!m_SID.empty())
   {
     WSRequest request(m_host, m_port);
-    request.RequestService(m_url, HRM_UNSUBSCRIBE);
+    request.RequestService(m_url, WS_METHOD_Unsubscribe);
     request.SetHeader("SID", m_SID);
     WSResponse response(request);
     if (!response.IsSuccessful())

@@ -171,7 +171,7 @@ JSON::Node JSON::Node::GetObjectValue(const char *key) const
 
 JSON::Document::Document(NSROOT::WSResponse& resp)
 : m_isValid(false)
-, m_document(NULL)
+, m_document(nullptr)
 {
   std::string content;
   content.reserve(resp.GetContentLength());
@@ -180,6 +180,28 @@ JSON::Document::Document(NSROOT::WSResponse& resp)
   char buf[4000];
   while ((s = resp.ReadContent(buf, sizeof(buf))))
     content.append(buf, s);
+  if (!content.empty())
+  {
+    DBG(DBG_PROTO, "%s: %s\n", __FUNCTION__, content.c_str());
+    // Parse JSON content
+    m_document = new sajson::document(sajson::parse(sajson::string(content.c_str(), content.length())));
+    if (!m_document)
+      DBG(DBG_ERROR, "%s: memory allocation failed\n", __FUNCTION__);
+    else if (!m_document->is_valid())
+      DBG(DBG_ERROR, "%s: failed to parse: %d: %s\n", __FUNCTION__, (int)m_document->get_error_line(), m_document->get_error_message().c_str());
+    else
+      m_isValid = true;
+  }
+  else
+  {
+    DBG(DBG_ERROR, "%s: read error\n", __FUNCTION__);
+  }
+}
+
+JSON::Document::Document(const std::string& content)
+: m_isValid(false)
+, m_document(nullptr)
+{
   if (!content.empty())
   {
     DBG(DBG_PROTO, "%s: %s\n", __FUNCTION__, content.c_str());

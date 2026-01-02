@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2015 Jean-Luc Barriere
+ *      Copyright (C) 2014-2024 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -26,22 +26,77 @@
 #include <vector>
 
 #define tokenize __tokenize
-inline void __tokenize(const std::string& str, const char *delimiters, std::vector<std::string>& tokens, bool trimnull = false)
+inline bool __tokenize(
+        const std::string& str,
+        const std::string& separator,
+        const std::string& encapsulator,
+        std::vector<std::string>& tokens,
+        bool trimnull = false)
 {
-  std::string::size_type pa = 0, pb = 0;
-  unsigned n = 0;
-  // Counter n will break infinite loop. Max count is 255 tokens
-  while ((pb = str.find_first_of(delimiters, pb)) != std::string::npos && ++n < 255)
+  tokens.clear();
+  size_t pos = 0;
+  size_t end = str.size();
+  if (pos == end)
+    return true;
+  size_t lsep = separator.size();
+  size_t lenc = encapsulator.size();
+  std::string token;
+  bool first =  true;
+  bool encap = false;
+  while (pos != end)
   {
-    tokens.push_back(str.substr(pa, pb - pa));
-    do
+    if (lenc && str.compare(pos, lenc, encapsulator) == 0)
     {
-      pa = ++pb;
+      pos += lenc;
+      if (encap)
+      {
+        if (pos == end || str.compare(pos, lenc, encapsulator) != 0)
+        {
+          encap = false;
+          while (pos != end && lsep && str.compare(pos, lsep, separator) != 0) ++pos;
+        }
+        else
+        {
+          token.push_back(str[pos]);
+          ++pos;
+        }
+      }
+      else if (!first)
+      {
+        // invalid character in stream
+        return false;
+      }
+      else
+      {
+        encap = true;
+      }
     }
-    while (trimnull && str.find_first_of(delimiters, pb) == pb);
+    else if (!encap && lsep && str.compare(pos, lsep, separator) == 0)
+    {
+      // trim null token
+      if (!trimnull || !token.empty())
+      {
+        tokens.push_back(std::move(token));
+        token.clear();
+      }
+      first = true;
+      pos += lsep;
+    }
+    else
+    {
+      first = false;
+      token.push_back(str[pos]);
+      ++pos;
+    }
   }
-  if (!trimnull || pa < str.size())
-    tokens.push_back(str.substr(pa));
+  if (encap)
+  {
+    // quoted string not terminated
+    return false;
+  }
+  if (!trimnull || !token.empty())
+    tokens.push_back(std::move(token));
+  return true;
 }
 
 #endif /* TOKENIZER_H */

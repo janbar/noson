@@ -153,9 +153,15 @@ namespace NSROOT
 
     /**
      * @param handle
-     * @return The URI intended by the request
+     * @return The URI path intended by the request
      */
-    static const std::string& GetRequestURI(handle * handle);
+    static const std::string& GetRequestURIPath(handle * handle);
+
+    /**
+     * @param handle
+     * @return The URI params intended by the request
+     */
+    static const std::string& GetRequestURIParams(handle * handle);
 
     /**
      * @param handle
@@ -198,10 +204,10 @@ namespace NSROOT
     /**
      * @brief Helper to build the delegate url from a call uri
      * @param res the delegated resource
-     * @param uri the call uri
+     * @param params the uri params
      * @return the valid url to pass to the delegate
      */
-    static std::string buildDelegateUrl(const Resource& res, const std::string& uri);
+    static std::string buildDelegateUrl(const Resource& res, const std::string& params);
 
     /**
      * @brief Helper to build uri from the given root and path

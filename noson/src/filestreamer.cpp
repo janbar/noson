@@ -22,6 +22,7 @@
 #include "private/debug.h"
 #include "private/urlencoder.h"
 #include "private/tokenizer.h"
+#include "private/wsstatic.h"
 
 #include <cstring>
 #include <cstdio>
@@ -80,14 +81,14 @@ FileStreamer::FileStreamer()
 
 bool FileStreamer::HandleRequest(handle * handle)
 {
-  const std::string& requrl = RequestBroker::GetRequestURI(handle);
+  const std::string& requrl = RequestBroker::GetRequestURIPath(handle);
   ResourceList::const_iterator it = m_resources.begin();
   while (!IsAborted() && it != m_resources.end())
   {
     if (requrl.compare(0, (*it)->uri.length(), (*it)->uri) == 0)
     {
       std::vector<std::string> params;
-      readParameters(requrl, params);
+      tokenize(RequestBroker::GetRequestURIParams(handle), "&", "", params, true);
       std::string filePath = getParamValue(params, FILESTREAMER_PARAM_PATH);
       if (probe(filePath, (*it)->contentType))
       {
@@ -101,7 +102,7 @@ bool FileStreamer::HandleRequest(handle * handle)
             break;
           }
         }
-        
+
         switch (RequestBroker::GetRequestMethod(handle))
         {
         case RequestBroker::Method_GET:
@@ -114,10 +115,10 @@ bool FileStreamer::HandleRequest(handle * handle)
         {
           std::string resp;
           resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
-              .append("Content-Type: ").append((*it)->contentType).append("\r\n");
+              .append("Content-Type: ").append((*it)->contentType).append(WS_CRLF);
           if (transfer == Transfer_ByRange)
-            resp.append("Content-Length: ").append(std::to_string(getFileLength(filePath))).append("\r\n");
-          resp.append("\r\n");
+            resp.append("Content-Length: ").append(std::to_string(getFileLength(filePath))).append(WS_CRLF);
+          resp.append(WS_CRLF);
           RequestBroker::Reply(handle, resp.c_str(), resp.length());
           return true;
         }
@@ -196,13 +197,6 @@ std::string FileStreamer::MakeFileStreamURI(const std::string& filePath, const s
     streamUri.assign(res->uri).append("?path=").append(pathParm);
 
   return streamUri;
-}
-
-void FileStreamer::readParameters(const std::string& streamUrl, std::vector<std::string>& params)
-{
-  size_t s = streamUrl.find('?');
-  if (s != std::string::npos)
-    tokenize(streamUrl.substr(s + 1), "&", params, true);
 }
 
 std::string FileStreamer::getParamValue(const std::vector<std::string>& params, const std::string& name)
@@ -380,27 +374,27 @@ void FileStreamer::streamFileByChunk(handle * handle, const std::string& filePat
     size_t tb = 0; // count transfered bytes
     std::string resp;
     resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
-        .append("Content-Type: ").append(mimeType).append("\r\n")
-        .append("Transfer-Encoding: chunked\r\n")
-        .append("\r\n");
+        .append("Content-Type: ").append(mimeType).append(WS_CRLF)
+        .append("Transfer-Encoding: chunked" WS_CRLF)
+        .append(WS_CRLF);
 
     if (RequestBroker::Reply(handle, resp.c_str(), resp.length()))
     {
       char * buf = new char [FILESTREAMER_CHUNK + 16];
       size_t r = 0;
-      while (!IsAborted() && (r = fread(buf + 7, 1, FILESTREAMER_CHUNK, file)) > 0)
+      while (!IsAborted() && (r = fread(buf + 5 + WS_CRLF_LEN, 1, FILESTREAMER_CHUNK, file)) > 0)
       {
-        char str[8];
-        snprintf(str, sizeof(str), "%05x\r\n", (unsigned)r & 0xfffff);
-        memcpy(buf, str, 7);
-        memcpy(buf + r + 7, "\r\n", 2);
-        if (!RequestBroker::Reply(handle, buf, r + 7 + 2))
+        char str[6 + WS_CRLF_LEN];
+        snprintf(str, sizeof(str), "%05x" WS_CRLF, (unsigned)r & 0xfffff);
+        memcpy(buf, str, 5 + WS_CRLF_LEN);
+        memcpy(buf + r + 5 + WS_CRLF_LEN, WS_CRLF, WS_CRLF_LEN);
+        if (!RequestBroker::Reply(handle, buf, r + 5 + WS_CRLF_LEN + WS_CRLF_LEN))
           break;
         tb += r;
       }
       delete [] buf;
       if (r == 0)
-        RequestBroker::Reply(handle, "0\r\n\r\n", 5);
+        RequestBroker::Reply(handle, "0" WS_CRLF WS_CRLF, 1 + WS_CRLF_LEN + WS_CRLF_LEN);
     }
     DBG(DBG_INFO, "%s: close stream #%d length (%lu)\n", __FUNCTION__, id, (long unsigned)tb);
     fclose(file);
@@ -439,15 +433,15 @@ void FileStreamer::streamFileByRange(handle * handle, const std::string& filePat
         resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_Partial_Content))
             .append("Content-Range: bytes ")
             .append(std::to_string(rg.start)).append("-").append(std::to_string(rg.end))
-            .append("/").append(std::to_string(flen)).append("\r\n");
+            .append("/").append(std::to_string(flen)).append(WS_CRLF);
       }
       else
       {
         resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK));
       }
-      resp.append("Content-Type: ").append(mimeType).append("\r\n")
-          .append("Content-Length: ").append(std::to_string(len)).append("\r\n")
-          .append("\r\n");
+      resp.append("Content-Type: ").append(mimeType).append(WS_CRLF)
+          .append("Content-Length: ").append(std::to_string(len)).append(WS_CRLF)
+          .append(WS_CRLF);
 
       if (RequestBroker::Reply(handle, resp.c_str(), resp.length()))
       {
@@ -482,7 +476,7 @@ void FileStreamer::Reply500(handle * handle)
 {
   std::string resp;
   resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_Internal_Server_Error))
-      .append("\r\n");
+      .append(WS_CRLF);
   RequestBroker::Reply(handle, resp.c_str(), resp.length());
 }
 
@@ -490,7 +484,7 @@ void FileStreamer::Reply400(handle * handle)
 {
   std::string resp;
   resp.append(RequestBroker::MakeResponseHeader(RequestBroker::Status_Bad_Request))
-      .append("\r\n");
+      .append(WS_CRLF);
   RequestBroker::Reply(handle, resp.c_str(), resp.length());
 }
 
@@ -498,6 +492,6 @@ void FileStreamer::Reply429(handle * handle)
 {
   std::string resp;
   resp.append(RequestBroker::MakeResponseHeader(RequestBroker::Status_Too_Many_Requests))
-      .append("\r\n");
+      .append(WS_CRLF);
   RequestBroker::Reply(handle, resp.c_str(), resp.length());
 }

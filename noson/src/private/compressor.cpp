@@ -20,7 +20,6 @@
  */
 
 #include "compressor.h"
-#include "cppdef.h"
 
 #if HAVE_ZLIB
 #include <zlib.h>
@@ -93,9 +92,14 @@ Compressor::~Compressor()
 #if HAVE_ZLIB
   z_stream *strm = static_cast<z_stream*>(_opaque);
   deflateEnd(strm);
-  SAFE_DELETE(strm);
-  SAFE_DELETE_ARRAY(m_output);
-  SAFE_DELETE_ARRAY(m_rstream_buf);
+  if (strm)
+    delete strm;
+  if (m_output)
+    delete [] m_output;
+  m_output = nullptr;
+  if (m_rstream_buf)
+    delete [] m_rstream_buf;
+  m_rstream_buf = nullptr;
 #endif
 }
 
@@ -333,9 +337,14 @@ Decompressor::~Decompressor()
 #if HAVE_ZLIB
   z_stream *strm = static_cast<z_stream*>(_opaque);
   inflateEnd(strm);
-  SAFE_DELETE(strm);
-  SAFE_DELETE_ARRAY(m_output);
-  SAFE_DELETE_ARRAY(m_rstream_buf);
+  if (strm)
+    delete strm;
+  if (m_output)
+    delete [] m_output;
+  m_output = nullptr;
+  if (m_rstream_buf)
+    delete [] m_rstream_buf;
+  m_rstream_buf = nullptr;
 #endif
 }
 

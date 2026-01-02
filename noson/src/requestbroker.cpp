@@ -22,7 +22,7 @@
 #include "private/requestbrokeropaque.h"
 #include "private/socket.h"
 #include "private/wsrequestbroker.h"
-#include "private/wsstatus.h"
+#include "private/wsstatic.h"
 #include <cassert>
 
 using namespace NSROOT;
@@ -47,21 +47,20 @@ bool RequestBroker::Initialize() { return true; }
 std::string RequestBroker::MakeResponseHeader(Status status)
 {
   std::string header;
-  HSC_t hsc = HSC_Unknown;
+  WS_STATUS hsc = WS_STATUS_Internal_Server_Error;
   switch (status)
   {
-  case Status_OK: hsc = HSC_OK; m_200.Increment(); break;
-  case Status_Partial_Content: hsc = HSC_Partial_Content; m_200.Increment(); break;
-  case Status_Bad_Request: hsc = HSC_Bad_Request; m_400.Increment(); break;
-  case Status_Not_Found: hsc = HSC_Not_Found; m_404.Increment(); break;
-  case Status_Too_Many_Requests: hsc = HSC_Too_Many_Requests; m_429.Increment(); break;
-  case Status_Internal_Server_Error: hsc = HSC_Internal_Server_Error; m_500.Increment(); break;
-  case Status_Service_Unavailable: hsc = HSC_Service_Unavailable; m_503.Increment(); break;
+  case Status_OK: hsc = WS_STATUS_OK; m_200.Increment(); break;
+  case Status_Partial_Content: hsc = WS_STATUS_Partial_Content; m_200.Increment(); break;
+  case Status_Bad_Request: hsc = WS_STATUS_Bad_Request; m_400.Increment(); break;
+  case Status_Not_Found: hsc = WS_STATUS_Not_Found; m_404.Increment(); break;
+  case Status_Too_Many_Requests: hsc = WS_STATUS_Too_Many_Requests; m_429.Increment(); break;
+  case Status_Internal_Server_Error: hsc = WS_STATUS_Internal_Server_Error; m_500.Increment(); break;
+  case Status_Service_Unavailable: hsc = WS_STATUS_Service_Unavailable; m_503.Increment(); break;
   }
-  WSStatus ws(hsc);
-  header.append(REQUEST_PROTOCOL " ").append(ws.GetString()).append(" ").append(ws.GetMessage()).append("\r\n");
-  header.append("Server: ").append(REQUEST_USER_AGENT).append("\r\n");
-  header.append("Connection: close\r\n");
+  header.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(hsc)).append(" ").append(ws_status_to_msgstr(hsc)).append(WS_CRLF);
+  header.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
+  header.append("Connection: close" WS_CRLF);
   return header;
 }
 
@@ -74,41 +73,47 @@ bool RequestBroker::Reply(handle * handle, const char* data, size_t size)
 RequestBroker::Method RequestBroker::GetRequestMethod(handle * handle)
 {
   assert(handle);
-  switch (handle->payload->request->GetParsedMethod())
+  switch (handle->payload->request->GetRequestMethod())
   {
-  case HRM_GET:
+  case WS_METHOD_Get:
     return Method_GET;
-  case HRM_POST:
+  case WS_METHOD_Post:
     return Method_POST;
-  case HRM_HEAD:
+  case WS_METHOD_Head:
     return Method_HEAD;
-  case HRM_SUBSCRIBE:
+  case WS_METHOD_Subscribe:
     return Method_SUBSCRIBE;
-  case HRM_UNSUBSCRIBE:
+  case WS_METHOD_Unsubscribe:
     return Method_UNSUBSCRIBE;
-  case HRM_NOTIFY:
+  case WS_METHOD_Notify:
     return Method_NOTIFY;
   default:
     return Method_UNKNOWN;
   }
 }
 
-const std::string& RequestBroker::GetRequestURI(handle * handle)
+const std::string& RequestBroker::GetRequestURIPath(handle * handle)
 {
   assert(handle);
-  return handle->payload->request->GetParsedURI();
+  return handle->payload->request->GetRequestURIPath();
+}
+
+const std::string& RequestBroker::GetRequestURIParams(handle * handle)
+{
+  assert(handle);
+  return handle->payload->request->GetRequestURIParams();
 }
 
 const std::string& RequestBroker::GetRequestProtocol(handle * handle)
 {
   assert(handle);
-  return handle->payload->request->GetParsedQueryProtocol();
+  return handle->payload->request->GetRequestProtocol();
 }
 
 const std::string& RequestBroker::GetRequestHeader(handle * handle, const std::string& name)
 {
   assert(handle);
-  return handle->payload->request->GetParsedNamedEntry(name);
+  return handle->payload->request->GetRequestHeader(name);
 }
 
 bool RequestBroker::HasContent(handle * handle)
@@ -143,12 +148,11 @@ size_t RequestBroker::ReadContent(handle * handle, std::string& data)
   return len;
 }
 
-std::string RequestBroker::buildDelegateUrl(const RequestBroker::Resource& res, const std::string& uri)
+std::string RequestBroker::buildDelegateUrl(const RequestBroker::Resource& res, const std::string& params)
 {
-  size_t a = uri.find('?');
-  if (a != std::string::npos)
-    return res.sourcePath + uri.substr(a);
-  return res.sourcePath;
+  if (params.empty())
+    return res.sourcePath;
+  return res.sourcePath + "?" + params;
 }
 
 std::string RequestBroker::buildUri(const std::string &rootUri, const std::string &path)

@@ -19,7 +19,7 @@
  */
 
 #include "eventbroker.h"
-#include "wsstatus.h"
+#include "wsstatic.h"
 #include "debug.h"
 #include "requestbrokeropaque.h"
 
@@ -46,11 +46,11 @@ void EventBroker::Process()
 
   if (!rb.IsParsed())
   {
-    WSStatus status(HSC_Bad_Request);
-    resp.append(REQUEST_PROTOCOL " ").append(status.GetString()).append(" ").append(status.GetMessage()).append("\r\n");
-    resp.append("Server: ").append(REQUEST_USER_AGENT).append("\r\n");
-    resp.append("Connection: close\r\n");
-    resp.append("\r\n");
+    WS_STATUS status(WS_STATUS_Bad_Request);
+    resp.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
+    resp.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
+    resp.append("Connection: close" WS_CRLF);
+    resp.append(WS_CRLF);
     m_sockPtr->SendData(resp.c_str(), resp.size());
     m_sockPtr->Disconnect();
     return;
@@ -70,24 +70,24 @@ void EventBroker::Process()
   }
 
   // default response for "HEAD /"
-  if (rb.GetParsedMethod() == HRM_HEAD && rb.GetParsedURI().compare("/") == 0)
+  if (rb.GetRequestMethod() == WS_METHOD_Head && rb.GetRequestURIPath().compare("/") == 0)
   {
-    WSStatus status(HSC_OK);
-    resp.append(REQUEST_PROTOCOL " ").append(status.GetString()).append(" ").append(status.GetMessage()).append("\r\n");
-    resp.append("Server: ").append(REQUEST_USER_AGENT).append("\r\n");
-    resp.append("Connection: close\r\n");
-    resp.append("\r\n");
+    WS_STATUS status(WS_STATUS_OK);
+    resp.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
+    resp.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
+    resp.append("Connection: close" WS_CRLF);
+    resp.append(WS_CRLF);
     m_sockPtr->SendData(resp.c_str(), resp.size());
     m_sockPtr->Disconnect();
     return;
   }
 
   // bad request!!!
-  WSStatus status(HSC_Bad_Request);
-  resp.append(REQUEST_PROTOCOL " ").append(status.GetString()).append(" ").append(status.GetMessage()).append("\r\n");
-  resp.append("Server: ").append(REQUEST_USER_AGENT).append("\r\n");
-  resp.append("Connection: close\r\n");
-  resp.append("\r\n");
+  WS_STATUS status(WS_STATUS_Bad_Request);
+  resp.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
+  resp.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
+  resp.append("Connection: close" WS_CRLF);
+  resp.append(WS_CRLF);
   m_sockPtr->SendData(resp.c_str(), resp.size());
   m_sockPtr->Disconnect();
 }

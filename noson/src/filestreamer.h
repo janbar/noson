@@ -89,7 +89,6 @@ private:
   static file_type fileTypeTab[];
   static int fileTypeTabSize;
 
-  static void readParameters(const std::string& streamUrl, std::vector<std::string>& params);
   static std::string getParamValue(const std::vector<std::string>& params, const std::string& name);
   static size_t getFileLength(FILE * file);
   static size_t getFileLength(const std::string& filePath);
