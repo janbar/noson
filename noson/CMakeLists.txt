@@ -8,7 +8,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # set lib version here
 set (noson_VERSION_MAJOR 2)
 set (noson_VERSION_MINOR 12)
-set (noson_VERSION_PATCH 11)
+set (noson_VERSION_PATCH 12)
 
 set (noson_VERSION ${noson_VERSION_MAJOR}.${noson_VERSION_MINOR}.${noson_VERSION_PATCH})
 set (NOSON_LIB_VERSION ${noson_VERSION})
