@@ -47,16 +47,16 @@ bool RequestBroker::Initialize() { return true; }
 std::string RequestBroker::MakeResponseHeader(Status status)
 {
   std::string header;
-  WS_STATUS hsc = WS_STATUS_Internal_Server_Error;
+  WS_STATUS hsc = WS_STATUS_500_Internal_Server_Error;
   switch (status)
   {
-  case Status_OK: hsc = WS_STATUS_OK; m_200.Increment(); break;
-  case Status_Partial_Content: hsc = WS_STATUS_Partial_Content; m_200.Increment(); break;
-  case Status_Bad_Request: hsc = WS_STATUS_Bad_Request; m_400.Increment(); break;
-  case Status_Not_Found: hsc = WS_STATUS_Not_Found; m_404.Increment(); break;
-  case Status_Too_Many_Requests: hsc = WS_STATUS_Too_Many_Requests; m_429.Increment(); break;
-  case Status_Internal_Server_Error: hsc = WS_STATUS_Internal_Server_Error; m_500.Increment(); break;
-  case Status_Service_Unavailable: hsc = WS_STATUS_Service_Unavailable; m_503.Increment(); break;
+  case Status_OK: hsc = WS_STATUS_200_OK; m_200.Increment(); break;
+  case Status_Partial_Content: hsc = WS_STATUS_206_Partial_Content; m_200.Increment(); break;
+  case Status_Bad_Request: hsc = WS_STATUS_400_Bad_Request; m_400.Increment(); break;
+  case Status_Not_Found: hsc = WS_STATUS_404_Not_Found; m_404.Increment(); break;
+  case Status_Too_Many_Requests: hsc = WS_STATUS_429_Too_Many_Requests; m_429.Increment(); break;
+  case Status_Internal_Server_Error: hsc = WS_STATUS_500_Internal_Server_Error; m_500.Increment(); break;
+  case Status_Service_Unavailable: hsc = WS_STATUS_503_Service_Unavailable; m_503.Increment(); break;
   }
   header.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(hsc)).append(" ").append(ws_status_to_msgstr(hsc)).append(WS_CRLF);
   header.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
@@ -92,22 +92,22 @@ RequestBroker::Method RequestBroker::GetRequestMethod(handle * handle)
   }
 }
 
-const std::string& RequestBroker::GetRequestURIPath(handle * handle)
+const std::string& RequestBroker::GetRequestPath(handle * handle)
 {
   assert(handle);
-  return handle->payload->request->GetRequestURIPath();
+  return handle->payload->request->GetRequestPath();
 }
 
-const std::string& RequestBroker::GetRequestURIParams(handle * handle)
+const std::string& RequestBroker::GetURIParams(handle * handle)
 {
   assert(handle);
-  return handle->payload->request->GetRequestURIParams();
+  return handle->payload->request->GetURIParams();
 }
 
-const std::string& RequestBroker::GetRequestProtocol(handle * handle)
+const std::string& RequestBroker::GetRequestScheme(handle * handle)
 {
   assert(handle);
-  return handle->payload->request->GetRequestProtocol();
+  return handle->payload->request->GetRequestScheme();
 }
 
 const std::string& RequestBroker::GetRequestHeader(handle * handle, const std::string& name)

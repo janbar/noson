@@ -104,7 +104,7 @@ void WSRequestBroker::Tokenize(const std::string& str, char delimiter, std::vect
   tokens.push_back(str.substr(pa));
 }
 
-bool WSRequestBroker::NormalizeURI(const std::string& in, std::string& outpath, std::string& outparams)
+bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::string& uriparams)
 {
   // parse uri
   URIParser parser(in);
@@ -135,26 +135,27 @@ bool WSRequestBroker::NormalizeURI(const std::string& in, std::string& outpath, 
     ++it;
   }
   // store path string
-  outpath.clear();
-  outpath.reserve(len);
+  path.clear();
+  path.reserve(len);
   it = clean.cbegin();
   while (it != clean.cend())
   {
-    outpath.append("/").append(*it);
+    path.append("/").append(*it);
     ++it;
   }
   // store params string
   if (parser.Params())
-    outparams.assign(parser.Params());
+    uriparams.assign(parser.Params());
   else
-    outparams.clear();
+    uriparams.clear();
   return true;
 }
 
-WSRequestBroker::WSRequestBroker(TcpSocket* socket, timeval timeout)
+WSRequestBroker::WSRequestBroker(TcpSocket* socket, int timeout)
 : m_socket(socket)
+, m_timeout(timeout)
 , m_parsed(false)
-, m_parsedMethod(WS_METHOD_Head)
+, m_method(WS_METHOD_Head)
 , m_contentChunked(false)
 , m_contentLength(0)
 , m_consumed(0)
@@ -162,7 +163,10 @@ WSRequestBroker::WSRequestBroker(TcpSocket* socket, timeval timeout)
 , m_chunkPtr(nullptr)
 , m_chunkEnd(nullptr)
 {
-  m_socket->SetTimeout(timeout);
+  struct timeval tv = { timeout, 0 };
+  if (timeout == 0)
+    tv.tv_usec = 999999;
+  m_socket->SetTimeout(tv);
   m_parsed = ParseQuery();
 }
 
@@ -183,11 +187,20 @@ std::string WSRequestBroker::GetHostAddrInfo() const
   return m_socket->GetHostAddrInfo();
 }
 
-const std::string& WSRequestBroker::GetRequestHeader(const std::string& name)
+const std::string& WSRequestBroker::GetRequestHeader(const std::string& name) const
 {
   static std::string emptyStr = "";
-  entries_t::const_iterator it = m_namedEntries.find(name);
-  if (it != m_namedEntries.end())
+  VARS::const_iterator it = m_requestHeaders.find(name);
+  if (it != m_requestHeaders.end())
+    return it->second;
+  return emptyStr;
+}
+
+const std::string& WSRequestBroker::GetRequestParam(const std::string& name) const
+{
+  static std::string emptyStr = "";
+  VARS::const_iterator it = m_requestParams.find(name);
+  if (it != m_requestParams.end())
     return it->second;
   return emptyStr;
 }
@@ -223,14 +236,26 @@ bool WSRequestBroker::ParseQuery()
         WS_METHOD method = ws_method_from_str(query[0].c_str());
         if (method == WS_METHOD_UNKNOWN)
           return false;
-        m_parsedMethod = method;
-        // check and normalize the requested uri
-        if (!NormalizeURI(query[1], m_parsedURIPath, m_parsedURIParams))
+        m_method = method;
+        // explode requested uri
+        if (!ExplodeURI(query[1], m_path, m_uriParams))
           return false;
+        if (!m_uriParams.empty())
+        {
+          // decode params string
+          std::vector<std::string> params;
+          Tokenize(m_uriParams, '&', params, true);
+          for (std::string& v : params)
+          {
+            size_t p = v.find_first_of('=');
+            if (p != std::string::npos && p < (v.size() - 1))
+              m_requestParams.insert(std::make_pair(urldecode(v.substr(0, p)), urldecode(v.substr(p+1))));
+          }
+        }
         // set the requested protocol
-        m_parsedProtocol = query[2];
+        m_scheme = query[2];
         // Clear entries for next step
-        m_namedEntries.clear();
+        m_requestHeaders.clear();
         ret = true;
       }
     }
@@ -274,7 +299,7 @@ bool WSRequestBroker::ParseQuery()
 
     if (token_len && val)
     {
-      m_namedEntries[token].append(val);
+      m_requestHeaders[token].append(val);
       switch (ws_header_from_upperstr(token))
       {
       case WS_HEADER_Content_Length:
@@ -358,4 +383,21 @@ size_t WSRequestBroker::ReadContent(char* buf, size_t buflen)
   }
   m_consumed += s;
   return s;
+}
+
+bool WSRequestBroker::ReplyHead(WS_STATUS status)
+{
+  if (status == WS_STATUS_UNKNOWN)
+    status = WS_STATUS_500_Internal_Server_Error;
+  std::string data;
+  data.reserve(128);
+  data.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
+  data.append(ws_header_to_str(WS_HEADER_Server)).append(": ").append(REQUEST_USER_AGENT).append(WS_CRLF);
+  data.append(ws_header_to_str(WS_HEADER_Connection)).append(": close" WS_CRLF);
+  return m_socket->SendData(data.c_str(), data.size());
+}
+
+bool WSRequestBroker::ReplyBody(const char* data, size_t size) const
+{
+  return m_socket->SendData(data, size);
 }

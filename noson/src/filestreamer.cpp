@@ -81,14 +81,14 @@ FileStreamer::FileStreamer()
 
 bool FileStreamer::HandleRequest(handle * handle)
 {
-  const std::string& requrl = RequestBroker::GetRequestURIPath(handle);
+  const std::string& requrl = RequestBroker::GetRequestPath(handle);
   ResourceList::const_iterator it = m_resources.begin();
   while (!IsAborted() && it != m_resources.end())
   {
     if (requrl.compare(0, (*it)->uri.length(), (*it)->uri) == 0)
     {
       std::vector<std::string> params;
-      tokenize(RequestBroker::GetRequestURIParams(handle), "&", "", params, true);
+      tokenize(RequestBroker::GetURIParams(handle), "&", "", params, true);
       std::string filePath = getParamValue(params, FILESTREAMER_PARAM_PATH);
       if (probe(filePath, (*it)->contentType))
       {

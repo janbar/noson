@@ -24,7 +24,8 @@
 #include <stddef.h>  // for NULL
 #include <string.h>  // for memcmp
 
-const WS_METHOD_TABLE_t ws_method_table[] = {
+typedef struct { unsigned sz; const char* txt; } WS_METHOD_TABLE;
+static const WS_METHOD_TABLE ws_method_table[] = {
   { 4,  "GET" },
   { 5,  "POST" },
   { 5,  "HEAD" },
@@ -39,7 +40,7 @@ const WS_METHOD_TABLE_t ws_method_table[] = {
 
 WS_METHOD ws_method_from_str(const char* str)
 {
-  const WS_METHOD_TABLE_t* p = ws_method_table;
+  const WS_METHOD_TABLE* p = ws_method_table;
   while (p->txt)
   {
     if (memcmp(p->txt, str, p->sz) == 0)
@@ -49,7 +50,13 @@ WS_METHOD ws_method_from_str(const char* str)
   return WS_METHOD_UNKNOWN;
 }
 
-const WS_CTYPE_TABLE_t ws_ctype_table[] = {
+const char* ws_method_to_str(WS_METHOD m)
+{
+  return ws_method_table[(unsigned)m].txt;
+}
+
+typedef struct { unsigned sz; const char* txt; } WS_CTYPE_TABLE;
+static const WS_CTYPE_TABLE ws_ctype_table[] = {
   { 1,  "" },
   { 34, "application/x-www-form-urlencoded" },
   { 25, "application/octet-stream" },
@@ -59,7 +66,7 @@ const WS_CTYPE_TABLE_t ws_ctype_table[] = {
 
 WS_CTYPE ws_ctype_from_str(const char* str)
 {
-  const WS_CTYPE_TABLE_t* p = ws_ctype_table;
+  const WS_CTYPE_TABLE* p = ws_ctype_table;
   while (p->txt)
   {
     if (memcmp(p->txt, str, p->sz) == 0)
@@ -69,7 +76,13 @@ WS_CTYPE ws_ctype_from_str(const char* str)
   return WS_CTYPE_UNKNOWN;
 }
 
-const WS_CENCODING_TABLE_t ws_cencoding_table[] = {
+const char* ws_ctype_to_str(WS_CTYPE t)
+{
+  return ws_ctype_table[(unsigned)t].txt;
+}
+
+typedef struct { unsigned sz; const char* txt; } WS_CENCODING_TABLE;
+static const WS_CENCODING_TABLE ws_cencoding_table[] = {
   { 1,  "" },
   { 8,  "deflate" },
   { 5,  "gzip" },
@@ -78,7 +91,7 @@ const WS_CENCODING_TABLE_t ws_cencoding_table[] = {
 
 WS_CENCODING ws_cencoding_from_str(const char* str)
 {
-  const WS_CENCODING_TABLE_t* p = ws_cencoding_table;
+  const WS_CENCODING_TABLE* p = ws_cencoding_table;
   while (p->txt)
   {
     if (memcmp(p->txt, str, p->sz) == 0)
@@ -88,10 +101,17 @@ WS_CENCODING ws_cencoding_from_str(const char* str)
   return WS_CENCODING_UNKNOWN;
 }
 
-const WS_HEADER_TABLE_t ws_header_table[] = {
+const char* ws_cencoding_to_str(WS_CENCODING e)
+{
+  return ws_cencoding_table[(unsigned)e].txt;
+}
+
+typedef struct { unsigned sz; const char* txt; const char* upper_txt; } WS_HEADER_TABLE;
+static const WS_HEADER_TABLE ws_header_table[] = {
   { 7,  "Accept",                 "ACCEPT" },
   { 15, "Accept-Charset",         "ACCEPT-CHARSET" },
   { 16, "Accept-Encoding",        "ACCEPT-ENCODING" },
+  { 14, "Accept-Ranges",          "ACCEPT-RANGES" },
   { 11, "Connection",             "CONNECTION" },
   { 17, "Content-Encoding",       "CONTENT-ENCODING" },
   { 15, "Content-Length",         "CONTENT-LENGTH" },
@@ -101,6 +121,7 @@ const WS_HEADER_TABLE_t ws_header_table[] = {
   { 5,  "Host",                   "HOST" },
   { 11, "Keep-Alive",             "KEEP-ALIVE" },
   { 9,  "Location",               "LOCATION" },
+  { 6,  "Range",                  "RANGE" },
   { 7,  "Server",                 "SERVER" },
   { 18, "Transfer-Encoding",      "TRANSFER-ENCODING" },
   { 11, "User-Agent",             "USER-AGENT" },
@@ -109,7 +130,7 @@ const WS_HEADER_TABLE_t ws_header_table[] = {
 
 WS_HEADER ws_header_from_upperstr(const char* upperstr)
 {
-  const WS_HEADER_TABLE_t* p = ws_header_table;
+  const WS_HEADER_TABLE* p = ws_header_table;
   while (p->upper_txt)
   {
     if (memcmp(p->upper_txt, upperstr, p->sz) == 0)
@@ -119,7 +140,18 @@ WS_HEADER ws_header_from_upperstr(const char* upperstr)
   return WS_HEADER_UNKNOWN;
 }
 
-const WS_STATUS_TABLE_t ws_status_table[] = {
+const char* ws_header_to_str(WS_HEADER h)
+{
+  return ws_header_table[(unsigned)h].txt;
+}
+
+const char* ws_header_to_upperstr(WS_HEADER h)
+{
+  return ws_header_table[(unsigned)h].upper_txt;
+}
+
+typedef struct { unsigned sz; const char* numstr; const char* msgstr; int num; } WS_STATUS_TABLE;
+static const WS_STATUS_TABLE ws_status_table[] = {
   /* 2xx */
   { 4,  "200",  "OK",                                 200 },
   { 4,  "201",  "Created",                            201 },
@@ -186,7 +218,7 @@ const WS_STATUS_TABLE_t ws_status_table[] = {
 
 WS_STATUS ws_status_from_num(int num)
 {
-  const WS_STATUS_TABLE_t* p = ws_status_table;
+  const WS_STATUS_TABLE* p = ws_status_table;
   while (p->numstr)
   {
     if (p->num == num)
@@ -198,7 +230,7 @@ WS_STATUS ws_status_from_num(int num)
 
 WS_STATUS ws_status_from_numstr(const char* numstr)
 {
-  const WS_STATUS_TABLE_t* p = ws_status_table;
+  const WS_STATUS_TABLE* p = ws_status_table;
   while (p->numstr)
   {
     if (memcmp(p->numstr, numstr, p->sz) == 0)
@@ -206,4 +238,19 @@ WS_STATUS ws_status_from_numstr(const char* numstr)
     ++p;
   }
   return WS_STATUS_UNKNOWN;
+}
+
+int ws_status_to_num(WS_STATUS s)
+{
+  return ws_status_table[(unsigned) s].num;
+}
+
+const char* ws_status_to_numstr(WS_STATUS s)
+{
+  return ws_status_table[(unsigned) s].numstr;
+}
+
+const char* ws_status_to_msgstr(WS_STATUS s)
+{
+  return ws_status_table[(unsigned) s].msgstr;
 }

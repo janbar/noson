@@ -54,7 +54,7 @@ bool ImageService::HandleRequest(handle * handle)
 {
   if (!IsAborted())
   {
-    const std::string& requrl = RequestBroker::GetRequestURIPath(handle);
+    const std::string& requrl = RequestBroker::GetRequestPath(handle);
     if (requrl.compare(0, strlen(IMAGESERVICE_URI), IMAGESERVICE_URI) == 0 ||
             requrl.compare(0, strlen(IMAGESERVICE_FAVICON), IMAGESERVICE_FAVICON) == 0)
     {
@@ -132,7 +132,7 @@ std::string ImageService::MakeFilePictureURI(const std::string& filePath)
 
 void ImageService::ProcessGET(handle * handle)
 {
-  ResourceMap::const_iterator it = m_resources.find(RequestBroker::GetRequestURIPath(handle));
+  ResourceMap::const_iterator it = m_resources.find(RequestBroker::GetRequestPath(handle));
   if (it == m_resources.end())
     Reply400(handle);
   else if (!it->second || !it->second->delegate)
@@ -141,7 +141,7 @@ void ImageService::ProcessGET(handle * handle)
   {
     const RequestBroker::ResourcePtr& res = it->second;
     StreamReader::STREAM * stream = res->delegate->OpenStream(
-        RequestBroker::buildDelegateUrl(*res, RequestBroker::GetRequestURIParams(handle))
+        RequestBroker::buildDelegateUrl(*res, RequestBroker::GetURIParams(handle))
         );
     if (stream && stream->contentLength)
     {
@@ -173,7 +173,7 @@ void ImageService::ProcessGET(handle * handle)
 
 void ImageService::ProcessHEAD(handle * handle)
 {
-  ResourceMap::const_iterator it = m_resources.find(RequestBroker::GetRequestURIPath(handle));
+  ResourceMap::const_iterator it = m_resources.find(RequestBroker::GetRequestPath(handle));
   if (it == m_resources.end())
     Reply400(handle);
   else if (!it->second || !it->second->delegate)
@@ -182,7 +182,7 @@ void ImageService::ProcessHEAD(handle * handle)
   {
     const RequestBroker::ResourcePtr& res = it->second;
     StreamReader::STREAM * stream = res->delegate->OpenStream(
-        RequestBroker::buildDelegateUrl(*res, RequestBroker::GetRequestURIParams(handle))
+        RequestBroker::buildDelegateUrl(*res, RequestBroker::GetURIParams(handle))
         );
     if (stream && stream->contentLength)
     {

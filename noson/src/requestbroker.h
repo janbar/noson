@@ -155,19 +155,19 @@ namespace NSROOT
      * @param handle
      * @return The URI path intended by the request
      */
-    static const std::string& GetRequestURIPath(handle * handle);
+    static const std::string& GetRequestPath(handle * handle);
 
     /**
      * @param handle
      * @return The URI params intended by the request
      */
-    static const std::string& GetRequestURIParams(handle * handle);
+    static const std::string& GetURIParams(handle * handle);
 
     /**
      * @param handle
      * @return The protocol of the request, i.e HTTP/1.1
      */
-    static const std::string& GetRequestProtocol(handle * handle);
+    static const std::string& GetRequestScheme(handle * handle);
 
     /**
      * @param handle

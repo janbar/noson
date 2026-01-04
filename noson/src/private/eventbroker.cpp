@@ -40,13 +40,12 @@ void EventBroker::Process()
   if (!m_handler || !m_sockPtr || !m_sockPtr->IsValid())
     return;
 
-  struct timeval socket_timeout = { 3, 0 };
-  WSRequestBroker rb(m_sockPtr.get(), socket_timeout);
+  WSRequestBroker rb(m_sockPtr.get(), 5);
   std::string resp;
 
   if (!rb.IsParsed())
   {
-    WS_STATUS status(WS_STATUS_Bad_Request);
+    WS_STATUS status(WS_STATUS_400_Bad_Request);
     resp.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
     resp.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
     resp.append("Connection: close" WS_CRLF);
@@ -70,9 +69,9 @@ void EventBroker::Process()
   }
 
   // default response for "HEAD /"
-  if (rb.GetRequestMethod() == WS_METHOD_Head && rb.GetRequestURIPath().compare("/") == 0)
+  if (rb.GetRequestMethod() == WS_METHOD_Head && rb.GetRequestPath().compare("/") == 0)
   {
-    WS_STATUS status(WS_STATUS_OK);
+    WS_STATUS status(WS_STATUS_200_OK);
     resp.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
     resp.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
     resp.append("Connection: close" WS_CRLF);
@@ -83,7 +82,7 @@ void EventBroker::Process()
   }
 
   // bad request!!!
-  WS_STATUS status(WS_STATUS_Bad_Request);
+  WS_STATUS status(WS_STATUS_400_Bad_Request);
   resp.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
   resp.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
   resp.append("Connection: close" WS_CRLF);

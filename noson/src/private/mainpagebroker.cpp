@@ -36,7 +36,7 @@ bool MainPageBroker::HandleRequest(handle * handle)
 {
   if (!IsAborted())
   {
-    if (RequestBroker::GetRequestURIPath(handle).compare(MAINPAGE_URI) == 0)
+    if (RequestBroker::GetRequestPath(handle).compare(MAINPAGE_URI) == 0)
     {
       switch (RequestBroker::GetRequestMethod(handle))
       {

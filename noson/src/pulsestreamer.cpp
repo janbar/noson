@@ -80,7 +80,7 @@ bool PulseStreamer::HandleRequest(handle * handle)
 {
   if (!IsAborted())
   {
-    const std::string& requrl = RequestBroker::GetRequestURIPath(handle);
+    const std::string& requrl = RequestBroker::GetRequestPath(handle);
     if (requrl.compare(0, strlen(PULSESTREAMER_URI), PULSESTREAMER_URI) == 0)
     {
       switch (RequestBroker::GetRequestMethod(handle))

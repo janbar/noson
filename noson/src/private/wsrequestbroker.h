@@ -38,32 +38,38 @@ namespace NSROOT
   class WSRequestBroker
   {
   public:
-    WSRequestBroker(TcpSocket* socket, timeval timeout);
+    WSRequestBroker(TcpSocket* socket, int timeout);
     ~WSRequestBroker();
 
     void SetTimeout(timeval timeout);
     bool IsParsed() const { return m_parsed; }
     std::string GetHostAddrInfo() const;
-    WS_METHOD GetRequestMethod() const { return m_parsedMethod; }
-    const std::string& GetRequestURIPath() const { return m_parsedURIPath; }
-    const std::string& GetRequestURIParams() const { return m_parsedURIParams; }
-    const std::string& GetRequestProtocol() const { return m_parsedProtocol; }
-    const std::string& GetRequestHeader(const std::string& name);
+    WS_METHOD GetRequestMethod() const { return m_method; }
+    const std::string& GetRequestPath() const { return m_path; }
+    const std::string& GetRequestScheme() const { return m_scheme; }
+    const std::string& GetRequestHeader(const std::string& name) const;
+    const std::string& GetRequestHeader(WS_HEADER header) const { return GetRequestHeader(ws_header_to_upperstr(header)); }
+    const std::string& GetRequestParam(const std::string& name) const;
+    const std::string& GetURIParams() const { return m_uriParams; }
     bool HasContent() const { return (m_contentLength > 0); }
     size_t GetContentLength() const { return m_contentLength; }
     size_t ReadContent(char *buf, size_t buflen);
     size_t GetConsumed() const { return m_consumed; }
 
     static void Tokenize(const std::string& str, char delimiter, std::vector<std::string>& tokens, bool trimnull = false);
-    static bool NormalizeURI(const std::string& in, std::string& outpath, std::string& outparams);
+    static bool ExplodeURI(const std::string& in, std::string& path, std::string& uriparams);
+
+    bool ReplyHead(WS_STATUS status);
+    bool ReplyBody(const char * data, size_t size) const;
 
   private:
     TcpSocket* m_socket;
+    int m_timeout;
     bool m_parsed;
-    WS_METHOD m_parsedMethod;
-    std::string m_parsedURIPath;
-    std::string m_parsedURIParams;
-    std::string m_parsedProtocol;
+    WS_METHOD m_method;
+    std::string m_path;
+    std::string m_scheme;
+    std::string m_uriParams;
     bool m_contentChunked;
     size_t m_contentLength;
     size_t m_consumed;
@@ -71,8 +77,9 @@ namespace NSROOT
     char* m_chunkPtr;
     char* m_chunkEnd;
 
-    typedef std::map<std::string, std::string> entries_t;
-    entries_t m_namedEntries;
+    typedef std::map<std::string, std::string> VARS;
+    VARS m_requestHeaders;
+    VARS m_requestParams;
 
     // prevent copy
     WSRequestBroker(const WSRequestBroker&);
