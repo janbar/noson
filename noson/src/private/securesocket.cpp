@@ -439,7 +439,7 @@ SSLSessionFactory::~SSLSessionFactory()
 
 SecureSocket* SSLSessionFactory::NewClientSocket()
 {
-  return new SecureSocket(nullptr);
+  return nullptr;
 }
 
 SSLServerContext::~SSLServerContext()
