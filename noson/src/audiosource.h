@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2018-2019 Jean-Luc Barriere
+ *      Copyright (C) 2018-2026 Jean-Luc Barriere
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #define AUDIOSOURCE_H
 
 #include "local_config.h"
-#include "iodevice.h"
+#include "iostream.h"
 #include "audioformat.h"
 
 #include <string>
@@ -31,26 +31,17 @@ namespace NSROOT
 class FrameBuffer;
 class FramePacket;
 
-class AudioSource : public IODevice
+class AudioSource : public BufferedIOStream
 {
 public:
   AudioSource();
-  AudioSource(int buffered);
-  ~AudioSource() override;
+  AudioSource(int capacity);
+  virtual ~AudioSource() override;
 
-  /**
-   * Open the audio source. This allow read or write operations.
-   * If output is connected then the write grant is controlled by the sink, and
-   * read permission only can be assigned.
-   * @param mode default by ReadWrite
-   * @return true if succeeded, else false
-   */
-  bool open(OpenMode mode = ReadWrite) override { return IODevice::open(mode); }
+  bool canRead() const override { return true; }
+  bool canWrite() const override { return false; }
 
-  /**
-   * Close the audio source. This disallows read and write operations.
-   */
-  void close() override { stopRecording(); IODevice::close(); }
+  virtual bool open() override;
 
   /**
    * Return the name of the source
@@ -70,25 +61,11 @@ public:
    */
   virtual AudioFormat getFormat() const = 0;
 
-  inline bool isRecording() const { return m_record; }
-  bool startRecording();
-  void stopRecording();
-  bool overflow() const;
-  int bytesAvailable() const override;
-
   void mute(bool enabled);
   bool muted() const { return m_mute; }
 
 protected:
-  int readData(char * data, int maxlen) override;
-  int writeData(const char *data, int len) override;
-  volatile bool m_mute    = false;
-
-private:
-  bool m_record               = false;
-  FrameBuffer * m_buffer      = nullptr;
-  FramePacket * m_packet      = nullptr;
-  int m_consumed              = 0;
+  volatile bool m_mute;
 };
 
 }

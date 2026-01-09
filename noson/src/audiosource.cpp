@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2018-2019 Jean-Luc Barriere
+ *      Copyright (C) 2018-2026 Jean-Luc Barriere
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,94 +17,37 @@
  */
 
 #include "audiosource.h"
-#include "framebuffer.h"
 
 using namespace NSROOT;
 
 #define FRAME_BUFFER_SIZE 256
 
 AudioSource::AudioSource()
+: AudioSource(FRAME_BUFFER_SIZE)
 {
-  m_buffer = new FrameBuffer(FRAME_BUFFER_SIZE);
 }
 
-AudioSource::AudioSource(int buffered)
+AudioSource::AudioSource(int capacity)
+: BufferedIOStream(capacity)
+, m_mute(false)
 {
-  m_buffer = new FrameBuffer(buffered);
 }
 
 AudioSource::~AudioSource()
 {
-  if (m_packet)
-    m_buffer->freePacket(m_packet);
-  delete m_buffer;
+  if (BufferedIOStream::isOpen())
+    close();
 }
 
-bool AudioSource::startRecording()
+bool AudioSource::open()
 {
-  if (m_packet)
-    m_buffer->freePacket(m_packet);
-  m_packet = nullptr;
-  m_buffer->clear();
-  m_record = true;
-  return true;
-}
-
-void AudioSource::stopRecording()
-{
-  m_record = false;
-}
-
-bool AudioSource::overflow() const
-{
-  return m_buffer->full();
-}
-
-int AudioSource::bytesAvailable() const
-{
-  if (m_packet)
-    return (m_packet->size - m_consumed);
-  return m_buffer->bytesAvailable();
+  if (BufferedIOStream::isOpen())
+    return true;
+  BufferedIOStream::clearBuffer();
+  return BufferedIOStream::open();
 }
 
 void AudioSource::mute(bool enabled)
 {
   m_mute = enabled;
-}
-
-int AudioSource::readData(char * data, int maxlen)
-{
-  if (m_packet == nullptr)
-  {
-    m_packet = m_buffer->read();
-    m_consumed = 0;
-  }
-  if (m_packet)
-  {
-    int s = m_packet->size - m_consumed;
-    int r = (maxlen < s ? maxlen : s);
-    memcpy(data, m_packet->data + m_consumed, r);
-    m_consumed += r;
-    if (m_consumed >= m_packet->size)
-    {
-      m_buffer->freePacket(m_packet);
-      m_packet = nullptr;
-    }
-    return r;
-  }
-  return 0;
-}
-
-int AudioSource::writeData(const char * data, int len)
-{
-  if (m_record)
-  {
-    // check sink: connected output, otherwise internal buffer for reading
-    IODevice* output = connectedOutput();
-    if (output)
-      len = output->write(data, len);
-    else if ((len = m_buffer->write(data, len)) > 0)
-      readyRead();
-  }
-  return len;
 }

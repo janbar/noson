@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2018-2019 Jean-Luc Barriere
+ *      Copyright (C) 2018-2026 Jean-Luc Barriere
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -72,12 +72,11 @@ PASource::~PASource()
   freePA();
 }
 
-bool PASource::open(OpenMode mode)
+bool PASource::open()
 {
-  bool ok = AudioSource::open(mode);
-  if (ok)
+  if (!AudioSource::isOpen() && AudioSource::open())
     m_p->start();
-  return ok;
+  return AudioSource::isOpen();
 }
 
 void PASource::close()

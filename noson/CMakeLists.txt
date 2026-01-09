@@ -184,9 +184,7 @@ file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/audioformat.h
   DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/audiosource.h
   DESTINATION ${noson_PUBLIC_DIR})
-file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/audiostream.h
-  DESTINATION ${noson_PUBLIC_DIR})
-file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/iodevice.h
+file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/iostream.h
   DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/streamreader.h
   DESTINATION ${noson_PUBLIC_DIR})
@@ -230,7 +228,6 @@ list (APPEND SRC_FILES
   src/data/datareader.cpp
   src/alarmclock.cpp
   src/alarm.cpp
-  src/audioencoder.cpp
   src/audiosource.cpp
   src/avtransport.cpp
   src/contentdirectory.cpp
@@ -243,7 +240,7 @@ list (APPEND SRC_FILES
   src/framebuffer.cpp
   src/imageservice.cpp
   src/intrinsic.cpp
-  src/iodevice.cpp
+  src/iostream.cpp
   src/locked.cpp
   src/musicservices.cpp
   src/renderingcontrol.cpp
@@ -269,7 +266,6 @@ list (APPEND HDR_FILES
   src/audioencoder.h
   src/audioformat.h
   src/audiosource.h
-  src/audiostream.h
   src/avtransport.h
   src/contentdirectory.h
   src/deviceproperties.h
@@ -282,7 +278,7 @@ list (APPEND HDR_FILES
   src/framebuffer.h
   src/imageservice.h
   src/intrinsic.h
-  src/iodevice.h
+  src/iostream.h
   src/locked.h
   src/musicservices.h
   src/renderingcontrol.h

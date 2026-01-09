@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2021 Jean-Luc Barriere
+ *      Copyright (C) 2021-2026 Jean-Luc Barriere
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -28,6 +28,11 @@
 
 namespace NSROOT
 {
+
+namespace OS
+{
+  class Mutex;
+}
 
 class FramePacket
 {
@@ -76,9 +81,8 @@ public:
   void freePacket(FramePacket * p);
 
 private:
-  struct Lockable;
-  mutable Lockable * m_ringlock;
-  mutable Lockable * m_poollock;
+  mutable OS::Mutex * m_ringlock;
+  mutable OS::Mutex * m_poollock;
   const int m_capacity;           /// buffer size
   unsigned m_count;               /// total count of processed frame
   unsigned m_unread;              /// total size of unread data in the buffer

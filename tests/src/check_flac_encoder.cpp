@@ -7,7 +7,7 @@
 #include <noson/audioformat.h>
 #include <noson/flacencoder.h>
 
-uint64_t _flush_encoded_data(SONOS::AudioEncoder * encoder, char * buf, size_t bufsize)
+uint64_t _flush_encoded_data(SONOS::BufferedIOStream * encoder, char * buf, size_t bufsize)
 {
   uint64_t h = 0;
   int w = 0;
@@ -31,14 +31,13 @@ TEST_CASE("Encoding PCM s16le to FLAC")
   char * flc = new char[pcm_s16le_raw_len];
   uint64_t flc_sz = 0;
   SONOS::FLACEncoder * encoder = new SONOS::FLACEncoder(256);
-  encoder->setAudioFormat(SONOS::AudioFormat::CDLPCM());
+  encoder->setInputFormat(SONOS::AudioFormat::CDLPCM());
 
   int retry = 5;
   while (0 < retry--) {
     uint64_t hash = 0;
 
     REQUIRE(encoder->open() == true);
-    REQUIRE(encoder->open() == false);
 
     unsigned char * p = pcm_s16le_raw;
     unsigned char * e = pcm_s16le_raw + pcm_s16le_raw_len;

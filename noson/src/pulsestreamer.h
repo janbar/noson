@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2018-2019 Jean-Luc Barriere
+ *      Copyright (C) 2018-2026 Jean-Luc Barriere
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

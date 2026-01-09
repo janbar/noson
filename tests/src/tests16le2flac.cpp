@@ -49,19 +49,32 @@ static int g_loglevel = 2;
 class Source : private SONOS::AudioSource
 {
 public:
-  Source(const std::string& filepath) : SONOS::AudioSource(1)
-  , _filepath(filepath)
-  {
-    if ((_file = fopen(filepath.c_str(), "rb")))
-      SONOS::AudioSource::open(ReadOnly);
-    else
-      PRINT1("failed to open input file '%s'\n", filepath.c_str());
-  }
+  Source(const std::string& filepath) : SONOS::AudioSource(0)
+  , _filepath(filepath), _file(nullptr) { }
   virtual ~Source()
   {
+    close();
+  };
+
+  bool open() override
+  {
+    if (!SONOS::AudioSource::isOpen())
+    {
+      _file = fopen(_filepath.c_str(), "rb");
+      if (_file)
+        return SONOS::AudioSource::open();
+    }
+    PRINT1("failed to open input file '%s'\n", _filepath.c_str());
+    return false;
+  }
+
+  void close() override
+  {
+    SONOS::AudioSource::close();
     if (_file)
       fclose(_file);
-  };
+    _file = nullptr;
+  }
 
   std::string getName() const override { return _filepath; };
   std::string getDescription() const override { return "file"; };
@@ -71,6 +84,7 @@ public:
 private:
   std::string _filepath;
   FILE * _file              = nullptr;
+
   int readData(char* data, int maxlen) override
   {
     int r = -1;
@@ -131,42 +145,44 @@ int main(int argc, char** argv)
   if (flac)
   {
     // new audio source
-    Source * source = new Source(infilepath);
+    Source source(infilepath);
+    if (!source.open())
+      return EXIT_FAILURE;
     // initialize the encoder and configure the format
-    SONOS::FLACEncoder * encoder = new SONOS::FLACEncoder(1024);
-    encoder->setAudioFormat(source->getFormat());
-    encoder->open();
+    SONOS::FLACEncoder encoder(1024);
+    encoder.setInputFormat(source.getFormat());
+    encoder.open();
 
     // buffer for data
     char buf[1024];
 
     int r = 0;
-    while ((r = source->read(buf, sizeof(buf))) > 0)
+    while ((r = source.read(buf, sizeof(buf))) > 0)
     {
       // push the data to the encoder
-      encoder->write(buf, r);
+      encoder.write(buf, r);
       // check for available encoded data and flush out
       int w = 0;
-      while ((w = encoder->bytesAvailable()) > 0)
+      while ((w = encoder.bytesAvailable()) > 0)
       {
-        if ((w = encoder->read(buf, sizeof(buf), 0/*forever*/)) > 0)
+        if ((w = encoder.read(buf, sizeof(buf), 0/*forever*/)) > 0)
           fwrite(buf, 1, w, flac);
       }
     }
 
-    encoder->close();
+    source.close();
 
     // flush out the rest of encoded data
     int w = 0;
-    while ((w = encoder->bytesAvailable()) > 0)
+    while ((w = encoder.bytesAvailable()) > 0)
     {
-      if ((w = encoder->read(buf, sizeof(buf), 1/*forever*/)) > 0)
+      if ((w = encoder.read(buf, sizeof(buf), 1/*forever*/)) > 0)
         fwrite(buf, 1, w, flac);
     }
 
+    encoder.close();
+
     fclose(flac);
-    delete encoder;
-    delete source;
     return EXIT_SUCCESS;
   }
 

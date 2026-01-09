@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2018-2019 Jean-Luc Barriere
+ *      Copyright (C) 2018-2026 Jean-Luc Barriere
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ public:
   PASource(const std::string& name, const std::string& deviceName);
   virtual ~PASource();
 
-  bool open(OpenMode mode) override;
+  bool open() override;
   void close() override;
   inline std::string getName() const override { return m_name; }
   std::string getDescription() const override { return m_deviceName; }

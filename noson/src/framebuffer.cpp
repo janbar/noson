@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2021 Jean-Luc Barriere
+ *      Copyright (C) 2021-2026 Jean-Luc Barriere
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,14 +23,6 @@
 
 using namespace NSROOT;
 
-namespace NSROOT
-{
-  struct FrameBuffer::Lockable
-  {
-    OS::Mutex mutex;
-  };
-}
-
 FramePacket::FramePacket(int _capacity)
 : id(0)
 , size(0)
@@ -46,8 +38,8 @@ FramePacket::~FramePacket()
 }
 
 FrameBuffer::FrameBuffer(int capacity)
-: m_ringlock(new Lockable())
-, m_poollock(new Lockable())
+: m_ringlock(new OS::Mutex())
+, m_poollock(new OS::Mutex())
 , m_capacity(capacity)
 , m_count(0)
 , m_unread(0)
@@ -56,24 +48,24 @@ FrameBuffer::FrameBuffer(int capacity)
 , m_write(nullptr)
 , m_pool()
 {
-  assert(capacity > 0);
-  m_buffer.resize(capacity);
+  // size at least 1 packet
+  m_buffer.resize(capacity > 0 ? capacity : 1);
   init();
 }
 
 FrameBuffer::~FrameBuffer()
 {
-  m_ringlock->mutex.Lock();
+  m_ringlock->Lock();
   for (std::vector<Frame*>::iterator it = m_buffer.begin(); it != m_buffer.end(); ++it)
     delete *it;
-  m_ringlock->mutex.Unlock();
-  m_poollock->mutex.Lock();
+  m_ringlock->Unlock();
+  m_poollock->Lock();
   while (!m_pool.empty())
   {
     delete m_pool.front();
     m_pool.pop_front();
   }
-  m_poollock->mutex.Unlock();
+  m_poollock->Unlock();
   delete m_poollock;
   delete m_ringlock;
 }
@@ -101,25 +93,25 @@ int FrameBuffer::capacity() const
 
 int FrameBuffer::bytesAvailable() const
 {
-  OS::LockGuard g(m_ringlock->mutex);
+  OS::LockGuard g(*m_ringlock);
   return (m_unread ? m_read->packet->size : 0);
 }
 
 unsigned FrameBuffer::bytesUnread() const
 {
-  OS::LockGuard g(m_ringlock->mutex);
+  OS::LockGuard g(*m_ringlock);
   return m_unread;
 }
 
 bool FrameBuffer::full() const
 {
-  OS::LockGuard g(m_ringlock->mutex);
+  OS::LockGuard g(*m_ringlock);
   return (m_unread && m_read == m_write);
 }
 
 void FrameBuffer::clear()
 {
-  OS::LockGuard g(m_ringlock->mutex);
+  OS::LockGuard g(*m_ringlock);
   // reset of unread implies the reset of packet size
   // so clean all frames in the buffer
   for (std::vector<Frame*>::iterator it = m_buffer.begin(); it != m_buffer.end(); ++it)
@@ -140,7 +132,7 @@ int FrameBuffer::write(const char * data, int len)
     _packet->size = len;
     memcpy(_packet->data, data, len);
     {
-      OS::LockGuard g(m_ringlock->mutex);
+      OS::LockGuard g(*m_ringlock);
       if (m_write->packet)
       {
         // overwriting a packet implies to update unread because the data will be destroyed,
@@ -168,7 +160,7 @@ void FrameBuffer::writePacket(FramePacket* packet)
 {
   if (packet)
   {
-    OS::LockGuard g(m_ringlock->mutex);
+    OS::LockGuard g(*m_ringlock);
     if (m_write->packet)
     {
       // overwriting a packet implies to update unread because the data will be destroyed,
@@ -187,7 +179,7 @@ FramePacket * FrameBuffer::read()
 {
   FramePacket * p = nullptr;
   {
-    OS::LockGuard g(m_ringlock->mutex);
+    OS::LockGuard g(*m_ringlock);
     if (m_unread)
     {
       p = m_read->packet;
@@ -201,20 +193,20 @@ FramePacket * FrameBuffer::read()
 
 void FrameBuffer::freePacket(FramePacket * p)
 {
-  m_poollock->mutex.Lock();
+  m_poollock->Lock();
   m_pool.push_back(p);
-  m_poollock->mutex.Unlock();
+  m_poollock->Unlock();
 }
 
 FramePacket * FrameBuffer::needPacket(int size)
 {
   FramePacket * p = nullptr;
-  m_poollock->mutex.Lock();
+  m_poollock->Lock();
   if (!m_pool.empty())
   {
     p = m_pool.front();
     m_pool.pop_front();
-    m_poollock->mutex.Unlock();
+    m_poollock->Unlock();
     if (p->capacity >= size)
     {
       p->id = 0;
@@ -225,10 +217,9 @@ FramePacket * FrameBuffer::needPacket(int size)
   }
   else
   {
-    m_poollock->mutex.Unlock();
+    m_poollock->Unlock();
   }
   p = new FramePacket(size);
   //DBG(DBG_DEBUG, "%s: allocated packet to buffer (%d)\n", __FUNCTION__, p->capacity);
   return p;
-
 }

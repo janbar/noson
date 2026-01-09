@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2018-2019 Jean-Luc Barriere
+ *      Copyright (C) 2018-2026 Jean-Luc Barriere
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,34 +20,20 @@
 #define AUDIOENCODER_H
 
 #include "local_config.h"
-#include "iodevice.h"
 #include "audioformat.h"
 
 namespace NSROOT
 {
 
-class AudioEncoder : public IODevice
+class AudioEncoder
 {
 public:
-  AudioEncoder();
-  ~AudioEncoder() override;
+  AudioEncoder() { }
+  virtual ~AudioEncoder() { }
 
-  void setAudioFormat(const AudioFormat& format);
-  AudioFormat audioFormat() const { return m_format; }
-
-  void setSource(IODevice * source);
-  IODevice * source() { return m_source; }
-
+  virtual void setInputFormat(const AudioFormat& format) = 0;
+  virtual AudioFormat getInputFormat() const = 0;
   virtual std::string mediaType() const = 0;
-  virtual bool open() = 0;
-
-protected:
-  AudioFormat m_format;
-  IODevice * m_source;
-
-  bool open(OpenMode mode) override { return IODevice::open(mode); }
-  virtual int encode(const char * data, int len) = 0;
-  int writeData(const char *data, int len) override;
 };
 
 }

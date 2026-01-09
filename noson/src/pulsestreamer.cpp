@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2018-2019 Jean-Luc Barriere
+ *      Copyright (C) 2018-2026 Jean-Luc Barriere
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,13 +19,10 @@
 #include "pulsestreamer.h"
 #include "pacontrol.h"
 #include "pasource.h"
-#include "audiostream.h"
 #include "flacencoder.h"
 #include "requestbroker.h"
-#include "imageservice.h"
 #include "data/datareader.h"
 #include "private/debug.h"
-#include "private/socket.h"
 #include "private/wsstatic.h"
 #include "private/os/threads/timeout.h"
 
@@ -38,7 +35,7 @@
 #define PULSESTREAMER_TIMEOUT   10000
 #define PULSESTREAMER_MAX_PB    3
 #define PULSESTREAMER_CHUNK     16384
-#define PULSESTREAMER_TM_MUTE   1000
+#define PULSESTREAMER_TM_MUTE   3000
 #define PA_SINK_NAME            "noson"
 #define PA_CLIENT_NAME          PA_SINK_NAME
 
@@ -216,13 +213,17 @@ void PulseStreamer::streamSink(handle * handle)
     Reply429(handle);
   else
   {
-    AudioSource * src = new PASource(PA_CLIENT_NAME, deviceName);
-    AudioEncoder * enc = new FLACEncoder();
-    AudioStream ai(*src, *enc);
+    PASource src(PA_CLIENT_NAME, deviceName);
+    FLACEncoder enc;
+    enc.setInputFormat(src.getFormat());
+    src.pipeTo(&enc);
+
     // the source is muted for a short time to limit output rate on startup
+    src.mute(true);
     OS::Timeout muted(PULSESTREAMER_TM_MUTE);
-    src->mute(true);
-    ai.start();
+
+    enc.open();
+    src.open();
 
     std::string resp;
     resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
@@ -234,7 +235,7 @@ void PulseStreamer::streamSink(handle * handle)
     {
       char * buf = new char [PULSESTREAMER_CHUNK + 16];
       int r = 0;
-      while (!IsAborted() && (r = ai.read(buf + 5 + WS_CRLF_LEN, PULSESTREAMER_CHUNK, PULSESTREAMER_TIMEOUT)) > 0)
+      while (!IsAborted() && (r = enc.read(buf + 5 + WS_CRLF_LEN, PULSESTREAMER_CHUNK, PULSESTREAMER_TIMEOUT)) > 0)
       {
         char str[6 + WS_CRLF_LEN];
         snprintf(str, sizeof(str), "%05x" WS_CRLF, (unsigned)r & 0xfffff);
@@ -243,17 +244,16 @@ void PulseStreamer::streamSink(handle * handle)
         if (!RequestBroker::Reply(handle, buf, r + 5 + WS_CRLF_LEN + WS_CRLF_LEN))
           break;
         // disable source mute after delay
-        if (src->muted() && !muted.TimeLeft())
-          src->mute(false);
+        if (src.muted() && !muted.TimeLeft())
+          src.mute(false);
       }
       delete [] buf;
       if (r == 0)
         RequestBroker::Reply(handle, "0" WS_CRLF WS_CRLF, 1 + WS_CRLF_LEN + WS_CRLF_LEN);
     }
 
-    ai.stop();
-    delete enc;
-    delete src;
+    src.close();
+    enc.close();
   }
 
   FreePASink();

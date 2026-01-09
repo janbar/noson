@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2018-2019 Jean-Luc Barriere
+ *      Copyright (C) 2018-2026 Jean-Luc Barriere
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 
 #include "local_config.h"
 #include "audioencoder.h"
+#include "iostream.h"
 
 #include <FLAC++/metadata.h>
 #include <FLAC++/encoder.h>
@@ -28,42 +29,33 @@
 namespace NSROOT
 {
 
-class FrameBuffer;
-class FramePacket;
-
-class FLACEncoder : public AudioEncoder
+class FLACEncoder : public AudioEncoder, public BufferedIOStream
 {
   friend class FLACEncoderPrivate;
 
 public:
   FLACEncoder();
-  FLACEncoder(int buffered);
+  FLACEncoder(int capacity);
   ~FLACEncoder() override;
 
+  void setInputFormat(const AudioFormat& format) override;
+  AudioFormat getInputFormat() const override { return m_inputFormat; }
   std::string mediaType() const override { return "audio/x-flac"; }
 
   bool open() override;
-  bool overflow() const;
-  int bytesAvailable() const override;
-
   void close() override;
 
-protected:
-  int readData(char * data, int maxlen) override;
+  bool canRead() const { return true; }
+  bool canWrite() const { return true; }
 
 private:
-  int encode(const char * data, int len) override;
-  int writeEncodedData(const char * data, int len);
+  int writeData(const char * data, int len) override;
+  int writeEncoded(const char * data, int len);
 
-private:
   bool m_ok;
   int m_interleave;
   int m_sampleSize;
   FLAC__int32 * m_pcm;
-
-  FrameBuffer * m_buffer;
-  FramePacket * m_packet;
-  int m_consumed;
 
   class FLACEncoderPrivate : public FLAC::Encoder::Stream
   {
@@ -75,6 +67,7 @@ private:
   };
 
   FLACEncoderPrivate * m_encoder;
+  AudioFormat m_inputFormat;
 };
 
 }
