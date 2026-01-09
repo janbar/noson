@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2015 Jean-Luc Barriere
+ *      Copyright (C) 2014-2026 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -38,38 +38,42 @@ namespace NSROOT
   class WSRequestBroker
   {
   public:
-    WSRequestBroker(TcpSocket* socket, int timeout);
+    WSRequestBroker(TcpSocket* socket, bool secure, int timeout);
     ~WSRequestBroker();
 
-    void SetTimeout(timeval timeout);
+    void SetTimeout(int timeout);
+    bool IsSecure() const { return m_secure; }
     bool IsParsed() const { return m_parsed; }
     std::string GetHostAddrInfo() const;
     WS_METHOD GetRequestMethod() const { return m_method; }
     const std::string& GetRequestPath() const { return m_path; }
-    const std::string& GetRequestScheme() const { return m_scheme; }
+    const std::string& GetRequestProtocol() const { return m_protocol; }
     const std::string& GetRequestHeader(const std::string& name) const;
     const std::string& GetRequestHeader(WS_HEADER header) const { return GetRequestHeader(ws_header_to_upperstr(header)); }
     const std::string& GetRequestParam(const std::string& name) const;
     const std::string& GetURIParams() const { return m_uriParams; }
+    bool IsPathHidden() const { return m_pathIsHidden; }
     bool HasContent() const { return (m_contentLength > 0); }
     size_t GetContentLength() const { return m_contentLength; }
     size_t ReadContent(char *buf, size_t buflen);
     size_t GetConsumed() const { return m_consumed; }
 
     static void Tokenize(const std::string& str, char delimiter, std::vector<std::string>& tokens, bool trimnull = false);
-    static bool ExplodeURI(const std::string& in, std::string& path, std::string& uriparams);
+    static bool ExplodeURI(const std::string& in, std::string& path, std::string& uriparams, bool& ishidden);
 
     bool ReplyHead(WS_STATUS status);
     bool ReplyBody(const char * data, size_t size) const;
+    bool RewritePath(const std::string& newpath);
 
   private:
     TcpSocket* m_socket;
-    int m_timeout;
+    bool m_secure;
     bool m_parsed;
     WS_METHOD m_method;
     std::string m_path;
-    std::string m_scheme;
+    std::string m_protocol;
     std::string m_uriParams;
+    bool m_pathIsHidden;
     bool m_contentChunked;
     size_t m_contentLength;
     size_t m_consumed;

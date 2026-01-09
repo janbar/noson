@@ -104,10 +104,10 @@ const std::string& RequestBroker::GetURIParams(handle * handle)
   return handle->payload->request->GetURIParams();
 }
 
-const std::string& RequestBroker::GetRequestScheme(handle * handle)
+const std::string& RequestBroker::GetRequestProtocol(handle * handle)
 {
   assert(handle);
-  return handle->payload->request->GetRequestScheme();
+  return handle->payload->request->GetRequestProtocol();
 }
 
 const std::string& RequestBroker::GetRequestHeader(handle * handle, const std::string& name)

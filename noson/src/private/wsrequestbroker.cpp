@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2015 Jean-Luc Barriere
+ *      Copyright (C) 2014-2026 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -18,8 +18,6 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-
-#include <filesystem>
 
 #include "wsrequestbroker.h"
 #include "urlencoder.h"
@@ -104,13 +102,14 @@ void WSRequestBroker::Tokenize(const std::string& str, char delimiter, std::vect
   tokens.push_back(str.substr(pa));
 }
 
-bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::string& uriparams)
+bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::string& uriparams, bool& ishidden)
 {
   // parse uri
   URIParser parser(in);
   if (!parser.Path())
     return false;
   unsigned len = 0;
+  bool hidden = false;
   std::vector<std::string> dirty;
   std::vector<std::string> clean;
   std::vector<std::string>::const_iterator it;
@@ -131,9 +130,14 @@ bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::
     {
       clean.push_back(*it);
       len += it->size() + 1;
+      // check a hidden path traversal attempt
+      if (it->front() == '.')
+        hidden = true;
     }
     ++it;
   }
+  // set hidden path status
+  ishidden = hidden;
   // store path string
   path.clear();
   path.reserve(len);
@@ -151,11 +155,12 @@ bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::
   return true;
 }
 
-WSRequestBroker::WSRequestBroker(TcpSocket* socket, int timeout)
+WSRequestBroker::WSRequestBroker(TcpSocket* socket, bool secure, int timeout)
 : m_socket(socket)
-, m_timeout(timeout)
+, m_secure(secure)
 , m_parsed(false)
 , m_method(WS_METHOD_Head)
+, m_pathIsHidden(false)
 , m_contentChunked(false)
 , m_contentLength(0)
 , m_consumed(0)
@@ -163,10 +168,7 @@ WSRequestBroker::WSRequestBroker(TcpSocket* socket, int timeout)
 , m_chunkPtr(nullptr)
 , m_chunkEnd(nullptr)
 {
-  struct timeval tv = { timeout, 0 };
-  if (timeout == 0)
-    tv.tv_usec = 999999;
-  m_socket->SetTimeout(tv);
+  SetTimeout(timeout);
   m_parsed = ParseQuery();
 }
 
@@ -177,9 +179,12 @@ WSRequestBroker::~WSRequestBroker()
   m_chunkBuffer = m_chunkPtr = m_chunkEnd = nullptr;
 }
 
-void WSRequestBroker::SetTimeout(timeval timeout)
+void WSRequestBroker::SetTimeout(int timeout)
 {
-  m_socket->SetTimeout(timeout);
+  struct timeval tv = { timeout, 0 };
+  if (timeout == 0)
+    tv.tv_usec = 999999;
+  m_socket->SetTimeout(tv);
 }
 
 std::string WSRequestBroker::GetHostAddrInfo() const
@@ -238,7 +243,7 @@ bool WSRequestBroker::ParseQuery()
           return false;
         m_method = method;
         // explode requested uri
-        if (!ExplodeURI(query[1], m_path, m_uriParams))
+        if (!ExplodeURI(query[1], m_path, m_uriParams, m_pathIsHidden))
           return false;
         if (!m_uriParams.empty())
         {
@@ -253,7 +258,7 @@ bool WSRequestBroker::ParseQuery()
           }
         }
         // set the requested protocol
-        m_scheme = query[2];
+        m_protocol = query[2];
         // Clear entries for next step
         m_requestHeaders.clear();
         ret = true;
@@ -400,4 +405,10 @@ bool WSRequestBroker::ReplyHead(WS_STATUS status)
 bool WSRequestBroker::ReplyBody(const char* data, size_t size) const
 {
   return m_socket->SendData(data, size);
+}
+
+bool WSRequestBroker::RewritePath(const std::string& newpath)
+{
+  std::string tmp;
+  return ExplodeURI(newpath, m_path, tmp, m_pathIsHidden);
 }

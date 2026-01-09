@@ -167,7 +167,7 @@ namespace NSROOT
      * @param handle
      * @return The protocol of the request, i.e HTTP/1.1
      */
-    static const std::string& GetRequestScheme(handle * handle);
+    static const std::string& GetRequestProtocol(handle * handle);
 
     /**
      * @param handle

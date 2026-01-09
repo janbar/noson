@@ -25,6 +25,8 @@
 
 using namespace NSROOT;
 
+#define CONNECTION_TIMEOUT  5 // default timeout in seconds
+
 EventBroker::EventBroker(EventHandlerThread* handler, SHARED_PTR<TcpSocket>& sockPtr)
 : m_handler(handler)
 , m_sockPtr(sockPtr)
@@ -40,17 +42,13 @@ void EventBroker::Process()
   if (!m_handler || !m_sockPtr || !m_sockPtr->IsValid())
     return;
 
-  WSRequestBroker rb(m_sockPtr.get(), 5);
+  WSRequestBroker rb(m_sockPtr.get(), false, CONNECTION_TIMEOUT);
   std::string resp;
 
   if (!rb.IsParsed())
   {
-    WS_STATUS status(WS_STATUS_400_Bad_Request);
-    resp.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
-    resp.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
-    resp.append("Connection: close" WS_CRLF);
-    resp.append(WS_CRLF);
-    m_sockPtr->SendData(resp.c_str(), resp.size());
+    rb.ReplyHead(WS_STATUS_400_Bad_Request);
+    rb.ReplyBody(WS_CRLF, WS_CRLF_LEN);
     m_sockPtr->Disconnect();
     return;
   }
