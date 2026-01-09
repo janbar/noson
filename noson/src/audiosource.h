@@ -70,8 +70,6 @@ public:
    */
   virtual AudioFormat getFormat() const = 0;
 
-
-  inline bool isSequential() const override { return true; }
   inline bool isRecording() const { return m_record; }
   bool startRecording();
   void stopRecording();

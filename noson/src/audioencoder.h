@@ -41,8 +41,6 @@ public:
   virtual std::string mediaType() const = 0;
   virtual bool open() = 0;
 
-  bool isSequential() const override { return true; }
-
 protected:
   AudioFormat m_format;
   IODevice * m_source;

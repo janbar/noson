@@ -36,7 +36,6 @@ public:
 
   virtual bool open(OpenMode mode);
   virtual void close();
-  virtual bool isSequential() const = 0;
   virtual int bytesAvailable() const = 0;
 
   bool readable() { return (m_mode & ReadOnly); }
