@@ -58,6 +58,7 @@ PASource::PASource(const std::string& name, const std::string& deviceName)
 , m_name(name)
 , m_deviceName(deviceName)
 , m_format(AudioFormat::CDLPCM())
+, m_output(nullptr)
 , m_pa_error(0)
 , m_pa(nullptr)
 , m_blankKiller(nullptr)
@@ -67,26 +68,27 @@ PASource::PASource(const std::string& name, const std::string& deviceName)
 
 PASource::~PASource()
 {
-  close();
+  stop();
   delete m_p;
   freePA();
 }
 
-bool PASource::open()
+void PASource::play(OutputStream * out)
 {
-  if (!AudioSource::isOpen() && AudioSource::open())
-    m_p->start();
-  return AudioSource::isOpen();
+  if (m_p->isRunning())
+    stop();
+  m_output = out;
+  m_p->start();
 }
 
-void PASource::close()
+void PASource::stop()
 {
   if (m_p->isRunning())
   {
     m_p->requestInterruption();
     m_p->waitFinished();
+    m_output = nullptr;
   }
-  AudioSource::close();
 }
 
 bool PASource::initPA()
@@ -198,15 +200,18 @@ void* PASourceWorker::Process()
         DBG(DBG_ERROR, "pa_simple_read() failed: %s\n", pa_strerror(m_source->m_pa_error));
         break;
       }
-      if (m_source->m_mute)
-        memset(buf, 0, bsize);
-      // Apply the blank killer
-      m_source->m_blankKiller(buf, channels, BLANK_FRAMES);
-      // And write it to out
-      if (m_source->writeData(buf, bsize) != bsize)
+      if (m_source->m_output)
       {
-        DBG(DBG_ERROR, "write() failed\n");
-        break;
+        if (m_source->m_mute)
+          memset(buf, 0, bsize);
+        // Apply the blank killer
+        m_source->m_blankKiller(buf, channels, BLANK_FRAMES);
+        // Write output
+        if (m_source->m_output->write(buf, bsize) != bsize)
+        {
+          DBG(DBG_ERROR, "write() failed\n");
+          break;
+        }
       }
     }
     delete [] buf;

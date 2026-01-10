@@ -24,67 +24,71 @@
 namespace NSROOT
 {
 
+class OutputStream
+{
+public:
+  OutputStream() { }
+  virtual ~OutputStream() { }
+  virtual int write(const char * data, int len) = 0;
+};
+
+class InputStream
+{
+public:
+  InputStream() { }
+  virtual ~InputStream() { }
+  virtual int read(char * data, int maxlen) = 0;
+};
+
 namespace OS
 {
 class Mutex;
 template <typename T> class Condition;
 }
 
-class IOStream
+class AsyncInputStream : protected InputStream
 {
 public:
-  IOStream();
-  virtual ~IOStream();
-  IOStream(const IOStream& other) = delete;
-  IOStream& operator=(const IOStream& other) = delete;
+  AsyncInputStream();
+  virtual ~AsyncInputStream();
+  AsyncInputStream(const AsyncInputStream& other) = delete;
+  AsyncInputStream& operator=(const AsyncInputStream& other) = delete;
 
-  virtual bool canRead() const = 0;
-  virtual bool canWrite() const = 0;
-  virtual int bytesAvailable() const  = 0;
-  
-  virtual bool open() { return (m_open = true); }
-  virtual void close() { m_open = false; }
-  virtual bool isOpen() { return m_open; }
-  
-  int read(char * data, int maxlen, unsigned timeout);
-  int write(const char * data, int len);
-
-  void pipeTo(IOStream * s) { m_output = s; }
-  IOStream* pipedTo() const { return m_output; }
+  int readAsync(char * data, int maxlen, unsigned timeout);
 
 protected:
-  void readyRead();
-  virtual int readData(char * data, int maxlen) = 0;
-  virtual int writeData(const char * data, int len) = 0;
+  void signalReadyRead();
+
+    virtual int bytesAvailable() const  = 0;
+    //virtual int read(char * data, int maxlen) = 0;
 
 private:
   mutable OS::Mutex * m_lock;
   OS::Condition<bool> * m_readyRead;
-  bool m_open;
-  IOStream * m_output;
 };
 
-class FrameBuffer;
-class FramePacket;
+class RingBuffer;
+class RingBufferPacket;
 
-class BufferedIOStream : public IOStream
+class BufferedStream : public OutputStream, public AsyncInputStream
 {
 public:
-  BufferedIOStream();
-  BufferedIOStream(int capacity);
-  virtual ~BufferedIOStream() override;
+  BufferedStream(int capacity);
+  virtual ~BufferedStream() override;
 
   int bytesAvailable() const override;
   bool overflow() const;
 
+  int write(const char * data, int len) override;
+  //int readAsync(char * data, int maxlen, unsigned timeout);
+
 protected:
-  int readData(char * data, int maxlen) override;
-  int writeData(const char * data, int len) override;
+  int read(char * data, int maxlen) override;
   void clearBuffer();
 
 private:
-  FrameBuffer * m_buffer;
-  FramePacket * m_packet;
+  RingBuffer * m_buffer;
+  RingBufferPacket * m_packet;
   int m_consumed;
 };
 

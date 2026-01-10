@@ -21,31 +21,25 @@
 #include "private/os/threads/condition.h"
 #include "private/os/threads/timeout.h"
 #include "private/os/threads/mutex.h"
+#include "private/ringbuffer.h"
 #include "private/debug.h"
-#include "framebuffer.h"
 
 using namespace NSROOT;
 
-IOStream::IOStream()
+AsyncInputStream::AsyncInputStream()
 : m_lock(new OS::Mutex())
 , m_readyRead(new OS::Condition<bool>())
-, m_open(false)
-, m_output(nullptr)
 {
 }
 
-IOStream::~IOStream()
+AsyncInputStream::~AsyncInputStream()
 {
-  m_open = false;
   delete m_readyRead;
   delete m_lock;
 }
 
-int IOStream::read(char* data, int maxlen, unsigned timeout)
+int AsyncInputStream::readAsync(char* data, int maxlen, unsigned timeout)
 {
-  if (!canRead())
-    return -1;
-
   m_lock->Lock();
   if (bytesAvailable() == 0)
   {
@@ -57,59 +51,45 @@ int IOStream::read(char* data, int maxlen, unsigned timeout)
       return 0;
     }
   }
-  int r = readData(data, maxlen);
+  int r = read(data, maxlen);
   m_lock->Unlock();
   return r;
 }
 
-int IOStream::write(const char* data, int len)
-{
-  if (!canWrite())
-    return -1;
-  return writeData(data, len);
-}
-
-void IOStream::readyRead()
+void AsyncInputStream::signalReadyRead()
 {
   m_readyRead->Broadcast();
 }
 
-BufferedIOStream::BufferedIOStream()
-: BufferedIOStream(2)
-{
-}
-
-BufferedIOStream::BufferedIOStream(int capacity)
-: IOStream()
+BufferedStream::BufferedStream(int capacity)
+: OutputStream(), AsyncInputStream()
 , m_buffer(nullptr)
 , m_packet(nullptr)
 , m_consumed(0)
 {
-  m_buffer = new FrameBuffer(capacity);
+  m_buffer = new RingBuffer(capacity);
 }
 
-BufferedIOStream::~BufferedIOStream()
+BufferedStream::~BufferedStream()
 {
-  if (this->isOpen())
-    this->close();
   if (m_packet)
     m_buffer->freePacket(m_packet);
   delete m_buffer;
 }
 
-bool BufferedIOStream::overflow() const
+bool BufferedStream::overflow() const
 {
   return m_buffer->full();
 }
 
-int BufferedIOStream::bytesAvailable() const
+int BufferedStream::bytesAvailable() const
 {
   if (m_packet)
     return (m_packet->size - m_consumed);
   return m_buffer->bytesAvailable();
 }
 
-int BufferedIOStream::readData(char * data, int maxlen)
+int BufferedStream::read(char * data, int maxlen)
 {
   if (m_packet == nullptr)
   {
@@ -132,21 +112,17 @@ int BufferedIOStream::readData(char * data, int maxlen)
   return 0;
 }
 
-int BufferedIOStream::writeData(const char * data, int len)
+int BufferedStream::write(const char * data, int len)
 {
-  // check sink: connected output, otherwise internal buffer for reading
-  if (pipedTo())
-    len = pipedTo()->write(data, len);
-  else if ((len = m_buffer->write(data, len)) > 0)
-    readyRead();
+  if ((len = m_buffer->write(data, len)) > 0)
+    signalReadyRead();
   return len;
 }
 
-void BufferedIOStream::clearBuffer()
+void BufferedStream::clearBuffer()
 {
   m_buffer->clear();
   if (m_packet)
     m_buffer->freePacket(m_packet);
   m_packet = nullptr;
-  m_consumed = 0;
 }

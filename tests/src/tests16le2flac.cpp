@@ -44,48 +44,42 @@ void usage(const char* cmd)
 static int g_loglevel = 2;
 
 /**
- * Implement the file audio source
+ * Implement the input stream
  */
-class Source : private SONOS::AudioSource
+class Source : private SONOS::InputStream
 {
 public:
-  Source(const std::string& filepath) : SONOS::AudioSource(0)
-  , _filepath(filepath), _file(nullptr) { }
+  Source(const std::string& filepath)
+  : SONOS::InputStream()
+  , _filepath(filepath)
+  , _file(nullptr)
+  { }
   virtual ~Source()
   {
     close();
   };
 
-  bool open() override
+  bool open()
   {
-    if (!SONOS::AudioSource::isOpen())
+    if (!_file)
     {
-      _file = fopen(_filepath.c_str(), "rb");
-      if (_file)
-        return SONOS::AudioSource::open();
+      if ((_file = fopen(_filepath.c_str(), "rb")) == nullptr)
+      {
+        PRINT1("failed to open input file '%s'\n", _filepath.c_str());
+        return false;
+      }
     }
-    PRINT1("failed to open input file '%s'\n", _filepath.c_str());
-    return false;
+    return true;
   }
 
-  void close() override
+  void close()
   {
-    SONOS::AudioSource::close();
     if (_file)
       fclose(_file);
     _file = nullptr;
   }
 
-  std::string getName() const override { return _filepath; };
-  std::string getDescription() const override { return "file"; };
-  SONOS::AudioFormat getFormat() const override { return SONOS::AudioFormat::CDLPCM(); };
-  int read(char * data, int maxlen) { return readData(data, maxlen); }
-
-private:
-  std::string _filepath;
-  FILE * _file              = nullptr;
-
-  int readData(char* data, int maxlen) override
+  int read(char * data, int maxlen) override
   {
     int r = -1;
     if (_file)
@@ -99,6 +93,10 @@ private:
     }
     return r;
   }
+
+private:
+  std::string _filepath;
+  FILE * _file;
 };
 
 /**
@@ -149,9 +147,9 @@ int main(int argc, char** argv)
     if (!source.open())
       return EXIT_FAILURE;
     // initialize the encoder and configure the format
-    SONOS::FLACEncoder encoder(1024);
-    encoder.setInputFormat(source.getFormat());
-    encoder.open();
+    SONOS::FLACEncoder encoder;
+    SONOS::BufferedStream stream(8);
+    encoder.open(SONOS::AudioFormat::CDLPCM(), &stream);
 
     // buffer for data
     char buf[1024];
@@ -161,25 +159,23 @@ int main(int argc, char** argv)
     {
       // push the data to the encoder
       encoder.write(buf, r);
-      // check for available encoded data and flush out
-      int w = 0;
-      while ((w = encoder.bytesAvailable()) > 0)
+      // write output while available encoded data
+      int n = 0;
+      while ((n = stream.bytesAvailable()) > 0)
       {
-        if ((w = encoder.read(buf, sizeof(buf), 0/*forever*/)) > 0)
-          fwrite(buf, 1, w, flac);
+        if ((n = stream.readAsync(buf, sizeof(buf), 0/*forever*/)) > 0)
+          fwrite(buf, 1, n, flac);
       }
+    }
+    // flush out the rest of encoded data
+    int n = 0;
+    while ((n = stream.bytesAvailable()) > 0)
+    {
+      if ((n = stream.readAsync(buf, sizeof(buf), 1/*forever*/)) > 0)
+        fwrite(buf, 1, n, flac);
     }
 
     source.close();
-
-    // flush out the rest of encoded data
-    int w = 0;
-    while ((w = encoder.bytesAvailable()) > 0)
-    {
-      if ((w = encoder.read(buf, sizeof(buf), 1/*forever*/)) > 0)
-        fwrite(buf, 1, w, flac);
-    }
-
     encoder.close();
 
     fclose(flac);

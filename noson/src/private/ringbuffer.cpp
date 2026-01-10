@@ -1,29 +1,32 @@
 /*
- *      Copyright (C) 2021-2026 Jean-Luc Barriere
+ *      Copyright (C) 2022 Jean-Luc Barriere
  *
- *  This program is free software: you can redistribute it and/or modify
+ *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
  *
- *  This program is distributed in the hope that it will be useful,
+ *  This Program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  along with this program; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
+ *  MA 02110-1301 USA
+ *  http://www.gnu.org/copyleft/gpl.html
  *
  */
 
-#include "framebuffer.h"
+#include "ringbuffer.h"
 
-#include "private/os/threads/mutex.h"
-#include "private/debug.h"
+#include "os/threads/mutex.h"
+#include "debug.h"
 
 using namespace NSROOT;
 
-FramePacket::FramePacket(int _capacity)
+RingBufferPacket::RingBufferPacket(int _capacity)
 : id(0)
 , size(0)
 , data(new char [_capacity])
@@ -31,13 +34,13 @@ FramePacket::FramePacket(int _capacity)
 {
 }
 
-FramePacket::~FramePacket()
+RingBufferPacket::~RingBufferPacket()
 {
   if (data)
     delete [] data;
 }
 
-FrameBuffer::FrameBuffer(int capacity)
+RingBuffer::RingBuffer(int capacity)
 : m_ringlock(new OS::Mutex())
 , m_poollock(new OS::Mutex())
 , m_capacity(capacity)
@@ -48,15 +51,15 @@ FrameBuffer::FrameBuffer(int capacity)
 , m_write(nullptr)
 , m_pool()
 {
-  // size at least 1 packet
-  m_buffer.resize(capacity > 0 ? capacity : 1);
+  assert(capacity > 0);
+  m_buffer.resize(capacity);
   init();
 }
 
-FrameBuffer::~FrameBuffer()
+RingBuffer::~RingBuffer()
 {
   m_ringlock->Lock();
-  for (std::vector<Frame*>::iterator it = m_buffer.begin(); it != m_buffer.end(); ++it)
+  for (std::vector<Chunk*>::iterator it = m_buffer.begin(); it != m_buffer.end(); ++it)
     delete *it;
   m_ringlock->Unlock();
   m_poollock->Lock();
@@ -70,12 +73,12 @@ FrameBuffer::~FrameBuffer()
   delete m_ringlock;
 }
 
-void FrameBuffer::init()
+void RingBuffer::init()
 {
-  Frame * previous = nullptr;
-  for (std::vector<Frame*>::iterator it = m_buffer.begin(); it != m_buffer.end(); ++it)
+  Chunk * previous = nullptr;
+  for (std::vector<Chunk*>::iterator it = m_buffer.begin(); it != m_buffer.end(); ++it)
   {
-    *it = new Frame();
+    *it = new Chunk();
     if (previous)
       previous->next = *it;
     previous = *it;
@@ -86,35 +89,35 @@ void FrameBuffer::init()
   m_read = m_write;
 }
 
-int FrameBuffer::capacity() const
+int RingBuffer::capacity() const
 {
   return m_capacity;
 }
 
-int FrameBuffer::bytesAvailable() const
+int RingBuffer::bytesAvailable() const
 {
   OS::LockGuard g(*m_ringlock);
   return (m_unread ? m_read->packet->size : 0);
 }
 
-unsigned FrameBuffer::bytesUnread() const
+unsigned RingBuffer::bytesUnread() const
 {
   OS::LockGuard g(*m_ringlock);
   return m_unread;
 }
 
-bool FrameBuffer::full() const
+bool RingBuffer::full() const
 {
   OS::LockGuard g(*m_ringlock);
   return (m_unread && m_read == m_write);
 }
 
-void FrameBuffer::clear()
+void RingBuffer::clear()
 {
   OS::LockGuard g(*m_ringlock);
   // reset of unread implies the reset of packet size
-  // so clean all frames in the buffer
-  for (std::vector<Frame*>::iterator it = m_buffer.begin(); it != m_buffer.end(); ++it)
+  // so clean all chunks in the buffer
+  for (std::vector<Chunk*>::iterator it = m_buffer.begin(); it != m_buffer.end(); ++it)
   {
     if ((*it)->packet)
       freePacket((*it)->packet);
@@ -124,11 +127,11 @@ void FrameBuffer::clear()
   m_read = m_write;
 }
 
-int FrameBuffer::write(const char * data, int len)
+int RingBuffer::write(const char * data, int len)
 {
   if (len > 0)
   {
-    FramePacket * _packet = needPacket(len);
+    RingBufferPacket * _packet = needPacket(len);
     _packet->size = len;
     memcpy(_packet->data, data, len);
     {
@@ -149,14 +152,14 @@ int FrameBuffer::write(const char * data, int len)
   return len;
 }
 
-FramePacket* FrameBuffer::newPacket(int len)
+RingBufferPacket* RingBuffer::newPacket(int len)
 {
-  FramePacket * _packet = needPacket(len);
+  RingBufferPacket * _packet = needPacket(len);
   _packet->size = 0;
   return _packet;
 }
 
-void FrameBuffer::writePacket(FramePacket* packet)
+void RingBuffer::writePacket(RingBufferPacket* packet)
 {
   if (packet)
   {
@@ -175,9 +178,9 @@ void FrameBuffer::writePacket(FramePacket* packet)
   }
 }
 
-FramePacket * FrameBuffer::read()
+RingBufferPacket * RingBuffer::read()
 {
-  FramePacket * p = nullptr;
+  RingBufferPacket * p = nullptr;
   {
     OS::LockGuard g(*m_ringlock);
     if (m_unread)
@@ -191,16 +194,16 @@ FramePacket * FrameBuffer::read()
   return p;
 }
 
-void FrameBuffer::freePacket(FramePacket * p)
+void RingBuffer::freePacket(RingBufferPacket * p)
 {
   m_poollock->Lock();
   m_pool.push_back(p);
   m_poollock->Unlock();
 }
 
-FramePacket * FrameBuffer::needPacket(int size)
+RingBufferPacket * RingBuffer::needPacket(int size)
 {
-  FramePacket * p = nullptr;
+  RingBufferPacket * p = nullptr;
   m_poollock->Lock();
   if (!m_pool.empty())
   {
@@ -219,7 +222,7 @@ FramePacket * FrameBuffer::needPacket(int size)
   {
     m_poollock->Unlock();
   }
-  p = new FramePacket(size);
+  p = new RingBufferPacket(size);
   //DBG(DBG_DEBUG, "%s: allocated packet to buffer (%d)\n", __FUNCTION__, p->capacity);
   return p;
 }

@@ -213,17 +213,16 @@ void PulseStreamer::streamSink(handle * handle)
     Reply429(handle);
   else
   {
-    PASource src(PA_CLIENT_NAME, deviceName);
-    FLACEncoder enc;
-    enc.setInputFormat(src.getFormat());
-    src.pipeTo(&enc);
+    PASource audioSource(PA_CLIENT_NAME, deviceName);
+    FLACEncoder audioEncoder;
+    BufferedStream stream(256);
+    audioEncoder.open(audioSource.getFormat(), &stream);
 
     // the source is muted for a short time to limit output rate on startup
-    src.mute(true);
+    audioSource.mute(true);
     OS::Timeout muted(PULSESTREAMER_TM_MUTE);
 
-    enc.open();
-    src.open();
+    audioSource.play(&audioEncoder);
 
     std::string resp;
     resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
@@ -235,7 +234,7 @@ void PulseStreamer::streamSink(handle * handle)
     {
       char * buf = new char [PULSESTREAMER_CHUNK + 16];
       int r = 0;
-      while (!IsAborted() && (r = enc.read(buf + 5 + WS_CRLF_LEN, PULSESTREAMER_CHUNK, PULSESTREAMER_TIMEOUT)) > 0)
+      while (!IsAborted() && (r = stream.readAsync(buf + 5 + WS_CRLF_LEN, PULSESTREAMER_CHUNK, PULSESTREAMER_TIMEOUT)) > 0)
       {
         char str[6 + WS_CRLF_LEN];
         snprintf(str, sizeof(str), "%05x" WS_CRLF, (unsigned)r & 0xfffff);
@@ -244,16 +243,16 @@ void PulseStreamer::streamSink(handle * handle)
         if (!RequestBroker::Reply(handle, buf, r + 5 + WS_CRLF_LEN + WS_CRLF_LEN))
           break;
         // disable source mute after delay
-        if (src.muted() && !muted.TimeLeft())
-          src.mute(false);
+        if (audioSource.muted() && !muted.TimeLeft())
+          audioSource.mute(false);
       }
       delete [] buf;
       if (r == 0)
         RequestBroker::Reply(handle, "0" WS_CRLF WS_CRLF, 1 + WS_CRLF_LEN + WS_CRLF_LEN);
     }
 
-    src.close();
-    enc.close();
+    audioSource.stop();
+    audioEncoder.close();
   }
 
   FreePASink();

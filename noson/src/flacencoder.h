@@ -21,7 +21,6 @@
 
 #include "local_config.h"
 #include "audioencoder.h"
-#include "iostream.h"
 
 #include <FLAC++/metadata.h>
 #include <FLAC++/encoder.h>
@@ -29,29 +28,24 @@
 namespace NSROOT
 {
 
-class FLACEncoder : public AudioEncoder, public BufferedIOStream
+class FLACEncoder : public AudioEncoder
 {
   friend class FLACEncoderPrivate;
 
 public:
   FLACEncoder();
-  FLACEncoder(int capacity);
   ~FLACEncoder() override;
 
-  void setInputFormat(const AudioFormat& format) override;
-  AudioFormat getInputFormat() const override { return m_inputFormat; }
   std::string mediaType() const override { return "audio/x-flac"; }
-
-  bool open() override;
+  bool open(const AudioFormat& inputFormat, OutputStream * out) override;
   void close() override;
 
-  bool canRead() const { return true; }
-  bool canWrite() const { return true; }
+  int write(const char* data, int len) override;
 
 private:
-  int writeData(const char * data, int len) override;
   int writeEncoded(const char * data, int len);
 
+  bool m_open;
   bool m_ok;
   int m_interleave;
   int m_sampleSize;
@@ -67,6 +61,7 @@ private:
   };
 
   FLACEncoderPrivate * m_encoder;
+  OutputStream * m_output;
   AudioFormat m_inputFormat;
 };
 

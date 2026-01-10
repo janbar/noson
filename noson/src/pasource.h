@@ -35,16 +35,18 @@ public:
   PASource(const std::string& name, const std::string& deviceName);
   virtual ~PASource();
 
-  bool open() override;
-  void close() override;
-  inline std::string getName() const override { return m_name; }
+  std::string getName() const override { return m_name; }
   std::string getDescription() const override { return m_deviceName; }
   AudioFormat getFormat() const override { return m_format; }
+
+  void play(OutputStream* out) override;
+  void stop() override;
 
 private:
   std::string m_name;
   std::string m_deviceName;
   AudioFormat m_format;
+  OutputStream * m_output;
 
   bool initPA();
   void freePA();

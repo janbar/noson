@@ -20,20 +20,20 @@
 #define AUDIOENCODER_H
 
 #include "local_config.h"
+#include "iostream.h"
 #include "audioformat.h"
 
 namespace NSROOT
 {
 
-class AudioEncoder
+class AudioEncoder : public OutputStream
 {
 public:
   AudioEncoder() { }
   virtual ~AudioEncoder() { }
-
-  virtual void setInputFormat(const AudioFormat& format) = 0;
-  virtual AudioFormat getInputFormat() const = 0;
   virtual std::string mediaType() const = 0;
+  virtual bool open(const AudioFormat& format, OutputStream * out) = 0;
+  virtual void close() = 0;
 };
 
 }

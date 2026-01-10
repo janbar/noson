@@ -20,28 +20,21 @@
 #define AUDIOSOURCE_H
 
 #include "local_config.h"
-#include "iostream.h"
 #include "audioformat.h"
+#include "iostream.h"
 
 #include <string>
+
+#define FRAME_BUFFER_SIZE 256
 
 namespace NSROOT
 {
 
-class FrameBuffer;
-class FramePacket;
-
-class AudioSource : public BufferedIOStream
+class AudioSource
 {
 public:
-  AudioSource();
-  AudioSource(int capacity);
-  virtual ~AudioSource() override;
-
-  bool canRead() const override { return true; }
-  bool canWrite() const override { return false; }
-
-  virtual bool open() override;
+  AudioSource() : m_mute(false) { }
+  virtual ~AudioSource() { }
 
   /**
    * Return the name of the source
@@ -61,7 +54,10 @@ public:
    */
   virtual AudioFormat getFormat() const = 0;
 
-  void mute(bool enabled);
+  virtual void play(OutputStream * out) = 0;
+  virtual void stop() = 0;
+  
+  void mute(bool enabled) { m_mute = enabled; }
   bool muted() const { return m_mute; }
 
 protected:

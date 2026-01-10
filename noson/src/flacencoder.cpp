@@ -17,58 +17,45 @@
  */
 
 #include "flacencoder.h"
-#include "framebuffer.h"
 #include "private/byteorder.h"
 #include "private/debug.h"
 
 #define SAMPLES 1024
-#define FRAME_BUFFER_SIZE 256
 
 using namespace NSROOT;
 
 FLACEncoder::FLACEncoder()
-: FLACEncoder(FRAME_BUFFER_SIZE)
-{
-}
-
-FLACEncoder::FLACEncoder(int capacity)
-: AudioEncoder(), BufferedIOStream(capacity)
+: AudioEncoder()
+, m_open(false)
 , m_ok(false)
 , m_interleave(0)
 , m_sampleSize(0)
 , m_pcm(nullptr)
 , m_encoder(nullptr)
+, m_output(nullptr)
 {
   m_encoder = new FLACEncoderPrivate(this);
 }
 
 FLACEncoder::~FLACEncoder()
 {
-  if (BufferedIOStream::isOpen())
+  if (m_open)
     close();
   if (m_pcm != nullptr)
     delete[] m_pcm;
   delete m_encoder;
 }
 
-void FLACEncoder::setInputFormat(const AudioFormat& format)
+bool FLACEncoder::open(const AudioFormat& inputFormat, OutputStream * out)
 {
-  if (BufferedIOStream::isOpen())
-  {
-    DBG(DBG_WARN, "Audio encoder is already opened\n");
-    close();
-  }
-  m_inputFormat = format;
-}
-
-bool FLACEncoder::open()
-{
-  if (BufferedIOStream::isOpen())
+  if (m_open)
   {
     DBG(DBG_WARN, "FLAC Encoder already opened\n");
-    return true;
+    return false;
   }
 
+  m_inputFormat = inputFormat;
+  m_output = out;
   DBG(DBG_INFO, "Open FLAC encoder\n");
 
   // configure the encoder
@@ -103,13 +90,11 @@ bool FLACEncoder::open()
   m_interleave = m_inputFormat.bytesPerFrame() / m_inputFormat.channelCount;
   m_sampleSize = m_inputFormat.sampleSize;
 
-  BufferedIOStream::clearBuffer();
-
   if (m_pcm != nullptr)
     delete[] m_pcm;
   m_pcm = new FLAC__int32 [SAMPLES * m_inputFormat.channelCount];
 
-  BufferedIOStream::open();
+  m_open = true;
   FLAC__StreamEncoderInitStatus init_status = m_encoder->init();
   if(init_status == FLAC__STREAM_ENCODER_INIT_STATUS_OK)
     return true;
@@ -120,16 +105,19 @@ bool FLACEncoder::open()
 
 void FLACEncoder::close()
 {
-  if (BufferedIOStream::isOpen())
+  if (m_open)
   {
     DBG(DBG_INFO, "Close FLAC encoder\n");
-    BufferedIOStream::close();
     m_encoder->finish();
+    m_open = false;
   }
 }
 
-int FLACEncoder::writeData(const char * data, int len)
+int FLACEncoder::write(const char * data, int len)
 {
+  if (!m_open)
+    return 0;
+
   bool ok = true;
   int samples = len / m_interleave / m_inputFormat.channelCount;
   while (ok && samples > 0)
@@ -167,12 +155,9 @@ int FLACEncoder::writeData(const char * data, int len)
 
 int FLACEncoder::writeEncoded(const char * data, int len)
 {
-  // check sink: connected output, otherwise internal buffer for reading
-  if (BufferedIOStream::pipedTo())
-    len = BufferedIOStream::pipedTo()->write(data, len);
-  else if ((len = BufferedIOStream::writeData(data, len)) > 0)
-    BufferedIOStream::readyRead();
-  return len;
+  if (m_output)
+    return m_output->write(data, len);
+  return 0;
 }
 
 FLAC__StreamEncoderWriteStatus FLACEncoder::FLACEncoderPrivate::write_callback(const FLAC__byte buffer[], size_t bytes, unsigned samples, unsigned current_frame)
