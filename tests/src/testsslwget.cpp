@@ -20,7 +20,7 @@
 #include <string.h>
 #include <cstdio>
 
-int main() {
+int main(int argc, char** argv) {
 
   int ret = 0;
 #ifdef __WINDOWS__
@@ -30,11 +30,16 @@ int main() {
     return ret;
 #endif /* __WINDOWS__ */
 
-  const char* dest_url = "www.google.fr";
+  const char* dest_host = "www.google.fr";
+  int dest_port = 443;
+  if (argc > 1)
+    dest_host = argv[1];
+  if (argc > 2)
+    dest_port = atoi(argv[2]);
 
   SONOS::DBGLevel(4);
 
-  SONOS::WSRequest req(dest_url, 443);
+  SONOS::WSRequest req(dest_host, dest_port, true);
   req.RequestAcceptEncoding(true);
   req.RequestService("/", WS_METHOD_Get);
   SONOS::WSResponse resp(req);
