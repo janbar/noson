@@ -56,10 +56,10 @@ public:
   { }
   virtual ~Source()
   {
-    close();
+    Close();
   };
 
-  bool open()
+  bool Open()
   {
     if (!_file)
     {
@@ -72,14 +72,14 @@ public:
     return true;
   }
 
-  void close()
+  void Close()
   {
     if (_file)
       fclose(_file);
     _file = nullptr;
   }
 
-  int read(char * data, int maxlen) override
+  int Read(char * data, int maxlen) override
   {
     int r = -1;
     if (_file)
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
   {
     // new audio source
     Source source(infilepath);
-    if (!source.open())
+    if (!source.Open())
       return EXIT_FAILURE;
     // initialize the encoder and configure the format
     SONOS::FLACEncoder encoder;
@@ -155,27 +155,27 @@ int main(int argc, char** argv)
     char buf[1024];
 
     int r = 0;
-    while ((r = source.read(buf, sizeof(buf))) > 0)
+    while ((r = source.Read(buf, sizeof(buf))) > 0)
     {
       // push the data to the encoder
-      encoder.write(buf, r);
+      encoder.Write(buf, r);
       // write output while available encoded data
       int n = 0;
-      while ((n = stream.bytesAvailable()) > 0)
+      while ((n = stream.BytesAvailable()) > 0)
       {
-        if ((n = stream.readAsync(buf, sizeof(buf), 0/*forever*/)) > 0)
+        if ((n = stream.ReadAsync(buf, sizeof(buf), 0/*forever*/)) > 0)
           fwrite(buf, 1, n, flac);
       }
     }
     // flush out the rest of encoded data
     int n = 0;
-    while ((n = stream.bytesAvailable()) > 0)
+    while ((n = stream.BytesAvailable()) > 0)
     {
-      if ((n = stream.readAsync(buf, sizeof(buf), 1/*forever*/)) > 0)
+      if ((n = stream.ReadAsync(buf, sizeof(buf), 1/*forever*/)) > 0)
         fwrite(buf, 1, n, flac);
     }
 
-    source.close();
+    source.Close();
     encoder.close();
 
     fclose(flac);

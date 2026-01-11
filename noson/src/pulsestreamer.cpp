@@ -234,7 +234,7 @@ void PulseStreamer::streamSink(handle * handle)
     {
       char * buf = new char [PULSESTREAMER_CHUNK + 16];
       int r = 0;
-      while (!IsAborted() && (r = stream.readAsync(buf + 5 + WS_CRLF_LEN, PULSESTREAMER_CHUNK, PULSESTREAMER_TIMEOUT)) > 0)
+      while (!IsAborted() && (r = stream.ReadAsync(buf + 5 + WS_CRLF_LEN, PULSESTREAMER_CHUNK, PULSESTREAMER_TIMEOUT)) > 0)
       {
         char str[6 + WS_CRLF_LEN];
         snprintf(str, sizeof(str), "%05x" WS_CRLF, (unsigned)r & 0xfffff);

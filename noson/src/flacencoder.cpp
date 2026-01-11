@@ -113,7 +113,7 @@ void FLACEncoder::close()
   }
 }
 
-int FLACEncoder::write(const char * data, int len)
+int FLACEncoder::Write(const char * data, int len)
 {
   if (!m_open)
     return 0;
@@ -156,7 +156,7 @@ int FLACEncoder::write(const char * data, int len)
 int FLACEncoder::writeEncoded(const char * data, int len)
 {
   if (m_output)
-    return m_output->write(data, len);
+    return m_output->Write(data, len);
   return 0;
 }
 

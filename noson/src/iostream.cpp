@@ -38,10 +38,10 @@ AsyncInputStream::~AsyncInputStream()
   delete m_lock;
 }
 
-int AsyncInputStream::readAsync(char* data, int maxlen, unsigned timeout)
+int AsyncInputStream::ReadAsync(char* data, int maxlen, unsigned timeout)
 {
   m_lock->Lock();
-  if (bytesAvailable() == 0)
+  if (BytesAvailable() == 0)
   {
     OS::Timeout _timeout(timeout);
     bool signaled = m_readyRead->Wait(*m_lock, _timeout);
@@ -51,12 +51,12 @@ int AsyncInputStream::readAsync(char* data, int maxlen, unsigned timeout)
       return 0;
     }
   }
-  int r = read(data, maxlen);
+  int r = Read(data, maxlen);
   m_lock->Unlock();
   return r;
 }
 
-void AsyncInputStream::signalReadyRead()
+void AsyncInputStream::SignalReadyRead()
 {
   m_readyRead->Broadcast();
 }
@@ -77,19 +77,19 @@ BufferedStream::~BufferedStream()
   delete m_buffer;
 }
 
-bool BufferedStream::overflow() const
+bool BufferedStream::Overflow() const
 {
   return m_buffer->full();
 }
 
-int BufferedStream::bytesAvailable() const
+int BufferedStream::BytesAvailable() const
 {
   if (m_packet)
     return (m_packet->size - m_consumed);
   return m_buffer->bytesAvailable();
 }
 
-int BufferedStream::read(char * data, int maxlen)
+int BufferedStream::Read(char * data, int maxlen)
 {
   if (m_packet == nullptr)
   {
@@ -112,14 +112,14 @@ int BufferedStream::read(char * data, int maxlen)
   return 0;
 }
 
-int BufferedStream::write(const char * data, int len)
+int BufferedStream::Write(const char * data, int len)
 {
   if ((len = m_buffer->write(data, len)) > 0)
-    signalReadyRead();
+    SignalReadyRead();
   return len;
 }
 
-void BufferedStream::clearBuffer()
+void BufferedStream::ClearBuffer()
 {
   m_buffer->clear();
   if (m_packet)

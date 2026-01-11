@@ -40,7 +40,7 @@ public:
   bool open(const AudioFormat& inputFormat, OutputStream * out) override;
   void close() override;
 
-  int write(const char* data, int len) override;
+  int Write(const char* data, int len) override;
 
 private:
   int writeEncoded(const char * data, int len);

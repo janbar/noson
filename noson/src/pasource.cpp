@@ -207,7 +207,7 @@ void* PASourceWorker::Process()
         // Apply the blank killer
         m_source->m_blankKiller(buf, channels, BLANK_FRAMES);
         // Write output
-        if (m_source->m_output->write(buf, bsize) != bsize)
+        if (m_source->m_output->Write(buf, bsize) != bsize)
         {
           DBG(DBG_ERROR, "write() failed\n");
           break;

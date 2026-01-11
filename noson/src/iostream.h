@@ -29,7 +29,7 @@ class OutputStream
 public:
   OutputStream() { }
   virtual ~OutputStream() { }
-  virtual int write(const char * data, int len) = 0;
+  virtual int Write(const char * data, int len) = 0;
 };
 
 class InputStream
@@ -37,7 +37,7 @@ class InputStream
 public:
   InputStream() { }
   virtual ~InputStream() { }
-  virtual int read(char * data, int maxlen) = 0;
+  virtual int Read(char * data, int maxlen) = 0;
 };
 
 namespace OS
@@ -54,12 +54,12 @@ public:
   AsyncInputStream(const AsyncInputStream& other) = delete;
   AsyncInputStream& operator=(const AsyncInputStream& other) = delete;
 
-  int readAsync(char * data, int maxlen, unsigned timeout);
+  int ReadAsync(char * data, int maxlen, unsigned timeout);
 
 protected:
-  void signalReadyRead();
+  void SignalReadyRead();
 
-    virtual int bytesAvailable() const  = 0;
+    virtual int BytesAvailable() const  = 0;
     //virtual int read(char * data, int maxlen) = 0;
 
 private:
@@ -76,15 +76,15 @@ public:
   BufferedStream(int capacity);
   virtual ~BufferedStream() override;
 
-  int bytesAvailable() const override;
-  bool overflow() const;
+  int BytesAvailable() const override;
+  bool Overflow() const;
 
-  int write(const char * data, int len) override;
+  int Write(const char * data, int len) override;
   //int readAsync(char * data, int maxlen, unsigned timeout);
 
 protected:
-  int read(char * data, int maxlen) override;
-  void clearBuffer();
+  int Read(char * data, int maxlen) override;
+  void ClearBuffer();
 
 private:
   RingBuffer * m_buffer;

@@ -13,7 +13,7 @@ class OutputBuffer : public SONOS::OutputStream
 public:
   OutputBuffer() { }
   ~OutputBuffer() { }
-  int write(const char* data, int len) override
+  int Write(const char* data, int len) override
   {
     m_buffer.insert(m_buffer.end(), data, data + len);
     return len;;
@@ -41,7 +41,7 @@ TEST_CASE("Encoding PCM s16le to FLAC")
       if ((p + s) > e)
         s = e - p;
       // push the data to the encoder
-      int r = encoder.write((char*)p, s);
+      int r = encoder.Write((char*)p, s);
       if (r <= 0)
         break;
       p += r;
