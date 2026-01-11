@@ -81,7 +81,7 @@ typedef enum
   WS_HEADER_Content_Length,
   WS_HEADER_Content_Range,
   WS_HEADER_Content_Type,
-  WS_HEADER_Etag,
+  WS_HEADER_ETag,
   WS_HEADER_Expires,
   WS_HEADER_Host,
   WS_HEADER_Keep_ALive,

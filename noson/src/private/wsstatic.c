@@ -118,7 +118,7 @@ static const WS_HEADER_TABLE ws_header_table[] = {
   { 15, "Content-Length",         "CONTENT-LENGTH" },
   { 15, "Content-Range",          "CONTENT-RANGE" },
   { 13, "Content-Type",           "CONTENT-TYPE" },
-  { 5,  "Etag",                   "ETAG" },
+  { 5,  "ETag",                   "ETAG" },
   { 8,  "Expires",                "EXPIRES" },
   { 5,  "Host",                   "HOST" },
   { 11, "Keep-Alive",             "KEEP-ALIVE" },

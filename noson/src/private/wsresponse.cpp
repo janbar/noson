@@ -276,7 +276,7 @@ bool WSResponse::_response::GetResponse()
       m_headers.front().second.assign(val);
       switch (ws_header_from_upperstr(token))
       {
-        case WS_HEADER_Etag:
+        case WS_HEADER_ETag:
           m_etag.assign(val);
           break;
         case WS_HEADER_Server:
