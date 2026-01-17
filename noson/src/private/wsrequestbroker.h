@@ -41,6 +41,8 @@ namespace NSROOT
     WSRequestBroker(TcpSocket* socket, bool secure, int timeout);
     ~WSRequestBroker();
 
+    typedef std::map<std::string, std::string> VARS;
+
     void SetTimeout(int timeout);
     bool IsSecure() const { return m_secure; }
     bool IsParsed() const { return m_parsed; }
@@ -50,7 +52,6 @@ namespace NSROOT
     const std::string& GetRequestProtocol() const { return m_protocol; }
     const std::string& GetRequestHeader(const std::string& name) const;
     const std::string& GetRequestHeader(WS_HEADER header) const { return GetRequestHeader(ws_header_to_upperstr(header)); }
-    const std::string& GetRequestParam(const std::string& name) const;
     const std::string& GetURIParams() const { return m_uriParams; }
     bool IsPathHidden() const { return m_pathIsHidden; }
     bool HasContent() const { return (m_contentLength > 0); }
@@ -58,8 +59,8 @@ namespace NSROOT
     size_t ReadContent(char *buf, size_t buflen);
     size_t GetConsumed() const { return m_consumed; }
 
-    static void Tokenize(const std::string& str, char delimiter, std::vector<std::string>& tokens, bool trimnull = false);
     static bool ExplodeURI(const std::string& in, std::string& path, std::string& uriparams, bool& ishidden);
+    static VARS ExplodeQuery(const std::string& uriparams);
 
     bool ReplyHead(WS_STATUS status);
     bool ReplyBody(const char * data, size_t size) const;
@@ -81,9 +82,7 @@ namespace NSROOT
     char* m_chunkPtr;
     char* m_chunkEnd;
 
-    typedef std::map<std::string, std::string> VARS;
     VARS m_requestHeaders;
-    VARS m_requestParams;
 
     // prevent copy
     WSRequestBroker(const WSRequestBroker&);

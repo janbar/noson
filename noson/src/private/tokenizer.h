@@ -41,7 +41,6 @@ inline bool __tokenize(
   size_t lsep = separator.size();
   size_t lenc = encapsulator.size();
   std::string token;
-  bool first =  true;
   bool encap = false;
   while (pos != end)
   {
@@ -61,13 +60,9 @@ inline bool __tokenize(
           ++pos;
         }
       }
-      else if (!first)
-      {
-        // invalid character in stream
-        return false;
-      }
       else
       {
+        token.clear();
         encap = true;
       }
     }
@@ -79,12 +74,10 @@ inline bool __tokenize(
         tokens.push_back(std::move(token));
         token.clear();
       }
-      first = true;
       pos += lsep;
     }
     else
     {
-      first = false;
       token.push_back(str[pos]);
       ++pos;
     }

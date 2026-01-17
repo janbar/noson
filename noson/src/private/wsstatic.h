@@ -75,6 +75,7 @@ typedef enum
   WS_HEADER_Accept_Charset  = 1,
   WS_HEADER_Accept_Encoding,
   WS_HEADER_Accept_Ranges,
+  WS_HEADER_Authorization,
   WS_HEADER_Cache_Control,
   WS_HEADER_Connection,
   WS_HEADER_Content_Encoding,
@@ -84,6 +85,8 @@ typedef enum
   WS_HEADER_ETag,
   WS_HEADER_Expires,
   WS_HEADER_Host,
+  WS_HEADER_If_Match,
+  WS_HEADER_If_None_Match,
   WS_HEADER_Keep_ALive,
   WS_HEADER_Last_Modified,
   WS_HEADER_Location,
@@ -91,6 +94,7 @@ typedef enum
   WS_HEADER_Server,
   WS_HEADER_Transfer_Encoding,
   WS_HEADER_User_Agent,
+  WS_HEADER_WWW_Authenticate,
   WS_HEADER_UNKNOWN,
 } WS_HEADER;
 

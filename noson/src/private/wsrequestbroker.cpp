@@ -25,6 +25,7 @@
 #include "socket.h"
 #include "debug.h"
 #include "builtin.h"
+#include "tokenizer.h"
 
 #define HTTP_TOKEN_MAXSIZE    20
 #define HTTP_HEADER_MAXSIZE   4000
@@ -86,26 +87,13 @@ bool WSRequestBroker::ReadHeaderLine(const char *eol, std::string& line, size_t 
   return true;
 }
 
-void WSRequestBroker::Tokenize(const std::string& str, char delimiter, std::vector<std::string>& tokens, bool trimnull)
-{
-  std::string::size_type pa = 0, pb = 0;
-  unsigned n = 0;
-  // Counter n will break infinite loop. Max count is 255 tokens
-  while ((pb = str.find_first_of(delimiter, pb)) != std::string::npos && ++n < 255)
-  {
-    tokens.push_back(str.substr(pa, pb - pa));
-    do
-    {
-      pa = ++pb;
-    } while (trimnull && str.find_first_of(delimiter, pb) == pb);
-  }
-  tokens.push_back(str.substr(pa));
-}
-
 bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::string& uriparams, bool& ishidden)
 {
+  // global not allowed
+  if (in == "*")
+    return false;
   // parse uri
-  URIParser parser(in);
+  URIParser parser(std::string("file:///").append(in));
   if (!parser.Path())
     return false;
   unsigned len = 0;
@@ -114,7 +102,7 @@ bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::
   std::vector<std::string> clean;
   std::vector<std::string>::const_iterator it;
   // decode and split path by dirname
-  Tokenize(urldecode(parser.Path()), '/'/*SLASH*/, dirty, true);
+  tokenize(urldecode(parser.Path()), "/", "", dirty, true);
   // rebuild normalized path
   it = dirty.cbegin();
   while (it != dirty.cend())
@@ -141,11 +129,12 @@ bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::
   // store path string
   path.clear();
   path.reserve(len);
-  it = clean.cbegin();
-  while (it != clean.cend())
+  if (clean.empty())
+    path.append("/");
+  else
   {
-    path.append("/").append(*it);
-    ++it;
+    for (auto& str : clean)
+      path.append("/").append(str);
   }
   // store params string
   if (parser.Params())
@@ -155,11 +144,26 @@ bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::
   return true;
 }
 
+WSRequestBroker::VARS WSRequestBroker::ExplodeQuery(const std::string& uriparams)
+{
+  // decode query string
+  VARS params;
+  std::vector<std::string> tokens;
+  tokenize(uriparams, "&", "", tokens, true);
+  for (std::string& t : tokens)
+  {
+    size_t p = t.find_first_of('=');
+    if (p != std::string::npos && p < (t.size() - 1))
+      params.insert(std::make_pair(urldecode(t.substr(0, p)), urldecode(t.substr(p+1))));
+  }
+  return params;
+}
+
 WSRequestBroker::WSRequestBroker(TcpSocket* socket, bool secure, int timeout)
 : m_socket(socket)
 , m_secure(secure)
 , m_parsed(false)
-, m_method(WS_METHOD_Head)
+, m_method(WS_METHOD_UNKNOWN)
 , m_pathIsHidden(false)
 , m_contentChunked(false)
 , m_contentLength(0)
@@ -201,15 +205,6 @@ const std::string& WSRequestBroker::GetRequestHeader(const std::string& name) co
   return emptyStr;
 }
 
-const std::string& WSRequestBroker::GetRequestParam(const std::string& name) const
-{
-  static std::string emptyStr = "";
-  VARS::const_iterator it = m_requestParams.find(name);
-  if (it != m_requestParams.end())
-    return it->second;
-  return emptyStr;
-}
-
 bool WSRequestBroker::ParseQuery()
 {
   size_t len;
@@ -234,7 +229,7 @@ bool WSRequestBroker::ParseQuery()
     if (++n == 1)
     {
       std::vector<std::string> query;
-      Tokenize(strread, ' '/*SP*/, query, true);
+      tokenize(strread, " ", "", query, true);
       if (query.size() == 3)
       {
         // check the requested method
@@ -245,18 +240,6 @@ bool WSRequestBroker::ParseQuery()
         // explode requested uri
         if (!ExplodeURI(query[1], m_path, m_uriParams, m_pathIsHidden))
           return false;
-        if (!m_uriParams.empty())
-        {
-          // decode params string
-          std::vector<std::string> params;
-          Tokenize(m_uriParams, '&', params, true);
-          for (std::string& v : params)
-          {
-            size_t p = v.find_first_of('=');
-            if (p != std::string::npos && p < (v.size() - 1))
-              m_requestParams.insert(std::make_pair(urldecode(v.substr(0, p)), urldecode(v.substr(p+1))));
-          }
-        }
         // set the requested protocol
         m_protocol = query[2];
         // Clear entries for next step

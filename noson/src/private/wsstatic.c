@@ -112,6 +112,7 @@ static const WS_HEADER_TABLE ws_header_table[] = {
   { 15, "Accept-Charset",         "ACCEPT-CHARSET" },
   { 16, "Accept-Encoding",        "ACCEPT-ENCODING" },
   { 14, "Accept-Ranges",          "ACCEPT-RANGES" },
+  { 14, "Authorization",          "AUTHORIZATION" },
   { 14, "Cache-Control",          "CACHE-CONTROL" },
   { 11, "Connection",             "CONNECTION" },
   { 17, "Content-Encoding",       "CONTENT-ENCODING" },
@@ -121,6 +122,8 @@ static const WS_HEADER_TABLE ws_header_table[] = {
   { 5,  "ETag",                   "ETAG" },
   { 8,  "Expires",                "EXPIRES" },
   { 5,  "Host",                   "HOST" },
+  { 9,  "If-Match",               "IF-MATCH" },
+  { 14, "If-None-Match",          "IF-NONE-MATCH" },
   { 11, "Keep-Alive",             "KEEP-ALIVE" },
   { 14, "Last-Modified",          "LAST-MODIFIED" },
   { 9,  "Location",               "LOCATION" },
@@ -128,6 +131,7 @@ static const WS_HEADER_TABLE ws_header_table[] = {
   { 7,  "Server",                 "SERVER" },
   { 18, "Transfer-Encoding",      "TRANSFER-ENCODING" },
   { 11, "User-Agent",             "USER-AGENT" },
+  { 17, "WWW-Authenticate",       "WWW-AUTHENTICATE" },
   { 0,  NULL }
 };
 

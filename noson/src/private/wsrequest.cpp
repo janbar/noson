@@ -258,8 +258,13 @@ void WSRequest::MakeMessageGET(std::string& msg, const char* method) const
   if (!m_contentData.empty())
     msg.append("?").append(m_contentData);
   msg.append(" " REQUEST_PROTOCOL WS_CRLF);
+  msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ");
+  if (m_server.find(':') == std::string::npos)
+    msg.append(m_server);
+  else
+    msg.append("[").append(m_server).append("]");
   snprintf(buf, sizeof(buf), "%u", m_port);
-  msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ").append(m_server).append(":").append(buf).append(WS_CRLF);
+  msg.append(":").append(buf).append(WS_CRLF);
   if (m_userAgent.empty())
     msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": " REQUEST_USER_AGENT WS_CRLF);
   else
@@ -281,8 +286,13 @@ void WSRequest::MakeMessagePOST(std::string& msg, const char* method) const
   msg.clear();
   msg.reserve(256);
   msg.append(method).append(" ").append(m_service_url).append(" " REQUEST_PROTOCOL WS_CRLF);
+  msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ");
+  if (m_server.find(':') == std::string::npos)
+    msg.append(m_server);
+  else
+    msg.append("[").append(m_server).append("]");
   snprintf(buf, sizeof(buf), "%u", m_port);
-  msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ").append(m_server).append(":").append(buf).append(WS_CRLF);
+  msg.append(":").append(buf).append(WS_CRLF);
   if (m_userAgent.empty())
     msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": " REQUEST_USER_AGENT WS_CRLF);
   else
@@ -318,8 +328,13 @@ void WSRequest::MakeMessageHEAD(std::string& msg, const char* method) const
   if (!m_contentData.empty())
     msg.append("?").append(m_contentData);
   msg.append(" " REQUEST_PROTOCOL WS_CRLF);
+  msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ");
+  if (m_server.find(':') == std::string::npos)
+    msg.append(m_server);
+  else
+    msg.append("[").append(m_server).append("]");
   snprintf(buf, sizeof(buf), "%u", m_port);
-  msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ").append(m_server).append(":").append(buf).append(WS_CRLF);
+  msg.append(":").append(buf).append(WS_CRLF);
   if (m_userAgent.empty())
     msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": " REQUEST_USER_AGENT WS_CRLF);
   else
