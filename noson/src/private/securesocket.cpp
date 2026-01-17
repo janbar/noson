@@ -402,10 +402,13 @@ const char* SecureSocket::GetSSLError()
   return m_errmsg;
 }
 
-bool SecureServerSocket::AcceptConnection(TcpServerSocket& listener,
-                                          SecureSocket& socket)
+TcpServerSocket::AcceptStatus SecureServerSocket::AcceptConnection(
+        TcpServerSocket& listener,
+        SecureSocket& socket,
+        int timeout)
 {
-  if (listener.AcceptConnection(socket))
+  TcpServerSocket::AcceptStatus ra = listener.AcceptConnection(socket, timeout);
+  if (ra == TcpServerSocket::ACCEPT_SUCCESS)
   {
     SSL_set_fd(static_cast<SSL*>(socket.m_ssl), socket.m_socket);
     SSL_set_accept_state(static_cast<SSL*>(socket.m_ssl));
@@ -415,13 +418,12 @@ bool SecureServerSocket::AcceptConnection(TcpServerSocket& listener,
     if (r < 1)
     {
       socket.m_ssl_error = ERR_get_error();
-      return false;
+      return TcpServerSocket::ACCEPT_FAILURE;
     }
     DBG(DBG_PROTO, "%s: SSL handshake initialized\n", __FUNCTION__);
     socket.m_connected = true;
-    return true;
   }
-  return false;
+  return ra;
 }
 
 #else
@@ -506,12 +508,15 @@ const char* SecureSocket::GetSSLError()
   return "SSL not available";
 }
 
-bool SecureServerSocket::AcceptConnection(TcpServerSocket& listener,
-                                          SecureSocket& socket)
+TcpServerSocket::AcceptStatus SecureServerSocket::AcceptConnection(
+        TcpServerSocket& listener,
+        SecureSocket& socket,
+        int timeout)
 {
   (void)listener;
   (void)socket;
-  return false;
+  (void)timeout;
+  return TcpServerSocket::ACCEPT_ERROR;
 }
 
 #endif

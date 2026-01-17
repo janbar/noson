@@ -119,10 +119,13 @@ namespace NSROOT
      * Await a connection.
      * @param listener the tcp server socket to accept new connection
      * @param socket the secure socket to connect on new request
-     * @return true on success, else false
+     * @param timeout in seconds
+     * @return AcceptStatus
      */
-    static bool AcceptConnection(TcpServerSocket& listener,
-                                 SecureSocket& socket);
+    static TcpServerSocket::AcceptStatus AcceptConnection(
+            TcpServerSocket& listener,
+            SecureSocket& socket,
+            int timeout);
   private:
     SecureServerSocket() { }
     ~SecureServerSocket() { }

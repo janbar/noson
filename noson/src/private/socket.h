@@ -193,12 +193,20 @@ namespace NSROOT
      */
     bool ListenConnection(int queueSize = SOCKET_LISTEN_QUEUE_SIZE);
 
+    enum AcceptStatus
+    {
+      ACCEPT_ERROR      = -1,
+      ACCEPT_TIMEOUT    = 0,
+      ACCEPT_SUCCESS    = 1,
+      ACCEPT_FAILURE    = 2,
+    };
     /**
      * Await a connection.
      * @param socket the tcp socket to connect on new request
-     * @return true on success, else false
+     * @param timeout in seconds
+     * @return AcceptStatus
      */
-    bool AcceptConnection(TcpSocket& socket);
+    AcceptStatus AcceptConnection(TcpSocket& socket, int timeout);
 
     /**
      * @return the address string of the accepted remote

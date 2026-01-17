@@ -234,13 +234,6 @@ void BasicEventHandler::Stop()
   if (OS::Thread::IsRunning())
   {
     DBG(DBG_DEBUG, "%s: event handler thread (%p)\n", __FUNCTION__, this);
-    OS::Thread::StopThread(false);
-    if (m_socket->IsValid())
-    {
-      WSRequest req(m_listenerAddress, m_port);
-      req.RequestService("/", WS_METHOD_Head);
-      WSResponse resp(req);
-    }
     OS::Thread::StopThread(true);
     DBG(DBG_DEBUG, "%s: event handler thread (%p) stopped\n", __FUNCTION__, this);
   }
@@ -399,28 +392,34 @@ void *BasicEventHandler::Process()
   }
   if (bound)
   {
+    DBG(DBG_INFO, "%s: start listening\n", __FUNCTION__);
+    bound = m_socket->ListenConnection();
+  }
+  if (bound)
+  {
     AnnounceStatus(EVENTHANDLER_STARTED);
     while (!OS::Thread::IsStopped())
     {
-      if (!m_socket->ListenConnection())
+      SHARED_PTR<TcpSocket> sockPtr(new TcpSocket);
+      TcpServerSocket::AcceptStatus r = m_socket->AcceptConnection(*sockPtr, 1);
+      if (r == TcpServerSocket::ACCEPT_SUCCESS)
       {
-        DBG(DBG_DEBUG, "%s: listen failed (%d)\n", __FUNCTION__, m_socket->GetErrNo());
-        AnnounceStatus(EVENTHANDLER_FAILED);
-        break;
-      }
-      else
-      {
-        SHARED_PTR<TcpSocket> sockPtr(new TcpSocket);
-        if (!m_socket->AcceptConnection(*sockPtr))
-        {
-          DBG(DBG_ERROR, "%s: accept failed (%d)\n", __FUNCTION__, m_socket->GetErrNo());
-          AnnounceStatus(EVENTHANDLER_FAILED);
-          break;
-        }
         DBG(DBG_DEBUG, "%s: accepting new connection\n", __FUNCTION__);
         EventBroker* eb = new EventBroker(this, sockPtr);
         m_threadpool.Enqueue(eb);
+        continue;
       }
+      if (r == TcpServerSocket::ACCEPT_FAILURE)
+      {
+        DBG(DBG_WARN, "%s: accept failed (%d)\n", __FUNCTION__, m_socket->GetErrNo());
+        continue;
+      }
+      if (r == TcpServerSocket::ACCEPT_TIMEOUT)
+      {
+        continue;
+      }
+      AnnounceStatus(EVENTHANDLER_FAILED);
+      break;
     }
     AnnounceStatus(EVENTHANDLER_STOPPED);
   }

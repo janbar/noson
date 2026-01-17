@@ -149,15 +149,15 @@ static int __connectAddr(struct addrinfo *addr, net_socket_t *s, int rcvbuf)
 
   opt_rcvbuf = (rcvbuf < SOCKET_RCVBUF_MINSIZE ? SOCKET_RCVBUF_MINSIZE : rcvbuf);
   size = sizeof (opt_rcvbuf);
-  if (setsockopt(*s, SOL_SOCKET, SO_RCVBUF, (char *)&opt_rcvbuf, size))
-    DBG(DBG_WARN, "%s: could not set rcvbuf from socket (%d)\n", __FUNCTION__, LASTERROR);
-  if (getsockopt(*s, SOL_SOCKET, SO_RCVBUF, (char *)&opt_rcvbuf, &size))
-    DBG(DBG_WARN, "%s: could not get rcvbuf from socket (%d)\n", __FUNCTION__, LASTERROR);
+  if (setsockopt(*s, SOL_SOCKET, SO_RCVBUF, (char*)&opt_rcvbuf, size))
+    DBG(DBG_WARN, "%s: could not set SO_RCVBUF from socket (%d)\n", __FUNCTION__, LASTERROR);
+  if (getsockopt(*s, SOL_SOCKET, SO_RCVBUF, (char*)&opt_rcvbuf, &size))
+    DBG(DBG_WARN, "%s: could not get SO_RCVBUF from socket (%d)\n", __FUNCTION__, LASTERROR);
 
 #ifdef SO_NOSIGPIPE
   int opt_set = 1;
-  if (setsockopt(*s, SOL_SOCKET, SO_NOSIGPIPE, (void *)&opt_set, sizeof(int)))
-    DBG(DBG_WARN, "%s: could not set nosigpipe from socket (%d)\n", __FUNCTION__, LASTERROR);
+  if (setsockopt(*s, SOL_SOCKET, SO_NOSIGPIPE, (char*)&opt_set, sizeof(int)))
+    DBG(DBG_WARN, "%s: could not set SO_NOSIGPIPE from socket (%d)\n", __FUNCTION__, LASTERROR);
 #endif
 
 #ifndef __WINDOWS__
@@ -520,24 +520,25 @@ bool TcpServerSocket::Create(SOCKET_AF_t af)
     return false;
   }
 
+  int opt_set;
 #ifdef __WINDOWS__
   // The bind will succeed even an other socket is currently listening on the
   // same address. So enable the option SO_EXCLUSIVEADDRUSE will fix the issue.
-  int opt = 1;
-  if (setsockopt(m_socket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&opt, sizeof(opt)))
+  opt_set = 1;
+  if (setsockopt(m_socket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&opt_set, sizeof(int)))
   {
     m_errno = LASTERROR;
-    DBG(DBG_ERROR, "%s: could not set exclusiveaddruse from socket (%d)\n", __FUNCTION__, m_errno);
+    DBG(DBG_ERROR, "%s: could not set SO_EXCLUSIVEADDRUSE from socket (%d)\n", __FUNCTION__, m_errno);
     return false;
   }
 #else
   // Reuse address. The bind will fail only if an other socket is currently
   // listening on the same address.
-  int opt = 1;
-  if (setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt)))
+  opt_set = 1;
+  if (setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, (char*)&opt_set, sizeof(int)))
   {
     m_errno = LASTERROR;
-    DBG(DBG_ERROR, "%s: could not set reuseaddr from socket (%d)\n", __FUNCTION__, m_errno);
+    DBG(DBG_ERROR, "%s: could not set SO_REUSEADDR from socket (%d)\n", __FUNCTION__, m_errno);
     return false;
   }
 #endif
@@ -601,23 +602,57 @@ bool TcpServerSocket::ListenConnection(int queueSize /*= SOCKET_LISTEN_QUEUE_SIZ
   return true;
 }
 
-bool TcpServerSocket::AcceptConnection(TcpSocket& socket)
+TcpServerSocket::AcceptStatus TcpServerSocket::AcceptConnection(
+        TcpSocket& socket,
+        int timeout)
 {
-  socket.m_socket = accept(m_socket, m_addr->sa(), &m_addr->sa_len);
-  if (!socket.IsValid())
+  struct timeval tv = { timeout, 0 };
+  fd_set fds;
+  int r = 0;
+  FD_ZERO(&fds);
+  FD_SET(m_socket, &fds);
+  r = select(m_socket + 1, &fds, nullptr, nullptr, &tv);
+  // on timed out, it should try again
+  if (r == 0)
+    return ACCEPT_TIMEOUT;
+  if (r < 0)
   {
     m_errno = LASTERROR;
-    return false;
+    // on interruption, it should try again
+    if (m_errno == ERRNO_INTR)
+      return ACCEPT_TIMEOUT;
+    // on unrecoverable error, it should break
+    return ACCEPT_ERROR;
   }
 
+  m_addr->sa_len = sizeof(m_addr->data);
+  socket.m_socket = accept(m_socket, m_addr->sa(), &m_addr->sa_len);
+
+  if (!socket.IsValid())
+  {
+    // report failure
+    m_errno = LASTERROR;
+    // it should try again
+    return ACCEPT_FAILURE;
+  }
+
+  int opt_set;
 #ifdef SO_NOSIGPIPE
-  int opt_set = 1;
-  if (setsockopt(socket.m_socket, SOL_SOCKET, SO_NOSIGPIPE, (void *)&opt_set, sizeof(int)))
-    DBG(DBG_WARN, "%s: could not set nosigpipe from socket (%d)\n", __FUNCTION__, LASTERROR);
+  opt_set = 1;
+  if (setsockopt(socket.m_socket, SOL_SOCKET, SO_NOSIGPIPE, (char*)&opt_set, sizeof(int)))
+    DBG(DBG_WARN, "%s: could not set SO_NOSIGPIPE from socket (%d)\n", __FUNCTION__, LASTERROR);
+#endif
+#ifdef SO_KEEPALIVE
+  opt_set = 1;
+  if (setsockopt(socket.m_socket, SOL_SOCKET, SO_KEEPALIVE, (char*)&opt_set, sizeof(int)))
+  {
+    DBG(DBG_ERROR, "%s: could not set SO_KEEPALIVE from socket (%d)\n", __FUNCTION__, LASTERROR);
+    return ACCEPT_FAILURE;
+  }
 #endif
 
   socket.SetReadAttempt(0);
-  return true;
+  return ACCEPT_SUCCESS;
 }
 
 std::string TcpServerSocket::GetRemoteAddrInfo()
