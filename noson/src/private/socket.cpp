@@ -423,10 +423,15 @@ void TcpSocket::Disconnect()
       {
         FD_ZERO(&fds);
         FD_SET(m_socket, &fds);
-        if (select(m_socket + 1, &fds, nullptr, nullptr, &tv) <= 0)
-          break;
-        if (recv(m_socket, buf, sizeof(buf), 0) == 0)
-          break;
+        if (select(m_socket + 1, &fds, nullptr, nullptr, &tv) > 0 &&
+            recv(m_socket, buf, sizeof(buf), 0) > 0)
+        {
+          // polling
+          tv.tv_sec = 0;
+          tv.tv_usec = 0;
+          continue;
+        }
+        break;
       }
     }
 
