@@ -261,7 +261,7 @@ bool WSResponse::_response::GetResponse()
         token[p] = toupper(line[p]);
       token[token_len] = 0;
       value_len = len - (val - line + 1);
-      while (*(++val) == ' ' && value_len > 0) --value_len;
+      while (value_len > 0 && (*(++val) == ' ' || *val == '\t')) --value_len;
       m_headers.push_front(std::make_pair(token, ""));
     }
     else
@@ -271,9 +271,9 @@ bool WSResponse::_response::GetResponse()
       token[token_len] = 0;
     }
 
-    if (token_len)
+    if (token_len && val)
     {
-      m_headers.front().second.assign(val);
+      m_headers.front().second.append(val);
       switch (ws_header_from_upperstr(token))
       {
         case WS_HEADER_ETag:

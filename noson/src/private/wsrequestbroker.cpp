@@ -281,7 +281,8 @@ bool WSRequestBroker::ParseQuery()
       for (p = 0; p < token_len; ++p)
         token[p] = toupper(line[p]);
       token[token_len] = 0;
-      while ((value_len = len - (val - line)) && *(++val) == ' ');
+      value_len = len - (val - line + 1);
+      while (value_len > 0 && (*(++val) == ' ' || *val == '\t')) --value_len;
     }
     else
     {
