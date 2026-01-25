@@ -215,6 +215,23 @@ SecureSocket* SSLServerContext::NewServerSocket()
   return new SecureSocket(ssl);
 }
 
+TcpServerSocket::AcceptStatus SSLServerContext::SSLHandshake(SecureSocket& socket)
+{
+  SSL_set_fd(static_cast<SSL*>(socket.m_ssl), socket.m_socket);
+  SSL_set_accept_state(static_cast<SSL*>(socket.m_ssl));
+
+  /* do SSL handshake */
+  int r = SSL_accept(static_cast<SSL*>(socket.m_ssl));
+  if (r < 1)
+  {
+    socket.m_ssl_error = ERR_get_error();
+    return TcpServerSocket::ACCEPT_FAILURE;
+  }
+  DBG(DBG_PROTO, "%s: SSL handshake initialized\n", __FUNCTION__);
+  socket.m_connected = true;
+  return TcpServerSocket::ACCEPT_SUCCESS;
+}
+
 SecureSocket::SecureSocket(void* ssl)
 : TcpSocket()
 , m_ssl(ssl)
@@ -402,30 +419,6 @@ const char* SecureSocket::GetSSLError()
   return m_errmsg;
 }
 
-TcpServerSocket::AcceptStatus SecureServerSocket::AcceptConnection(
-        TcpServerSocket& listener,
-        SecureSocket& socket,
-        int timeout)
-{
-  TcpServerSocket::AcceptStatus ra = listener.AcceptConnection(socket, timeout);
-  if (ra == TcpServerSocket::ACCEPT_SUCCESS)
-  {
-    SSL_set_fd(static_cast<SSL*>(socket.m_ssl), socket.m_socket);
-    SSL_set_accept_state(static_cast<SSL*>(socket.m_ssl));
-
-    /* do SSL handshake */
-    int r = SSL_accept(static_cast<SSL*>(socket.m_ssl));
-    if (r < 1)
-    {
-      socket.m_ssl_error = ERR_get_error();
-      return TcpServerSocket::ACCEPT_FAILURE;
-    }
-    DBG(DBG_PROTO, "%s: SSL handshake initialized\n", __FUNCTION__);
-    socket.m_connected = true;
-  }
-  return ra;
-}
-
 #else
 
 SSLSessionFactory::SSLSessionFactory()
@@ -456,6 +449,11 @@ bool SSLServerContext::InitContext(const std::string& certfile, const std::strin
 SecureSocket* SSLServerContext::NewServerSocket()
 {
   return nullptr;
+}
+
+TcpServerSocket::AcceptStatus SSLServerContext::SSLHandshake(SecureSocket& socket)
+{
+  return TcpServerSocket::ACCEPT_ERROR;
 }
 
 SecureSocket::SecureSocket(void* ssl)
@@ -506,17 +504,6 @@ bool SecureSocket::IsCertificateValid(std::string& str)
 const char* SecureSocket::GetSSLError()
 {
   return "SSL not available";
-}
-
-TcpServerSocket::AcceptStatus SecureServerSocket::AcceptConnection(
-        TcpServerSocket& listener,
-        SecureSocket& socket,
-        int timeout)
-{
-  (void)listener;
-  (void)socket;
-  (void)timeout;
-  return TcpServerSocket::ACCEPT_ERROR;
 }
 
 #endif

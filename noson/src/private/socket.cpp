@@ -464,6 +464,25 @@ int TcpSocket::Listen(timeval *timeout)
   return -1;
 }
 
+std::string TcpSocket::GetRemoteAddrInfo()
+{
+  char rhost[INET6_ADDRSTRLEN];
+  memset(rhost, 0, INET6_ADDRSTRLEN);
+
+  if (!IsValid())
+    return rhost;
+
+  char addr[sizeof(sockaddr_in6)];
+  socklen_t addr_len = sizeof(addr);
+
+  if (getpeername(m_socket, (sockaddr*)&addr, &addr_len) == 0)
+    getnameinfo((sockaddr*)&addr, addr_len, rhost, sizeof(rhost), nullptr, 0, NI_NUMERICHOST);
+  else
+    m_errno = LASTERROR;
+
+  return rhost;
+}
+
 std::string TcpSocket::GetHostAddrInfo()
 {
   char host[INET6_ADDRSTRLEN];

@@ -77,6 +77,21 @@ namespace NSROOT
      */
     SecureSocket* NewServerSocket();
 
+    /**
+     * Process SSL handshake for a new accepted connection.
+     *
+     *   sock = SSLServerContext::NewServerSocket();
+     *   if (TcpServerSocket::AcceptConnection(*sock, tm) == ACCEPT_SUCCESS &&
+     *       SSLServerContext::SSLHandshake(*sock) == ACCEPT_SUCCESS) {
+     *       // continue
+     *   }
+     *   delete sock;
+     *
+     * @param socket the accepted connection
+     * @return AcceptStatus
+     */
+    static TcpServerSocket::AcceptStatus SSLHandshake(SecureSocket& socket);
+
   private:
     SSLServerContext(const SSLServerContext& other);
     SSLServerContext& operator=(const SSLServerContext& other);
@@ -112,24 +127,6 @@ namespace NSROOT
     char* m_errmsg;   ///< error message buffer
   };
 
-  class SecureServerSocket
-  {
-  public:
-    /**
-     * Await a connection.
-     * @param listener the tcp server socket to accept new connection
-     * @param socket the secure socket to connect on new request
-     * @param timeout in seconds
-     * @return AcceptStatus
-     */
-    static TcpServerSocket::AcceptStatus AcceptConnection(
-            TcpServerSocket& listener,
-            SecureSocket& socket,
-            int timeout);
-  private:
-    SecureServerSocket() { }
-    ~SecureServerSocket() { }
-  };
 }
 
 #endif /* SECURESOCKET_H */

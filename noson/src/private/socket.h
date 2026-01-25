@@ -131,6 +131,11 @@ namespace NSROOT
     net_socket_t GetHandle() const { return m_socket; }
 
     /**
+     * @return the address string of the remote host
+     */
+    std::string GetRemoteAddrInfo();
+
+    /**
      * @return the address string of this host
      */
     std::string GetHostAddrInfo();
