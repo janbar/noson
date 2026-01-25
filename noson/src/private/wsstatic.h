@@ -74,6 +74,7 @@ typedef enum
   WS_HEADER_Accept          = 0,
   WS_HEADER_Accept_Charset  = 1,
   WS_HEADER_Accept_Encoding,
+  WS_HEADER_Accept_Language,
   WS_HEADER_Accept_Ranges,
   WS_HEADER_Authorization,
   WS_HEADER_Cache_Control,

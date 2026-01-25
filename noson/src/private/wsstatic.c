@@ -111,6 +111,7 @@ static const WS_HEADER_TABLE ws_header_table[] = {
   { 7,  "Accept",                 "ACCEPT" },
   { 15, "Accept-Charset",         "ACCEPT-CHARSET" },
   { 16, "Accept-Encoding",        "ACCEPT-ENCODING" },
+  { 16, "Accept-Language",        "ACCEPT-LANGUAGE" },
   { 14, "Accept-Ranges",          "ACCEPT-RANGES" },
   { 14, "Authorization",          "AUTHORIZATION" },
   { 14, "Cache-Control",          "CACHE-CONTROL" },
