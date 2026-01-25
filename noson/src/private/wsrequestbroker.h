@@ -46,6 +46,7 @@ namespace NSROOT
     void SetTimeout(int timeout);
     bool IsSecure() const { return m_secure; }
     bool IsParsed() const { return m_parsed; }
+    std::string GetRemoteAddrInfo() const;
     std::string GetHostAddrInfo() const;
     WS_METHOD GetRequestMethod() const { return m_method; }
     const std::string& GetRequestPath() const { return m_path; }

@@ -191,6 +191,11 @@ void WSRequestBroker::SetTimeout(int timeout)
   m_socket->SetTimeout(tv);
 }
 
+std::string WSRequestBroker::GetRemoteAddrInfo() const
+{
+  return m_socket->GetRemoteAddrInfo();
+}
+
 std::string WSRequestBroker::GetHostAddrInfo() const
 {
   return m_socket->GetHostAddrInfo();
@@ -392,6 +397,5 @@ bool WSRequestBroker::ReplyBody(const char* data, size_t size) const
 
 bool WSRequestBroker::RewritePath(const std::string& newpath)
 {
-  std::string tmp;
-  return ExplodeURI(newpath, m_path, tmp, m_pathIsHidden);
+  return ExplodeURI(newpath, m_path, m_uriParams, m_pathIsHidden);
 }
