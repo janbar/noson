@@ -129,13 +129,10 @@ bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::
   // store path string
   path.clear();
   path.reserve(len);
-  if (clean.empty())
-    path.append("/");
-  else
-  {
-    for (auto& str : clean)
-      path.append("/").append(str);
-  }
+  for (auto& str : clean)
+    path.append("/").append(str);
+  if (in.back() == '/')
+    path.push_back('/');
   // store params string
   if (parser.Params())
     uriparams.assign(parser.Params());
@@ -379,19 +376,7 @@ size_t WSRequestBroker::ReadContent(char* buf, size_t buflen)
   return s;
 }
 
-bool WSRequestBroker::ReplyHead(WS_STATUS status)
-{
-  if (status == WS_STATUS_UNKNOWN)
-    status = WS_STATUS_500_Internal_Server_Error;
-  std::string data;
-  data.reserve(128);
-  data.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
-  data.append(ws_header_to_str(WS_HEADER_Server)).append(": ").append(REQUEST_USER_AGENT).append(WS_CRLF);
-  data.append(ws_header_to_str(WS_HEADER_Connection)).append(": close" WS_CRLF);
-  return m_socket->SendData(data.c_str(), data.size());
-}
-
-bool WSRequestBroker::ReplyBody(const char* data, size_t size) const
+bool WSRequestBroker::ReplyData(const char* data, size_t size) const
 {
   return m_socket->SendData(data, size);
 }

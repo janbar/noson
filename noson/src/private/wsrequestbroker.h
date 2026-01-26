@@ -63,8 +63,7 @@ namespace NSROOT
     static bool ExplodeURI(const std::string& in, std::string& path, std::string& uriparams, bool& ishidden);
     static VARS ExplodeQuery(const std::string& uriparams);
 
-    bool ReplyHead(WS_STATUS status);
-    bool ReplyBody(const char * data, size_t size) const;
+    bool ReplyData(const char * data, size_t size) const;
     bool RewritePath(const std::string& newpath);
 
   private:

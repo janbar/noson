@@ -47,8 +47,12 @@ void EventBroker::Process()
 
   if (!rb.IsParsed())
   {
-    rb.ReplyHead(WS_STATUS_400_Bad_Request);
-    rb.ReplyBody(WS_CRLF, WS_CRLF_LEN);
+    WS_STATUS status(WS_STATUS_400_Bad_Request);
+    resp.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
+    resp.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
+    resp.append("Connection: close" WS_CRLF);
+    resp.append(WS_CRLF);
+    m_sockPtr->SendData(resp.c_str(), resp.size());
     m_sockPtr->Disconnect();
     return;
   }
