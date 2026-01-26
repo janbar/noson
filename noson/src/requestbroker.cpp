@@ -57,6 +57,7 @@ std::string RequestBroker::MakeResponseHeader(Status status)
   case Status_Too_Many_Requests: hsc = WS_STATUS_429_Too_Many_Requests; m_429.Increment(); break;
   case Status_Internal_Server_Error: hsc = WS_STATUS_500_Internal_Server_Error; m_500.Increment(); break;
   case Status_Service_Unavailable: hsc = WS_STATUS_503_Service_Unavailable; m_503.Increment(); break;
+  case Status_Range_Not_Satisfiable: hsc = WS_STATUS_416_Range_Not_Satisfiable; m_400.Increment(); break;
   }
   header.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(hsc)).append(" ").append(ws_status_to_msgstr(hsc)).append(WS_CRLF);
   header.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);

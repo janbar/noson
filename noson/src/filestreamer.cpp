@@ -335,9 +335,13 @@ bool FileStreamer::probeMP4A(const std::string& filePath)
 
 FileStreamer::range FileStreamer::bytesRange(const std::string &rangeValue, size_t size)
 {
-  range rg = { 0L, 0L };
+  range rg = { false, 0L, 0L };
   long int a = 0, b = LONG_MAX;
-  sscanf(rangeValue.c_str(), "bytes=%li%li", &a, &b);
+  if (rangeValue.size() < 6 || strncmp("bytes", rangeValue.c_str(), 5) != 0)
+    return rg;
+  if (rangeValue[5] != ' ' && rangeValue[5] != '\t' && rangeValue[5] != '=')
+    return rg;
+  sscanf(rangeValue.c_str() + 6, "%li%li", &a, &b);
   if (a < 0)
   {
     rg.start = (size > (size_t)(0L - a) ? size + a : 0);
@@ -350,6 +354,7 @@ FileStreamer::range FileStreamer::bytesRange(const std::string &rangeValue, size
     if (rg.end >= size)
       rg.end = size - 1;
   }
+  rg.valid = (rg.end >= rg.start);
   return rg;
 }
 
@@ -424,7 +429,7 @@ void FileStreamer::streamFileByRange(handle * handle, const std::string& filePat
     size_t tb = 0; // count transfered bytes
     size_t flen = getFileLength(file);
     range rg = bytesRange(rangeValue, flen);
-    if (rg.end >= rg.start && fseek(file, rg.start, SEEK_SET) == 0)
+    if (rg.valid && fseek(file, rg.start, SEEK_SET) == 0)
     {
       size_t len = rg.end - rg.start + 1;
       std::string resp;
@@ -462,7 +467,7 @@ void FileStreamer::streamFileByRange(handle * handle, const std::string& filePat
     }
     else
     {
-      Reply500(handle);
+      Reply416(handle);
       DBG(DBG_WARN, "%s: invalid seek (%s) (%lu-%lu)\n", __FUNCTION__, filePath.c_str(), (long unsigned)rg.start, (long unsigned)rg.end);
     }
     DBG(DBG_INFO, "%s: close stream #%d length (%lu)\n", __FUNCTION__, id, (long unsigned)tb);
@@ -484,6 +489,14 @@ void FileStreamer::Reply400(handle * handle)
 {
   std::string resp;
   resp.append(RequestBroker::MakeResponseHeader(RequestBroker::Status_Bad_Request))
+      .append(WS_CRLF);
+  RequestBroker::Reply(handle, resp.c_str(), resp.length());
+}
+
+void FileStreamer::Reply416(handle * handle)
+{
+  std::string resp;
+  resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_Range_Not_Satisfiable))
       .append(WS_CRLF);
   RequestBroker::Reply(handle, resp.c_str(), resp.length());
 }

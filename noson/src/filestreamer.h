@@ -98,7 +98,7 @@ private:
   static bool probeOGGS(const std::string& filePath);
   static bool probeMP4A(const std::string& filePath);
 
-  typedef struct { size_t start; size_t end; } range;
+  typedef struct { bool valid; size_t start; size_t end; } range;
   static range bytesRange(const std::string& rangeValue, size_t size);
 
   void streamFileByChunk(handle * handle, const std::string& filePath, const std::string& mimeType);
@@ -106,6 +106,7 @@ private:
 
   void Reply500(handle * handle);
   void Reply400(handle * handle);
+  void Reply416(handle * handle);
   void Reply429(handle * handle);
 };
 

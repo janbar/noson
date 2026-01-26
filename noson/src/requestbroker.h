@@ -116,6 +116,7 @@ namespace NSROOT
       Status_Too_Many_Requests,
       Status_Internal_Server_Error,
       Status_Service_Unavailable,
+      Status_Range_Not_Satisfiable
     };
 
     /**
