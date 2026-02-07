@@ -33,7 +33,6 @@
 namespace NSROOT
 {
   class EventHandlerThread;
-  class TcpSocket;
   class WSRequestBroker;
   class RequestBroker;
 
@@ -45,12 +44,10 @@ namespace NSROOT
     RequestBroker();
     virtual ~RequestBroker();
 
-    struct opaque;
-
     struct handle
     {
       EventHandlerThread * handler;
-      opaque * payload;
+      WSRequestBroker * broker;
     };
 
     /**
@@ -107,100 +104,7 @@ namespace NSROOT
 
   protected:
 
-    enum Status
-    {
-      Status_OK,
-      Status_Partial_Content,
-      Status_Bad_Request,
-      Status_Not_Found,
-      Status_Too_Many_Requests,
-      Status_Internal_Server_Error,
-      Status_Service_Unavailable,
-      Status_Range_Not_Satisfiable
-    };
-
-    /**
-     * @brief Create the top header lines for the reply
-     * @param status
-     * @return The response header for the given status code
-     */
-    std::string MakeResponseHeader(Status status);
-
-    /**
-     * @brief Reply to the requester
-     * @param handle
-     * @param data the buffer containing bytes to send
-     * @param size the size of data
-     * @return true is all data have been sent, else false
-     */
-    static bool Reply(handle * handle, const char * data, size_t size);
-
-    enum Method
-    {
-      Method_GET,
-      Method_POST,
-      Method_HEAD,
-      Method_SUBSCRIBE,
-      Method_UNSUBSCRIBE,
-      Method_NOTIFY,
-      Method_UNKNOWN,
-    };
-
-    /**
-     * @param handle
-     * @return The method invoked by the request
-     */
-    static Method GetRequestMethod(handle * handle);
-
-    /**
-     * @param handle
-     * @return The URI path intended by the request
-     */
-    static const std::string& GetRequestPath(handle * handle);
-
-    /**
-     * @param handle
-     * @return The URI params intended by the request
-     */
-    static const std::string& GetURIParams(handle * handle);
-
-    /**
-     * @param handle
-     * @return The protocol of the request, i.e HTTP/1.1
-     */
-    static const std::string& GetRequestProtocol(handle * handle);
-
-    /**
-     * @param handle
-     * @return The value of the requet header with the given name
-     */
-    static const std::string& GetRequestHeader(handle * handle, const std::string& name);
-
-    /**
-     * @param handle
-     * @return true is the request has a content, else false
-     */
-    static bool HasContent(handle * handle);
-
-    /**
-     * @param handle
-     * @return The size in byte of the content of the request
-     */
-    static size_t GetContentLength(handle * handle);
-
-    /**
-     * @param handle
-     * @return The size in byte read from the content
-     */
-    static size_t GetConsumed(handle * handle);
-
-    /**
-     * @brief Read data from the request content
-     * @param handle
-     * @param data The string buffer to append read data
-     * @return The size in byte read from the content
-     */
-    static size_t ReadContent(handle * handle, std::string& data);
+    void TraceResponseStatus(int status);
 
     /**
      * @brief Helper to build the delegate url from a call uri

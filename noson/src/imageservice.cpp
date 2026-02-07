@@ -22,6 +22,8 @@
 #include "filepicreader.h"
 #include "private/urlencoder.h"
 #include "private/wsstatic.h"
+#include "private/wsrequestbroker.h"
+#include "private/wsrequestreply.h"
 
 #include <map>
 #include <cstring>
@@ -29,6 +31,7 @@
 /* Important: It MUST match with the static declaration from datareader.cpp */
 #define IMAGESERVICE_FAVICON  "/favicon.ico"
 #define RESOURCE_FILEPICTURE  "filePicture"
+#define IMAGESERVICE_CHUNK    16384
 
 using namespace NSROOT;
 
@@ -54,16 +57,16 @@ bool ImageService::HandleRequest(handle * handle)
 {
   if (!IsAborted())
   {
-    const std::string& requrl = RequestBroker::GetRequestPath(handle);
+    const std::string& requrl = handle->broker->GetRequestPath();
     if (requrl.compare(0, strlen(IMAGESERVICE_URI), IMAGESERVICE_URI) == 0 ||
             requrl.compare(0, strlen(IMAGESERVICE_FAVICON), IMAGESERVICE_FAVICON) == 0)
     {
-      switch (RequestBroker::GetRequestMethod(handle))
+      switch (handle->broker->GetRequestMethod())
       {
-      case RequestBroker::Method_GET:
+      case WS_METHOD_Get:
         ProcessGET(handle);
         return true;
-      case RequestBroker::Method_HEAD:
+      case WS_METHOD_Head:
         ProcessHEAD(handle);
         return true;
       default:
@@ -132,101 +135,99 @@ std::string ImageService::MakeFilePictureURI(const std::string& filePath)
 
 void ImageService::ProcessGET(handle * handle)
 {
-  ResourceMap::const_iterator it = m_resources.find(RequestBroker::GetRequestPath(handle));
+  WSRequestReply reply(*handle->broker);
+  ResourceMap::const_iterator it = m_resources.find(handle->broker->GetRequestPath());
   if (it == m_resources.end())
-    Reply400(handle);
+  {
+    TraceResponseStatus(400);
+    reply.PostReply(WS_STATUS_400_Bad_Request);
+  }
   else if (!it->second || !it->second->delegate)
-    Reply500(handle);
+  {
+    TraceResponseStatus(500);
+    reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+  }
   else
   {
     const RequestBroker::ResourcePtr& res = it->second;
     StreamReader::STREAM * stream = res->delegate->OpenStream(
-        RequestBroker::buildDelegateUrl(*res, RequestBroker::GetURIParams(handle))
+        RequestBroker::buildDelegateUrl(*res, handle->broker->GetURIParams())
         );
     if (stream && stream->contentLength)
     {
       // override content type with stream type
       const char * contentType = stream->contentType != nullptr ? stream->contentType : res->contentType.c_str();
-      std::string resp;
-      resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
-          .append("Content-Type: ").append(contentType).append(WS_CRLF)
-          .append("Content-Length: ").append(std::to_string(stream->contentLength)).append(WS_CRLF)
-          .append(WS_CRLF);
-      if (RequestBroker::Reply(handle, resp.c_str(), resp.length()))
+      TraceResponseStatus(200);
+      reply.AddHeader(WS_HEADER_Content_Type, contentType);
+      if (reply.BeginContent(WS_STATUS_200_OK, IMAGESERVICE_CHUNK))
       {
-        while (res->delegate->ReadStream(stream) > 0)
-          RequestBroker::Reply(handle, stream->data, stream->size);
+        int r = 0;
+        unsigned len = stream->contentLength;
+        while ((r = res->delegate->ReadStream(stream)) > 0)
+        {
+          if (!reply.WriteData(stream->data, stream->size))
+            break;
+          len -= r;
+        }
+        if (len == 0)
+          reply.CloseContent();
       }
       res->delegate->CloseStream(stream);
     }
     else if (stream)
     {
       res->delegate->CloseStream(stream);
-      Reply404(handle);
+      TraceResponseStatus(404);
+      reply.PostReply(WS_STATUS_404_Not_Found);
     }
     else
     {
-      Reply500(handle);
+      TraceResponseStatus(500);
+      reply.PostReply(WS_STATUS_500_Internal_Server_Error);
     }
   }
 }
 
 void ImageService::ProcessHEAD(handle * handle)
 {
-  ResourceMap::const_iterator it = m_resources.find(RequestBroker::GetRequestPath(handle));
+  WSRequestReply reply(*handle->broker);
+  ResourceMap::const_iterator it = m_resources.find(handle->broker->GetRequestPath());
   if (it == m_resources.end())
-    Reply400(handle);
+  {
+    TraceResponseStatus(400);
+    reply.PostReply(WS_STATUS_400_Bad_Request);
+  }
   else if (!it->second || !it->second->delegate)
-    Reply500(handle);
+  {
+    TraceResponseStatus(500);
+    reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+  }
   else
   {
     const RequestBroker::ResourcePtr& res = it->second;
     StreamReader::STREAM * stream = res->delegate->OpenStream(
-        RequestBroker::buildDelegateUrl(*res, RequestBroker::GetURIParams(handle))
+        RequestBroker::buildDelegateUrl(*res, handle->broker->GetURIParams())
         );
     if (stream && stream->contentLength)
     {
       // override content type with stream type
       const char * contentType = stream->contentType != nullptr ? stream->contentType : res->contentType.c_str();
+      TraceResponseStatus(200);
+      reply.AddHeader(WS_HEADER_Content_Type, contentType);
+      reply.AddHeader(WS_HEADER_Content_Length, stream->contentLength);
+      reply.PostReply(WS_STATUS_200_OK);
       res->delegate->CloseStream(stream);
-      std::string resp;
-      resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
-          .append("Content-Type: ").append(contentType).append(WS_CRLF)
-          .append(WS_CRLF);
-      RequestBroker::Reply(handle, resp.c_str(), resp.length());
     }
     else if (stream)
     {
       res->delegate->CloseStream(stream);
-      Reply404(handle);
+      TraceResponseStatus(404);
+      reply.PostReply(WS_STATUS_404_Not_Found);
     }
     else
     {
-      Reply500(handle);
+      TraceResponseStatus(500);
+      reply.PostReply(WS_STATUS_500_Internal_Server_Error);
     }
   }
-}
-
-void ImageService::Reply500(handle * handle)
-{
-  std::string resp;
-  resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_Internal_Server_Error))
-      .append(WS_CRLF);
-  RequestBroker::Reply(handle, resp.c_str(), resp.length());
-}
-
-void ImageService::Reply400(handle * handle)
-{
-  std::string resp;
-  resp.append(RequestBroker::MakeResponseHeader(RequestBroker::Status_Bad_Request))
-      .append(WS_CRLF);
-  RequestBroker::Reply(handle, resp.c_str(), resp.length());
-}
-
-void ImageService::Reply404(handle * handle)
-{
-  std::string resp;
-  resp.append(RequestBroker::MakeResponseHeader(RequestBroker::Status_Not_Found))
-      .append(WS_CRLF);
-  RequestBroker::Reply(handle, resp.c_str(), resp.length());
 }

@@ -20,6 +20,8 @@
 #include "../eventhandler.h"
 #include "debug.h"
 #include "wsstatic.h"
+#include "wsrequestbroker.h"
+#include "wsrequestreply.h"
 #include "tinyxml2.h"
 #include "xmldict.h"
 
@@ -36,14 +38,14 @@ bool MainPageBroker::HandleRequest(handle * handle)
 {
   if (!IsAborted())
   {
-    if (RequestBroker::GetRequestPath(handle).compare(MAINPAGE_URI) == 0)
+    if (handle->broker->GetRequestPath().compare(MAINPAGE_URI) == 0)
     {
-      switch (RequestBroker::GetRequestMethod(handle))
+      switch (handle->broker->GetRequestMethod())
       {
-      case RequestBroker::Method_GET:
+      case WS_METHOD_Get:
         ProcessGET(handle);
         return true;
-      case RequestBroker::Method_HEAD:
+      case WS_METHOD_Head:
         ProcessHEAD(handle);
         return true;
       default:
@@ -56,6 +58,7 @@ bool MainPageBroker::HandleRequest(handle * handle)
 
 RequestBroker::ResourcePtr MainPageBroker::GetResource(const std::string& title)
 {
+  (void)title;
   return ResourcePtr();
 }
 
@@ -99,8 +102,6 @@ void MainPageBroker::ProcessGET(handle * handle)
   "p>Version <b>" LIBVERSION "</b>, compiled on " __DATE__ " at " __TIME__ ".</p>";
   static const char * _end = "</div></body></html>";
 
-  std::string resp;
-  resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK));
   std::string data;
   data.assign(_begin);
   std::vector<RequestBrokerPtr> rbs = handle->handler->AllRequestBroker();
@@ -141,20 +142,21 @@ void MainPageBroker::ProcessGET(handle * handle)
     data.append("</tbody></table>");
   }
   data.append(_end);
-  resp.append("Content-Type: text/html" WS_CRLF)
-      .append("Content-Length: ").append(std::to_string(data.length())).append(WS_CRLF)
-      .append(WS_CRLF);
-  RequestBroker::Reply(handle, resp.c_str(), resp.length());
-  RequestBroker::Reply(handle, data.c_str(), data.length());
+
+  WSRequestReply reply(*handle->broker);
+  reply.AddHeader(WS_HEADER_Content_Type, "text/html");
+  reply.AddHeader(WS_HEADER_Content_Length, data.size());
+  TraceResponseStatus(200);
+  if (reply.PostReply(WS_STATUS_200_OK))
+    handle->broker->ReplyData(data.c_str(), data.size());
   return;
 }
 
 void MainPageBroker::ProcessHEAD(handle * handle)
 {
-  std::string resp;
-  resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK));
-  resp.append("Content-Type: text/html" WS_CRLF)
-      .append(WS_CRLF);
-  RequestBroker::Reply(handle, resp.c_str(), resp.length());
+  WSRequestReply reply(*handle->broker);
+  reply.AddHeader(WS_HEADER_Content_Type, "text/html");
+  TraceResponseStatus(200);
+  reply.PostReply(WS_STATUS_200_OK);
   return;
 }

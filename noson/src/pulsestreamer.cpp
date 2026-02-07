@@ -24,6 +24,8 @@
 #include "data/datareader.h"
 #include "private/debug.h"
 #include "private/wsstatic.h"
+#include "private/wsrequestbroker.h"
+#include "private/wsrequestreply.h"
 #include "private/os/threads/timeout.h"
 
 #include <cstring>
@@ -77,21 +79,20 @@ bool PulseStreamer::HandleRequest(handle * handle)
 {
   if (!IsAborted())
   {
-    const std::string& requrl = RequestBroker::GetRequestPath(handle);
+    const std::string& requrl = handle->broker->GetRequestPath();
     if (requrl.compare(0, strlen(PULSESTREAMER_URI), PULSESTREAMER_URI) == 0)
     {
-      switch (RequestBroker::GetRequestMethod(handle))
+      switch (handle->broker->GetRequestMethod())
       {
-      case RequestBroker::Method_GET:
+      case WS_METHOD_Get:
         streamSink(handle);
         return true;
-      case RequestBroker::Method_HEAD:
+      case WS_METHOD_Head:
       {
-        std::string resp;
-        resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
-            .append("Content-Type: audio/flac" WS_CRLF)
-            .append(WS_CRLF);
-        RequestBroker::Reply(handle, resp.c_str(), resp.length());
+        TraceResponseStatus(200);
+        WSRequestReply reply(*handle->broker);
+        reply.AddHeader(WS_HEADER_Content_Type, "audio/flac");
+        reply.PostReply(WS_STATUS_200_OK);
         return true;
       }
       default:
@@ -200,19 +201,23 @@ void PulseStreamer::FreePASink()
 
 void PulseStreamer::streamSink(handle * handle)
 {
-  m_playbackCount.Add(1);
-
+  WSRequestReply reply(*handle->broker);
   std::string deviceName = GetPASink();
 
   if (deviceName.empty())
   {
     DBG(DBG_WARN, "%s: no sink available\n", __FUNCTION__);
-    Reply503(handle);
+    TraceResponseStatus(503);
+    reply.PostReply(WS_STATUS_503_Service_Unavailable);
   }
-  else if (m_playbackCount.Load() > PULSESTREAMER_MAX_PB)
-    Reply429(handle);
+  else if (m_playbackCount.Load() >= PULSESTREAMER_MAX_PB)
+  {
+    TraceResponseStatus(429);
+    reply.PostReply(WS_STATUS_429_Too_Many_Requests);
+  }
   else
   {
+    m_playbackCount.Add(1);
     PASource audioSource(PA_CLIENT_NAME, deviceName);
     FLACEncoder audioEncoder;
     BufferedStream stream(256);
@@ -224,23 +229,15 @@ void PulseStreamer::streamSink(handle * handle)
 
     audioSource.play(&audioEncoder);
 
-    std::string resp;
-    resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
-        .append("Content-Type: audio/flac" WS_CRLF)
-        .append("Transfer-Encoding: chunked" WS_CRLF)
-        .append(WS_CRLF);
-
-    if (RequestBroker::Reply(handle, resp.c_str(), resp.length()))
+    TraceResponseStatus(200);
+    reply.AddHeader(WS_HEADER_Content_Type, "audio/flac");
+    if (reply.BeginContent(WS_STATUS_200_OK, PULSESTREAMER_CHUNK))
     {
-      char * buf = new char [PULSESTREAMER_CHUNK + 16];
+      char * buf = new char [PULSESTREAMER_CHUNK];
       int r = 0;
-      while (!IsAborted() && (r = stream.ReadAsync(buf + 5 + WS_CRLF_LEN, PULSESTREAMER_CHUNK, PULSESTREAMER_TIMEOUT)) > 0)
+      while (!IsAborted() && (r = stream.ReadAsync(buf, PULSESTREAMER_CHUNK, PULSESTREAMER_TIMEOUT)) > 0)
       {
-        char str[6 + WS_CRLF_LEN];
-        snprintf(str, sizeof(str), "%05x" WS_CRLF, (unsigned)r & 0xfffff);
-        memcpy(buf, str, 5 + WS_CRLF_LEN);
-        memcpy(buf + r + 5 + WS_CRLF_LEN, WS_CRLF, WS_CRLF_LEN);
-        if (!RequestBroker::Reply(handle, buf, r + 5 + WS_CRLF_LEN + WS_CRLF_LEN))
+        if (!reply.WriteData(buf, r))
           break;
         // disable source mute after delay
         if (audioSource.muted() && !muted.TimeLeft())
@@ -248,37 +245,13 @@ void PulseStreamer::streamSink(handle * handle)
       }
       delete [] buf;
       if (r == 0)
-        RequestBroker::Reply(handle, "0" WS_CRLF WS_CRLF, 1 + WS_CRLF_LEN + WS_CRLF_LEN);
+        reply.CloseContent();
     }
 
+    m_playbackCount.Sub(1);
     audioSource.stop();
     audioEncoder.close();
   }
 
   FreePASink();
-  m_playbackCount.Sub(1);
-}
-
-void PulseStreamer::Reply503(handle * handle)
-{
-  std::string resp;
-  resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_Service_Unavailable))
-      .append(WS_CRLF);
-  RequestBroker::Reply(handle, resp.c_str(), resp.length());
-}
-
-void PulseStreamer::Reply400(handle * handle)
-{
-  std::string resp;
-  resp.append(RequestBroker::MakeResponseHeader(RequestBroker::Status_Bad_Request))
-      .append(WS_CRLF);
-  RequestBroker::Reply(handle, resp.c_str(), resp.length());
-}
-
-void PulseStreamer::Reply429(handle * handle)
-{
-  std::string resp;
-  resp.append(RequestBroker::MakeResponseHeader(RequestBroker::Status_Too_Many_Requests))
-      .append(WS_CRLF);
-  RequestBroker::Reply(handle, resp.c_str(), resp.length());
 }

@@ -59,10 +59,6 @@ private:
 
   void ProcessGET(handle * handle);
   void ProcessHEAD(handle * handle);
-
-  void Reply500(handle * handle);
-  void Reply400(handle * handle);
-  void Reply404(handle * handle);
 };
 
 }

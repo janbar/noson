@@ -56,10 +56,6 @@ private:
   std::string GetPASink();
   void FreePASink();
   void streamSink(handle * handle);
-
-  void Reply503(handle * handle);
-  void Reply400(handle * handle);
-  void Reply429(handle * handle);
 };
 
 }

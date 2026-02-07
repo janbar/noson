@@ -45,8 +45,6 @@ public:
 
 private:
 
-  void Reply500(handle * handle);
-
   void Process(handle * handle);
 };
 

@@ -24,6 +24,7 @@
 
 #include <string>
 #include <vector>
+#include <list>
 
 #define FILESTREAMER_CNAME      "track"
 #define FILESTREAMER_URI        "/music/track"
@@ -31,6 +32,8 @@
 
 namespace NSROOT
 {
+
+class WSRequestReply;
 
 class FileStreamer : public RequestBroker
 {
@@ -73,17 +76,10 @@ private:
   static codec_type codecTypeTab[];
   static int codecTypeTabSize;
 
-  enum TransferType
-  {
-    Transfer_Chunked = 0,
-    Transfer_ByRange,
-  };
-
   typedef struct
   {
     const char * mime;
     bool (*probe)(const std::string& filePath);
-    TransferType transfer;
   } file_type;
 
   static file_type fileTypeTab[];
@@ -98,16 +94,12 @@ private:
   static bool probeOGGS(const std::string& filePath);
   static bool probeMP4A(const std::string& filePath);
 
-  typedef struct { bool valid; size_t start; size_t end; } range;
-  static range bytesRange(const std::string& rangeValue, size_t size);
+  typedef struct { size_t start; size_t end; } range;
+  static std::list<range> bytesRange(const std::string& rangeValue, size_t size);
 
-  void streamFileByChunk(handle * handle, const std::string& filePath, const std::string& mimeType);
-  void streamFileByRange(handle * handle, const std::string& filePath, const std::string& mimetype, const std::string& rangeValue);
-
-  void Reply500(handle * handle);
-  void Reply400(handle * handle);
-  void Reply416(handle * handle);
-  void Reply429(handle * handle);
+  void streamFile(handle * handle, const std::string& filePath, const std::string& contentType);
+  void streamFileRange(handle * handle, const std::string& filePath, const std::string& contentType,
+                       const std::string& rangeValue);
 };
 
 }

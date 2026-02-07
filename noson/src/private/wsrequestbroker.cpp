@@ -89,11 +89,22 @@ bool WSRequestBroker::ReadHeaderLine(const char *eol, std::string& line, size_t 
 
 bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::string& uriparams, bool& ishidden)
 {
-  // global not allowed
-  if (in == "*")
+  if (in.empty())
     return false;
-  // parse uri
-  URIParser parser(std::string("file:///").append(in));
+  // convert generic uri * to nil
+  else if (in == "*")
+  {
+    path.clear();
+    uriparams.clear();
+    ishidden = false;
+    return true;
+  }
+  // accept only local uri, therefore reject url starting by scheme
+  else if (in.front() != '/')
+    return false;
+
+  // force sheme and parse uri
+  URIParser parser(std::string("file://").append(in));
   if (!parser.Path())
     return false;
   unsigned len = 0;
@@ -168,6 +179,8 @@ WSRequestBroker::WSRequestBroker(TcpSocket* socket, bool secure, int timeout)
 , m_chunkBuffer(nullptr)
 , m_chunkPtr(nullptr)
 , m_chunkEnd(nullptr)
+, m_status(WS_STATUS_UNKNOWN)
+, m_bytesOut(0)
 {
   SetTimeout(timeout);
   m_parsed = ParseQuery();
@@ -230,6 +243,8 @@ bool WSRequestBroker::ParseQuery()
      */
     if (++n == 1)
     {
+      // backup initial request for logging
+      m_requestLine.assign(strread);
       std::vector<std::string> query;
       tokenize(strread, " ", "", query, true);
       if (query.size() == 3)
@@ -376,8 +391,9 @@ size_t WSRequestBroker::ReadContent(char* buf, size_t buflen)
   return s;
 }
 
-bool WSRequestBroker::ReplyData(const char* data, size_t size) const
+bool WSRequestBroker::ReplyData(const char* data, size_t size)
 {
+  m_bytesOut += size;
   return m_socket->SendData(data, size);
 }
 

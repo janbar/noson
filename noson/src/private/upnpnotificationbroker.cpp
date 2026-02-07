@@ -20,6 +20,8 @@
 #include "../eventhandler.h"
 #include "debug.h"
 #include "wsstatic.h"
+#include "wsrequestbroker.h"
+#include "wsrequestreply.h"
 #include "tinyxml2.h"
 #include "xmldict.h"
 
@@ -34,10 +36,10 @@ bool UPNPNotificationBroker::HandleRequest(handle * handle)
 {
   if (!IsAborted())
   {
-    if (RequestBroker::GetRequestMethod(handle) == RequestBroker::Method_NOTIFY &&
-          RequestBroker::GetRequestHeader(handle, "NT") == "upnp:event" &&
-          RequestBroker::GetRequestHeader(handle, "CONTENT-TYPE").compare(0, 8, "text/xml") == 0 &&
-          RequestBroker::HasContent(handle))
+    if (handle->broker->GetRequestMethod() == WS_METHOD_Notify &&
+          handle->broker->GetRequestHeader("NT") == "upnp:event" &&
+          handle->broker->GetRequestHeader("CONTENT-TYPE").compare(0, 8, "text/xml") == 0 &&
+          handle->broker->HasContent())
     {
       Process(handle);
       return true;
@@ -48,6 +50,7 @@ bool UPNPNotificationBroker::HandleRequest(handle * handle)
 
 RequestBroker::ResourcePtr UPNPNotificationBroker::GetResource(const std::string& title)
 {
+  (void)title;
   return ResourcePtr();
 }
 
@@ -72,14 +75,6 @@ RequestBroker::ResourcePtr UPNPNotificationBroker::RegisterResource(const std::s
 void UPNPNotificationBroker::UnregisterResource(const std::string& uri)
 {
   (void)uri;
-}
-
-void UPNPNotificationBroker::Reply500(handle * handle)
-{
-  std::string resp;
-  resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_Internal_Server_Error))
-      .append(WS_CRLF);
-  RequestBroker::Reply(handle, resp.c_str(), resp.length());
 }
 
 #define NS_RCS "urn:schemas-upnp-org:metadata-1-0/RCS/"
@@ -110,23 +105,33 @@ namespace NSROOT
 
 void UPNPNotificationBroker::Process(handle * handle)
 {
+  WSRequestReply reply(*handle->broker);
+
   // Receive content data
   std::string data;
-  size_t len = RequestBroker::ReadContent(handle, data);
+  size_t len = 0, r = 0;
+  char buffer[4096];
+  while ((r = handle->broker->ReadContent(buffer, sizeof(buffer))))
+  {
+    data.append(buffer, r);
+    len += r;
+  }
+
   // Parse xml content
   tinyxml2::XMLDocument rootdoc;
   if (rootdoc.Parse(data.c_str(), len) != tinyxml2::XML_SUCCESS)
   {
     DBG(DBG_ERROR, "%s: parse xml failed\n", __FUNCTION__);
-    Reply500(handle);
+    TraceResponseStatus(500);
+    reply.PostReply(WS_STATUS_500_Internal_Server_Error);
     return;
   }
 
   // Setup new event message
   EventMessage* msg = new EventMessage();
   msg->event = EVENT_UPNP_PROPCHANGE;
-  msg->subject.push_back(RequestBroker::GetRequestHeader(handle, "SID"));
-  msg->subject.push_back(RequestBroker::GetRequestHeader(handle, "SEQ"));
+  msg->subject.push_back(handle->broker->GetRequestHeader("SID"));
+  msg->subject.push_back(handle->broker->GetRequestHeader("SEQ"));
 
   // Parse document
   const tinyxml2::XMLElement* root; // root element
@@ -146,7 +151,8 @@ void UPNPNotificationBroker::Process(handle * handle)
         {
           DBG(DBG_ERROR, "%s: invalid or not supported content\n", __FUNCTION__);
           DBG(DBG_ERROR, "%s: dump => %s\n", __FUNCTION__, data.c_str());
-          Reply500(handle);
+          TraceResponseStatus(500);
+          reply.PostReply(WS_STATUS_500_Internal_Server_Error);
           delete msg;
           return;
         }
@@ -225,15 +231,14 @@ void UPNPNotificationBroker::Process(handle * handle)
   {
     DBG(DBG_ERROR, "%s: invalid or not supported content\n", __FUNCTION__);
     DBG(DBG_ERROR, "%s: dump => %s\n", __FUNCTION__, data.c_str());
-    Reply500(handle);
     delete msg;
+    TraceResponseStatus(500);
+    reply.PostReply(WS_STATUS_500_Internal_Server_Error);
     return;
   }
 
   handle->handler->DispatchEvent(EventMessagePtr(msg));
-  std::string resp;
-  resp.assign(RequestBroker::MakeResponseHeader(RequestBroker::Status_OK))
-      .append(WS_CRLF);
-  RequestBroker::Reply(handle, resp.c_str(), resp.length());
+  TraceResponseStatus(200);
+  reply.PostReply(WS_STATUS_200_OK);
   return;
 }

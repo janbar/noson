@@ -60,16 +60,24 @@ namespace NSROOT
     size_t ReadContent(char *buf, size_t buflen);
     size_t GetConsumed() const { return m_consumed; }
 
+    const VARS& GetRequestHeaders() const { return m_requestHeaders; }
+
     static bool ExplodeURI(const std::string& in, std::string& path, std::string& uriparams, bool& ishidden);
     static VARS ExplodeQuery(const std::string& uriparams);
 
-    bool ReplyData(const char * data, size_t size) const;
+    bool ReplyData(const char * data, size_t size);
     bool RewritePath(const std::string& newpath);
+
+    void SetStatus(WS_STATUS status) { m_status = status; }
+    WS_STATUS GetStatus() const { return m_status; }
+    size_t GetBytesOut() const { return m_bytesOut; }
+    const std::string& GetRequestLine() const { return m_requestLine; }
 
   private:
     TcpSocket* m_socket;
     bool m_secure;
     bool m_parsed;
+    std::string m_requestLine;
     WS_METHOD m_method;
     std::string m_path;
     std::string m_protocol;
@@ -81,8 +89,10 @@ namespace NSROOT
     char* m_chunkBuffer;
     char* m_chunkPtr;
     char* m_chunkEnd;
-
     VARS m_requestHeaders;
+
+    WS_STATUS m_status;
+    size_t m_bytesOut;
 
     // prevent copy
     WSRequestBroker(const WSRequestBroker&);

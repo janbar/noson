@@ -21,7 +21,6 @@
 #include "eventbroker.h"
 #include "wsstatic.h"
 #include "debug.h"
-#include "requestbrokeropaque.h"
 
 using namespace NSROOT;
 
@@ -57,8 +56,7 @@ void EventBroker::Process()
     return;
   }
 
-  RequestBroker::opaque payload = { m_sockPtr.get(), &rb };
-  RequestBroker::handle handle { m_handler, &payload };
+  RequestBroker::handle handle { m_handler, &rb };
   std::vector<RequestBrokerPtr> vect = m_handler->AllRequestBroker();
   for (std::vector<RequestBrokerPtr>::iterator itrb = vect.begin(); itrb != vect.end(); ++itrb)
   {
