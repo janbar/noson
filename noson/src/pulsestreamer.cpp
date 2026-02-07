@@ -36,7 +36,7 @@
 #define PULSESTREAMER_DESC      "Audio stream from %s"
 #define PULSESTREAMER_TIMEOUT   10000
 #define PULSESTREAMER_MAX_PB    3
-#define PULSESTREAMER_CHUNK     16384
+#define PULSESTREAMER_CHUNK     32768
 #define PULSESTREAMER_TM_MUTE   3000
 #define PA_SINK_NAME            "noson"
 #define PA_CLIENT_NAME          PA_SINK_NAME
