@@ -94,10 +94,15 @@ int RingBuffer::capacity() const
   return m_capacity;
 }
 
-int RingBuffer::bytesAvailable() const
+int RingBuffer::bytesAvailable()
 {
   OS::LockGuard g(*m_ringlock);
-  return (m_unread ? m_read->packet->size : 0);
+  if (!m_unread)
+    return 0;
+  // fix overwriting: move to the next available
+  while(m_read->packet == nullptr)
+    m_read = m_read->next;
+  return m_read->packet->size;
 }
 
 unsigned RingBuffer::bytesUnread() const
@@ -185,6 +190,9 @@ RingBufferPacket * RingBuffer::read()
     OS::LockGuard g(*m_ringlock);
     if (m_unread)
     {
+      // fix overwriting: move to the next available
+      while (m_read->packet == nullptr)
+        m_read = m_read->next;
       p = m_read->packet;
       m_read->packet = nullptr;
       m_read = m_read->next;

@@ -70,7 +70,7 @@ public:
    * It returns the size in bytes of the next chunk to read.
    * @return the number of bytes
    */
-  int bytesAvailable() const;
+  int bytesAvailable();
 
   /**
    * It returns the total size in bytes of all chunks remaining to be read.
