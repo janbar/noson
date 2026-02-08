@@ -220,7 +220,7 @@ void PulseStreamer::streamSink(handle * handle)
     m_playbackCount.Add(1);
     PASource audioSource(PA_CLIENT_NAME, deviceName);
     FLACEncoder audioEncoder;
-    BufferedStream stream(512);
+    BufferedStream stream(64);
     audioEncoder.open(audioSource.getFormat(), &stream);
 
     // the source is muted for a short time to limit output rate on startup
