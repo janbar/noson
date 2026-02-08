@@ -36,7 +36,7 @@
 #define PULSESTREAMER_DESC      "Audio stream from %s"
 #define PULSESTREAMER_TIMEOUT   10000
 #define PULSESTREAMER_MAX_PB    3
-#define PULSESTREAMER_CHUNK     32768
+#define PULSESTREAMER_CHUNK     32752
 #define PULSESTREAMER_TM_MUTE   3000
 #define PA_SINK_NAME            "noson"
 #define PA_CLIENT_NAME          PA_SINK_NAME
@@ -220,7 +220,7 @@ void PulseStreamer::streamSink(handle * handle)
     m_playbackCount.Add(1);
     PASource audioSource(PA_CLIENT_NAME, deviceName);
     FLACEncoder audioEncoder;
-    BufferedStream stream(256);
+    BufferedStream stream(512);
     audioEncoder.open(audioSource.getFormat(), &stream);
 
     // the source is muted for a short time to limit output rate on startup
@@ -231,13 +231,18 @@ void PulseStreamer::streamSink(handle * handle)
 
     TraceResponseStatus(200);
     reply.AddHeader(WS_HEADER_Content_Type, "audio/flac");
-    if (reply.BeginContent(WS_STATUS_200_OK, PULSESTREAMER_CHUNK))
+    reply.AddHeader(WS_HEADER_Transfer_Encoding, "chunked");
+    if (reply.PostReply(WS_STATUS_200_OK))
     {
-      char * buf = new char [PULSESTREAMER_CHUNK];
+      char * buf = new char [PULSESTREAMER_CHUNK + 16];
       int r = 0;
-      while (!IsAborted() && (r = stream.ReadAsync(buf, PULSESTREAMER_CHUNK, PULSESTREAMER_TIMEOUT)) > 0)
+      while (!IsAborted() && (r = stream.ReadAsync(buf + 5 + WS_CRLF_LEN, PULSESTREAMER_CHUNK, PULSESTREAMER_TIMEOUT)) > 0)
       {
-        if (!reply.WriteData(buf, r))
+        char str[5 + WS_CRLF_LEN + 1];
+        snprintf(str, sizeof(str), "%05x" WS_CRLF, (unsigned)r & 0xfffff);
+        memcpy(buf, str, 5 + WS_CRLF_LEN);
+        memcpy(buf + 5 + WS_CRLF_LEN + r, WS_CRLF, WS_CRLF_LEN);
+        if (!handle->broker->ReplyData(buf, 5 + WS_CRLF_LEN + r + WS_CRLF_LEN))
           break;
         // disable source mute after delay
         if (audioSource.muted() && !muted.TimeLeft())
@@ -245,7 +250,7 @@ void PulseStreamer::streamSink(handle * handle)
       }
       delete [] buf;
       if (r == 0)
-        reply.CloseContent();
+        handle->broker->ReplyData("0" WS_CRLF WS_CRLF, 1 + WS_CRLF_LEN + WS_CRLF_LEN);
     }
 
     m_playbackCount.Sub(1);
