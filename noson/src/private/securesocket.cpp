@@ -60,7 +60,7 @@ void SSLSessionFactory::Destroy()
 #include <openssl/x509_vfy.h>
 
 /* Cipher suites, https://www.openssl.org/docs/apps/ciphers.html */
-const char* const PREFERRED_CIPHERS = "HIGH:!aNULL:!PSK:!SRP:!MD5:!RC4:!CAMELLIA:!DSS";
+const char* const PREFERRED_CIPHERS = "ALL:!aNULL";
 
 SSLSessionFactory::SSLSessionFactory()
 : m_client_ctx(nullptr)
