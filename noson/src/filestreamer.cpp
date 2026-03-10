@@ -460,7 +460,9 @@ void FileStreamer::streamFileRange(handle * handle, const std::string& filePath,
     {
       WS_STATUS wss;
       size_t len = rg.end - rg.start + 1;
-      if (len != fileSize)
+      if (len == fileSize)
+        wss = WS_STATUS_200_OK;
+      else
       {
         TraceResponseStatus(206);
         wss = WS_STATUS_206_Partial_Content;
@@ -473,19 +475,9 @@ void FileStreamer::streamFileRange(handle * handle, const std::string& filePath,
         uint32_to_string(fileSize, &str);
         crg.append(str.data);
         reply.AddHeader(WS_HEADER_Content_Range, crg);
-        uint32_to_string(len, &str);
-        reply.AddHeader(WS_HEADER_Content_Length, str.data);
-      }
-      else
-      {
-        TraceResponseStatus(200);
-        wss = WS_STATUS_200_OK;
-        BUILTIN_BUFFER str;
-        uint32_to_string(len, &str);
-        reply.AddHeader(WS_HEADER_Content_Length, str.data);
       }
 
-      if (reply.PostReply(wss))
+      if (reply.BeginContent(wss, FILESTREAMER_CHUNK))
       {
         size_t tb = 0; // count transfered bytes
         int buflen = FILESTREAMER_CHUNK;
@@ -494,7 +486,7 @@ void FileStreamer::streamFileRange(handle * handle, const std::string& filePath,
         size_t chunk = (len > buflen ? buflen : len);
         while (!IsAborted() && chunk > 0 && (r = fread(buf, 1, chunk, file)) > 0)
         {
-          if (!handle->broker->ReplyData(buf, r))
+          if (!reply.WriteData(buf, r))
             break;
           tb += r;
           len -= r;
@@ -504,7 +496,10 @@ void FileStreamer::streamFileRange(handle * handle, const std::string& filePath,
         delete [] buf;
 
         if (len == 0)
+        {
           DBG(DBG_DEBUG, "%s: transfer range %p (%" PRIu64 ")\n", __FUNCTION__, this, tb);
+          reply.CloseContent();
+        }
       }
     }
   }
