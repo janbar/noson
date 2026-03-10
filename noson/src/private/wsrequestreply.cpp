@@ -61,7 +61,10 @@ void WSRequestReply::AddHeader(const std::string& headerStr, const std::string& 
     tmp.push_back('\"');
   }
   tmp.append(WS_CRLF);
-  m_headers.insert(std::make_pair(headerStr, tmp));
+  auto r = m_headers.insert(std::make_pair(headerStr, tmp));
+  // replace the value if the key already exists
+  if (!r.second)
+    r.first->second.assign(tmp);
 }
 
 void WSRequestReply::AddHeader(WS_HEADER header, const std::string& str, bool encap /*= false*/)
