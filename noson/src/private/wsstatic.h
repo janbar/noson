@@ -82,6 +82,7 @@ typedef enum
   WS_HEADER_Connection,
   WS_HEADER_Content_Encoding,
   WS_HEADER_Content_Length,
+  WS_HEADER_Content_Location,
   WS_HEADER_Content_Range,
   WS_HEADER_Content_Type,
   WS_HEADER_ETag,

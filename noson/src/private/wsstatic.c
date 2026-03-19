@@ -119,6 +119,7 @@ static const WS_HEADER_TABLE ws_header_table[] = {
   { 11, "Connection",             "CONNECTION" },
   { 17, "Content-Encoding",       "CONTENT-ENCODING" },
   { 15, "Content-Length",         "CONTENT-LENGTH" },
+  { 17, "Content-Location",       "CONTENT-LOCATION" },
   { 15, "Content-Range",          "CONTENT-RANGE" },
   { 13, "Content-Type",           "CONTENT-TYPE" },
   { 5,  "ETag",                   "ETAG" },
