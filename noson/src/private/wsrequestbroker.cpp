@@ -322,6 +322,13 @@ bool WSRequestBroker::ParseQuery()
       token[token_len] = 0;
       value_len = len - (val - line + 1);
       while (value_len > 0 && (*(++val) == ' ' || *val == '\t')) --value_len;
+      /*
+       * An existing field will be amended by adding an additional value.
+       * Therefore, the order of the values remains the same.
+       */
+      VARS::iterator it = m_requestHeaders.find(token);
+      if (it != m_requestHeaders.end())
+        it->second.append(", ");
     }
     else
     {
@@ -332,27 +339,27 @@ bool WSRequestBroker::ParseQuery()
 
     if (token_len && val)
     {
-      m_requestHeaders[token].append(val);
+      std::string& newval = m_requestHeaders[token].append(val);
       switch (ws_header_from_upperstr(token))
       {
       case WS_HEADER_Content_Length:
       {
         int64_t num;
-        if (string_to_int64(val, &num) == 0 && num >= 0)
+        if (string_to_int64(newval.c_str(), &num) == 0 && num >= 0)
           m_contentLength = (size_t)num;
         else
           ret = false;
         break;
       }
       case WS_HEADER_Transfer_Encoding:
-        if (value_len > 6 && memcmp(val, "chunked", 7) == 0)
+        if (newval.find("chunked") != std::string::npos)
         {
           m_contentChunked = true;
           m_chunkNext = true;
         }
         break;
       case WS_HEADER_Host:
-        m_host.assign(val);
+        m_host.assign(newval);
         break;
       default:
         break;
@@ -396,10 +403,12 @@ int WSRequestBroker::ReadChunk(void *buf, size_t buflen)
         m_chunkPtr = m_chunkEOR = m_chunkBuffer;
         m_chunkEnd = m_chunkBuffer + chunkSize;
       }
-      else if (ReadHeaderLine(WS_CRLF, strread, &len) && len == 0)
-        return 0; // that's the end of chunks
       else
-        return (-1);
+      {
+        // read chunk trailers
+        while (ReadHeaderLine(WS_CRLF, strread, &len) && len != 0);
+        return 0; // that's the end of chunks
+      }
     }
     // fill chunk buffer
     if (m_chunkPtr >= m_chunkEOR)

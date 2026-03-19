@@ -263,7 +263,7 @@ bool WSResponse::_response::GetResponse()
       token[token_len] = 0;
       value_len = len - (val - line + 1);
       while (value_len > 0 && (*(++val) == ' ' || *val == '\t')) --value_len;
-      m_headers.push_front(std::make_pair(token, ""));
+      m_headers.push_back(std::make_pair(token, ""));
     }
     else
     {
@@ -274,32 +274,32 @@ bool WSResponse::_response::GetResponse()
 
     if (token_len && val)
     {
-      m_headers.front().second.append(val);
+      std::string& newval = m_headers.back().second.append(val);
       switch (ws_header_from_upperstr(token))
       {
         case WS_HEADER_ETag:
-          m_etag.assign(val);
+          m_etag.assign(newval);
           break;
         case WS_HEADER_Server:
-          m_serverInfo.assign(val);
+          m_serverInfo.assign(newval);
           break;
         case WS_HEADER_Location:
-          m_location.assign(val);
+          m_location.assign(newval);
           break;
         case WS_HEADER_Content_Type:
-          m_contentTypeStr.assign(val);
-          m_contentType = ws_ctype_from_str(val);
+          m_contentTypeStr.assign(newval);
+          m_contentType = ws_ctype_from_str(newval.c_str());
           break;
         case WS_HEADER_Content_Length:
-          m_contentLength = atol(val);
+          m_contentLength = atol(newval.c_str());
           break;
         case WS_HEADER_Content_Encoding:
-          m_contentEncoding = ws_cencoding_from_str(val);
+          m_contentEncoding = ws_cencoding_from_str(newval.c_str());
           if (m_contentEncoding == WS_CENCODING_UNKNOWN)
-            DBG(DBG_ERROR, "%s: unsupported content encoding (%s)\n", __FUNCTION__, val);
+            DBG(DBG_ERROR, "%s: unsupported content encoding (%s)\n", __FUNCTION__, newval.c_str());
           break;
         case WS_HEADER_Transfer_Encoding:
-          if (value_len > 6 && memcmp(val, "chunked", 7) == 0)
+          if (newval.find("chunked") != std::string::npos)
           {
             m_contentChunked = true;
             m_chunkNext = true;
@@ -347,10 +347,12 @@ int WSResponse::_response::ReadChunk(void *buf, size_t buflen)
         m_chunkPtr = m_chunkEOR = m_chunkBuffer;
         m_chunkEnd = m_chunkBuffer + chunkSize;
       }
-      else if (WSResponse::ReadHeaderLine(m_socket, WS_CRLF, strread, &len) && len == 0)
-        return 0; // that's the end of chunks
       else
-        return (-1);
+      {
+        // read chunk trailers
+        while (WSResponse::ReadHeaderLine(m_socket, WS_CRLF, strread, &len) && len != 0);
+        return 0; // that's the end of chunks
+      }
     }
     // fill chunk buffer
     if (m_chunkPtr >= m_chunkEOR)
@@ -478,12 +480,14 @@ int WSResponse::_response::ReadContent(char* buf, size_t buflen)
 
 bool WSResponse::_response::GetHeaderValue(const std::string& header, std::string& value)
 {
+  value.clear();
   for (HeaderList::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
   {
     if (it->first != header)
       continue;
+    if (!value.empty())
+      value.append(", ");
     value.assign(it->second);
-    return true;
   }
-  return false;
+  return !value.empty();
 }
