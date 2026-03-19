@@ -56,6 +56,7 @@ inline bool __tokenize(
         }
         else
         {
+          // escape double encap
           token.push_back(str[pos]);
           ++pos;
         }
@@ -78,6 +79,9 @@ inline bool __tokenize(
     }
     else
     {
+      // escape next char
+      if (str[pos] == '\\' && (++pos) == end)
+        continue;
       token.push_back(str[pos]);
       ++pos;
     }
