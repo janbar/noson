@@ -47,9 +47,9 @@ void EventBroker::Process()
   if (!rb.IsParsed())
   {
     WS_STATUS status(WS_STATUS_400_Bad_Request);
-    resp.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
-    resp.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
-    resp.append("Connection: close" WS_CRLF);
+    resp.append(SERVER_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
+    resp.append("Server: ").append(SERVER_SOFTWARE).append(WS_CRLF);
+    resp.append("Connection: " SERVER_CONNECTION WS_CRLF);
     resp.append(WS_CRLF);
     m_sockPtr->SendData(resp.c_str(), resp.size());
     m_sockPtr->Disconnect();
@@ -72,9 +72,9 @@ void EventBroker::Process()
   if (rb.GetRequestMethod() == WS_METHOD_Head && rb.GetRequestPath().compare("/") == 0)
   {
     WS_STATUS status(WS_STATUS_200_OK);
-    resp.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
-    resp.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
-    resp.append("Connection: close" WS_CRLF);
+    resp.append(SERVER_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
+    resp.append("Server: ").append(SERVER_SOFTWARE).append(WS_CRLF);
+    resp.append("Connection: " SERVER_CONNECTION WS_CRLF);
     resp.append(WS_CRLF);
     m_sockPtr->SendData(resp.c_str(), resp.size());
     m_sockPtr->Disconnect();
@@ -83,9 +83,9 @@ void EventBroker::Process()
 
   // bad request!!!
   WS_STATUS status(WS_STATUS_400_Bad_Request);
-  resp.append(REQUEST_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
-  resp.append("Server: ").append(REQUEST_USER_AGENT).append(WS_CRLF);
-  resp.append("Connection: close" WS_CRLF);
+  resp.append(SERVER_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
+  resp.append("Server: ").append(SERVER_SOFTWARE).append(WS_CRLF);
+  resp.append("Connection: " SERVER_CONNECTION WS_CRLF);
   resp.append(WS_CRLF);
   m_sockPtr->SendData(resp.c_str(), resp.size());
   m_sockPtr->Disconnect();

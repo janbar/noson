@@ -26,11 +26,12 @@
 #include "debug.h"
 #include "builtin.h"
 #include "tokenizer.h"
+#include "wsstatic.h"
 
 #define HTTP_TOKEN_MAXSIZE    20
 #define HTTP_HEADER_MAXSIZE   4000
 #define QUERY_BUFFER_SIZE     4000
-#define CHUNK_MAX_SIZE        0x1FFFF
+#define CHUNK_MAX_SIZE        0x20000
 
 using namespace NSROOT;
 
@@ -167,6 +168,31 @@ WSRequestBroker::VARS WSRequestBroker::ExplodeQuery(const std::string& uriparams
   return params;
 }
 
+bool WSRequestBroker::ExplodeHost(const std::string& host, std::string& nameStr, std::string& portStr)
+{
+  std::vector<std::string> tokens;
+  if (!tokenize(host, ",", "\"", tokens) || tokens.empty() || tokens[0].empty())
+    return false;
+  std::string& val = tokens[0];
+  if (val.front() == '[')
+  {
+    size_t n = val.find(']');
+    if (n == std::string::npos)
+      return false;
+    nameStr.assign(val, 0, ++n);
+    if (val.size() > (n+1) && val[n] == ':')
+      portStr = val.substr(n+1);
+  }
+  else
+  {
+    size_t n = val.find(':');
+    nameStr.assign(val, 0, n);
+    if (n != std::string::npos && val.size() > ++n)
+      portStr.assign(val.substr(n));
+  }
+  return true;
+}
+
 WSRequestBroker::WSRequestBroker(TcpSocket* socket, bool secure, int timeout)
 : m_socket(socket)
 , m_secure(secure)
@@ -174,10 +200,12 @@ WSRequestBroker::WSRequestBroker(TcpSocket* socket, bool secure, int timeout)
 , m_method(WS_METHOD_UNKNOWN)
 , m_pathIsHidden(false)
 , m_contentChunked(false)
+, m_chunkNext(false)
 , m_contentLength(0)
 , m_consumed(0)
 , m_chunkBuffer(nullptr)
 , m_chunkPtr(nullptr)
+, m_chunkEOR(nullptr)
 , m_chunkEnd(nullptr)
 , m_status(WS_STATUS_UNKNOWN)
 , m_bytesOut(0)
@@ -190,7 +218,7 @@ WSRequestBroker::~WSRequestBroker()
 {
   if (m_chunkBuffer)
     delete [] m_chunkBuffer;
-  m_chunkBuffer = m_chunkPtr = m_chunkEnd = nullptr;
+  m_chunkBuffer = m_chunkPtr = m_chunkEOR = m_chunkEnd = nullptr;
 }
 
 void WSRequestBroker::SetTimeout(int timeout)
@@ -250,13 +278,12 @@ bool WSRequestBroker::ParseQuery()
       if (query.size() == 3)
       {
         // check the requested method
-        WS_METHOD method = ws_method_from_str(query[0].c_str());
-        if (method == WS_METHOD_UNKNOWN)
-          return false;
-        m_method = method;
+        m_methodKey = query[0];
+        m_method = ws_method_from_str(query[0].c_str());
         // explode requested uri
         if (!ExplodeURI(query[1], m_path, m_uriParams, m_pathIsHidden))
           return false;
+        m_requestUri = query[1];
         // set the requested protocol
         m_protocol = query[2];
         // Clear entries for next step
@@ -310,13 +337,23 @@ bool WSRequestBroker::ParseQuery()
       {
       case WS_HEADER_Content_Length:
       {
-        uint32_t num;
-        if (string_to_uint32(val, &num) == 0)
+        int64_t num;
+        if (string_to_int64(val, &num) == 0 && num >= 0)
           m_contentLength = (size_t)num;
         else
           ret = false;
         break;
       }
+      case WS_HEADER_Transfer_Encoding:
+        if (value_len > 6 && memcmp(val, "chunked", 7) == 0)
+        {
+          m_contentChunked = true;
+          m_chunkNext = true;
+        }
+        break;
+      case WS_HEADER_Host:
+        m_host.assign(val);
+        break;
       default:
         break;
       }
@@ -326,42 +363,55 @@ bool WSRequestBroker::ParseQuery()
   return ret;
 }
 
-size_t WSRequestBroker::ReadChunk(void *buf, size_t buflen)
+int WSRequestBroker::ReadChunk(void *buf, size_t buflen)
 {
-  size_t s = 0;
+  int s = 0;
   if (m_contentChunked)
   {
-    if (m_chunkPtr == nullptr || m_chunkPtr >= m_chunkEnd)
+    // no more pending byte in chunk buffer
+    if (m_chunkPtr >= m_chunkEnd)
     {
+      // process next chunk
       if (m_chunkBuffer)
         delete [] m_chunkBuffer;
-      m_chunkBuffer = m_chunkPtr = m_chunkEnd = nullptr;
+      m_chunkBuffer = m_chunkPtr = m_chunkEOR = m_chunkEnd = nullptr;
       std::string strread;
       size_t len = 0;
       while (ReadHeaderLine(WS_CRLF, strread, &len) && len == 0);
       DBG(DBG_PROTO, "%s: chunked data (%s)\n", __FUNCTION__, strread.c_str());
       std::string chunkStr("0x0");
-      uint32_t chunkSize = 0;
-      if (!strread.empty() && sscanf(chunkStr.append(strread).c_str(), "%x", &chunkSize) == 1 && chunkSize > 0)
+      uint32_t chunkSize;
+      if (strread.empty() || sscanf(chunkStr.append(strread.substr(0, strread.find(','))).c_str(), "%x", &chunkSize) != 1)
+        return (-1);
+      if (chunkSize > 0)
       {
         // check chunk-size overflow
         if (chunkSize > CHUNK_MAX_SIZE)
         {
           DBG(DBG_ERROR, "%s: chunk-size overflow (req=%u) (max=%u)\n", __FUNCTION__, chunkSize, (unsigned)CHUNK_MAX_SIZE);
-          return 0;
+          return (-1);
         }
         if (!(m_chunkBuffer = new char[chunkSize]))
-          return 0;
-        m_chunkPtr = m_chunkBuffer;
+          return (-1);
+        m_chunkPtr = m_chunkEOR = m_chunkBuffer;
         m_chunkEnd = m_chunkBuffer + chunkSize;
-        if (m_socket->ReceiveData(m_chunkBuffer, chunkSize) != chunkSize)
-          return 0;
       }
+      else if (ReadHeaderLine(WS_CRLF, strread, &len) && len == 0)
+        return 0; // that's the end of chunks
       else
-        return 0;
+        return (-1);
     }
-    if ((s = m_chunkEnd - m_chunkPtr) > buflen)
-      s = buflen;
+    // fill chunk buffer
+    if (m_chunkPtr >= m_chunkEOR)
+    {
+      // ask for new data to fill in the chunk buffer
+      // fill at last read position and until to the end
+      m_chunkEOR += m_socket->ReceiveData(m_chunkEOR, m_chunkEnd - m_chunkEOR);
+    }
+    if ((s = m_chunkEOR - m_chunkPtr) < 0)
+      return (-1);
+    if (buflen < (size_t)s)
+      s = (int)buflen;
     memcpy(buf, m_chunkPtr, s);
     m_chunkPtr += s;
     m_consumed += s;
@@ -369,26 +419,29 @@ size_t WSRequestBroker::ReadChunk(void *buf, size_t buflen)
   return s;
 }
 
-size_t WSRequestBroker::ReadContent(char* buf, size_t buflen)
+int WSRequestBroker::ReadContent(char* buf, size_t buflen)
 {
-  size_t s = 0;
   if (!m_contentChunked)
   {
-    // let read on unknown length
-    if (!m_contentLength)
-      s = m_socket->ReceiveData(buf, buflen);
-    else if (m_contentLength > m_consumed)
+    if (m_contentLength > m_consumed)
     {
       size_t len = m_contentLength - m_consumed;
-      s = m_socket->ReceiveData(buf, len > buflen ? buflen : len);
+      int s = (int)m_socket->ReceiveData(buf, len > buflen ? buflen : len);
+      if (s <= 0)
+        m_consumed = m_contentLength;
+      else
+        m_consumed += s;
+      return s;
     }
   }
-  else
+  else if (m_chunkNext)
   {
-    s = ReadChunk(buf, buflen);
+    int s = ReadChunk(buf, buflen);
+    if (s <= 0)
+      m_chunkNext = false;
+    return s;
   }
-  m_consumed += s;
-  return s;
+  return 0;
 }
 
 bool WSRequestBroker::ReplyData(const char* data, size_t size)
@@ -399,5 +452,15 @@ bool WSRequestBroker::ReplyData(const char* data, size_t size)
 
 bool WSRequestBroker::RewritePath(const std::string& newpath)
 {
-  return ExplodeURI(newpath, m_path, m_uriParams, m_pathIsHidden);
+  std::string path;
+  std::string params;
+  bool hidden;
+  if (ExplodeURI(newpath, path, params, hidden))
+  {
+    // do not override query params
+    m_path = path;
+    m_pathIsHidden = hidden;
+    return true;
+  }
+  return false;
 }

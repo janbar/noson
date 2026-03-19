@@ -49,7 +49,7 @@ namespace NSROOT
     bool IsSuccessful() const { return p->IsSuccessful(); }
     bool IsChunkedTransfer() const { return p->IsChunkedTransfer(); }
     size_t GetContentLength() const { return p->GetContentLength(); }
-    size_t ReadContent(char *buf, size_t buflen) { return p->ReadContent(buf, buflen); }
+    int ReadContent(char *buf, int buflen) { return p->ReadContent(buf, buflen); }
     size_t GetConsumed() const { return p->GetConsumed(); }
     int GetStatusCode() const { return p->GetStatusCode(); }
     const std::string& Redirection() const { return p->Redirection(); }
@@ -78,7 +78,7 @@ namespace NSROOT
       bool IsSuccessful() const { return m_successful; }
       bool IsChunkedTransfer() const { return m_contentChunked; }
       size_t GetContentLength() const { return m_contentLength; }
-      size_t ReadContent(char *buf, size_t buflen);
+      int ReadContent(char *buf, size_t buflen);
       size_t GetConsumed() const { return m_consumed; }
       int GetStatusCode() const { return m_statusCode; }
       const std::string& Redirection() const { return m_location; }
@@ -96,6 +96,7 @@ namespace NSROOT
       WS_CTYPE m_contentType;
       WS_CENCODING m_contentEncoding;
       bool m_contentChunked;
+      bool m_chunkNext;
       size_t m_contentLength;
       size_t m_consumed;
       char* m_chunkBuffer;      ///< The chunk data buffer
@@ -113,7 +114,7 @@ namespace NSROOT
 
       bool SendRequest(const WSRequest& request);
       bool GetResponse();
-      size_t ReadChunk(void *buf, size_t buflen);
+      int ReadChunk(void *buf, size_t buflen);
       static int SocketStreamReader(void *hdl, void *buf, int sz);
       static int ChunkStreamReader(void *hdl, void *buf, int sz);
     };

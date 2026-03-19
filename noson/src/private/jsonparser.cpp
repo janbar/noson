@@ -176,11 +176,11 @@ JSON::Document::Document(NSROOT::WSResponse& resp)
   std::string content;
   content.reserve(resp.GetContentLength());
   // Read content response
-  size_t s;
+  int s;
   char buf[4000];
-  while ((s = resp.ReadContent(buf, sizeof(buf))))
+  while ((s = resp.ReadContent(buf, sizeof(buf))) > 0)
     content.append(buf, s);
-  if (!content.empty())
+  if (s == 0 && !content.empty())
   {
     DBG(DBG_PROTO, "%s: %s\n", __FUNCTION__, content.c_str());
     // Parse JSON content

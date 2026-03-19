@@ -61,10 +61,7 @@ void WSRequestReply::AddHeader(const std::string& headerStr, const std::string& 
     tmp.push_back('\"');
   }
   tmp.append(WS_CRLF);
-  auto r = m_headers.insert(std::make_pair(headerStr, tmp));
-  // replace the value if the key already exists
-  if (!r.second)
-    r.first->second.assign(tmp);
+  m_headers.push_back(std::make_pair(headerStr, tmp));
 }
 
 void WSRequestReply::AddHeader(WS_HEADER header, const std::string& str, bool encap /*= false*/)
@@ -88,8 +85,8 @@ bool WSRequestReply::ResetReply()
     return false;
   }
   m_headers.clear();
-  AddHeader(WS_HEADER_Server, REQUEST_USER_AGENT);
-  AddHeader(WS_HEADER_Connection, "close");
+  AddHeader(WS_HEADER_Server, SERVER_SOFTWARE);
+  AddHeader(WS_HEADER_Connection, SERVER_CONNECTION);
   return true;
 }
 
@@ -109,7 +106,7 @@ bool WSRequestReply::PostReply(WS_STATUS status)
   m_broker.SetStatus(status);
   std::string data;
   data.reserve(64);
-  data.append(REQUEST_PROTOCOL " ")
+  data.append(SERVER_PROTOCOL " ")
       .append(ws_status_to_numstr(status))
       .append(" ")
       .append(ws_status_to_msgstr(status))

@@ -34,12 +34,13 @@ typedef enum
   WS_METHOD_Get     = 0,
   WS_METHOD_Post    = 1,
   WS_METHOD_Head,
+  WS_METHOD_Options,
   WS_METHOD_Subscribe,
   WS_METHOD_Unsubscribe,
   WS_METHOD_Notify,
   WS_METHOD_Put,
   WS_METHOD_Delete,
-  WS_METHOD_Options,
+  WS_METHOD_Patch,
   WS_METHOD_UNKNOWN,
 } WS_METHOD;
 
@@ -96,6 +97,10 @@ typedef enum
   WS_HEADER_Transfer_Encoding,
   WS_HEADER_User_Agent,
   WS_HEADER_WWW_Authenticate,
+  WS_HEADER_X_Forwarded_For,
+  WS_HEADER_X_Forwarded_Host,
+  WS_HEADER_X_Forwarded_Proto,
+  WS_HEADER_X_Real_IP,
   WS_HEADER_UNKNOWN,
 } WS_HEADER;
 
@@ -113,6 +118,8 @@ typedef enum
   WS_STATUS_204_No_Content,
   WS_STATUS_205_Reset_Content,
   WS_STATUS_206_Partial_Content,
+  WS_STATUS_207_Multi_Status,
+  WS_STATUS_208_Already_Reported,
 
   /* 3xx */
   WS_STATUS_301_Moved_Permanently,
@@ -120,6 +127,7 @@ typedef enum
   WS_STATUS_303_See_Other,
   WS_STATUS_304_Not_modified,
   WS_STATUS_305_Use_Proxy,
+  WS_STATUS_306_RESERVED,
   WS_STATUS_307_Temporary_Redirect,
   WS_STATUS_308_Permanent_Redirect,
 
@@ -143,11 +151,19 @@ typedef enum
   WS_STATUS_416_Range_Not_Satisfiable,
   WS_STATUS_417_Expectation_Failed,
   WS_STATUS_418_I_m_a_teapot,
+
   WS_STATUS_421_Misdirected_Request,
+  WS_STATUS_422_Unprocessable_Content,
+  WS_STATUS_423_Locked,
+  WS_STATUS_424_Failed_Dependency,
+  WS_STATUS_425_Too_Early,
   WS_STATUS_426_Upgrade_Required,
+
   WS_STATUS_428_Precondition_Required,
   WS_STATUS_429_Too_Many_Requests,
+
   WS_STATUS_431_Request_Header_Too_Large,
+
   WS_STATUS_451_Unavailable_For_LR,
 
   /* 5xx */
@@ -158,12 +174,17 @@ typedef enum
   WS_STATUS_504_Gateway_Timeout,
   WS_STATUS_505_HTTP_Ver_Not_Supported,
   WS_STATUS_506_Variant_Also_Negotiates,
+  WS_STATUS_507_Insufficient_Storage,
+  WS_STATUS_508_Loop_Detected,
+
   WS_STATUS_510_Not_Extended,
   WS_STATUS_511_Network_Authent_Required,
 
   /* 1xx */
   WS_STATUS_100_Continue,
   WS_STATUS_101_Switching_Protocols,
+  WS_STATUS_102_Processing,
+  WS_STATUS_103_Early_Hints,
 
   WS_STATUS_UNKNOWN,
 } WS_STATUS;

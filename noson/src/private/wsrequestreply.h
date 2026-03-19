@@ -27,7 +27,8 @@
 #include "wsstatic.h"
 
 #include <string>
-#include <map>
+#include <list>
+#include <utility>
 
 namespace NSROOT
 {
@@ -134,7 +135,8 @@ namespace NSROOT
 
   private:
     WSRequestBroker& m_broker;
-    std::map<std::string, std::string> m_headers;
+    typedef std::list<std::pair<std::string, std::string> > header_container;
+    header_container m_headers;
     STAGE m_stage;
     WSReplyChunked* m_chunked;
 

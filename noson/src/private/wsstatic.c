@@ -29,12 +29,13 @@ static const WS_METHOD_TABLE ws_method_table[] = {
   { 4,  "GET" },
   { 5,  "POST" },
   { 5,  "HEAD" },
+  { 8,  "OPTIONS" },
   { 10, "SUBSCRIBE" },
   { 12, "UNSUBSCRIBE" },
   { 7,  "NOTIFY" },
   { 4,  "PUT" },
   { 7,  "DELETE" },
-  { 8,  "OPTIONS" },
+  { 6,  "PATCH" },
   { 0,  NULL }
 };
 
@@ -133,6 +134,10 @@ static const WS_HEADER_TABLE ws_header_table[] = {
   { 18, "Transfer-Encoding",      "TRANSFER-ENCODING" },
   { 11, "User-Agent",             "USER-AGENT" },
   { 17, "WWW-Authenticate",       "WWW-AUTHENTICATE" },
+  { 16, "X-Forwarded-For",        "X-FORWARDED-FOR" },
+  { 17, "X-Forwarded-Host",       "X-FORWARDED-HOST" },
+  { 18, "X-Forwarded-Proto",      "X-FORWARDED-PROTO" },
+  { 10, "X-Real-IP",              "X-REAL-IP" },
   { 0,  NULL }
 };
 
@@ -168,6 +173,8 @@ static const WS_STATUS_TABLE ws_status_table[] = {
   { 4,  "204",  "No content",                         204 },
   { 4,  "205",  "Reset Content",                      205 },
   { 4,  "206",  "Partial content",                    206 },
+  { 4,  "207",  "Multi-Status",                       207 },
+  { 4,  "208",  "Already Reported",                   208 },
 
   /* 3xx */
   { 4,  "301",  "Moved permanently",                  301 },
@@ -175,6 +182,7 @@ static const WS_STATUS_TABLE ws_status_table[] = {
   { 4,  "303",  "See Other",                          303 },
   { 4,  "304",  "Not modified",                       304 },
   { 4,  "305",  "Use Proxy",                          305 },
+  { 4,  "306",  "RESERVED",                           306 },
   { 4,  "307",  "Temporary Redirect",                 307 },
   { 4,  "308",  "Permanent Redirect",                 308 },
 
@@ -198,11 +206,19 @@ static const WS_STATUS_TABLE ws_status_table[] = {
   { 4,  "416",  "Range Not Satisfiable",              416 },
   { 4,  "417",  "Expectation Failed",                 417 },
   { 4,  "418",  "I'm a teapot",                       418 },
+
   { 4,  "421",  "Misdirected Request",                421 },
+  { 4,  "422",  "Unprocessable Content",              422 },
+  { 4,  "423",  "Locked",                             423 },
+  { 4,  "424",  "Failed Dependency",                  424 },
+  { 4,  "425",  "Too Early",                          425 },
   { 4,  "426",  "Upgrade Required",                   426 },
+
   { 4,  "428",  "Precondition Required",              428 },
   { 4,  "429",  "Too Many Requests",                  429 },
+
   { 4,  "431",  "Request Header Fields Too Large",    431 },
+
   { 4,  "451",  "Unavailable For Legal Reasons",      451 },
 
   /* 5xx */
@@ -213,12 +229,17 @@ static const WS_STATUS_TABLE ws_status_table[] = {
   { 4,  "504",  "Gateway Timeout",                    504 },
   { 4,  "505",  "HTTP Version Not Supported",         505 },
   { 4,  "506",  "Variant Also Negotiates",            506 },
+  { 4,  "507",  "Insufficient Storage",               507 },
+  { 4,  "508",  "Loop Detected",                      508 },
+
   { 4,  "510",  "Not Extended",                       510 },
   { 4,  "511",  "Network Authentication Required",    511 },
 
   /* 1xx */
   { 4,  "100",  "Continue",                           100 },
   { 4,  "101",  "Switching Protocols",                101 },
+  { 4,  "102",  "Processing",                         102 },
+  { 4,  "103",  "Early Hints",                        103 },
 
   { 0,  NULL , NULL, 0 }
 };

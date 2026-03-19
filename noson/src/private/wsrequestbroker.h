@@ -24,11 +24,16 @@
 
 #include "local_config.h"
 #include "os/os.h"
-#include "wsresponse.h"
+#include "wsstatic.h"
 
 #include <string>
 #include <vector>
 #include <map>
+
+#define SERVER_PROTOCOL       "HTTP/1.1"
+#define SERVER_SOFTWARE       LIBTAG "/" LIBVERSION
+#define SERVER_CONNECTION     "close"
+#define SERVER_STD_CHARSET    "utf-8"
 
 namespace NSROOT
 {
@@ -49,25 +54,32 @@ namespace NSROOT
     std::string GetRemoteAddrInfo() const;
     std::string GetHostAddrInfo() const;
     WS_METHOD GetRequestMethod() const { return m_method; }
+    const std::string& GetRequestMethodKey() const { return m_methodKey; }
+    const std::string& GetRequestURI() const { return m_requestUri; }
     const std::string& GetRequestPath() const { return m_path; }
     const std::string& GetRequestProtocol() const { return m_protocol; }
+    const std::string& GetRequestHost() const { return m_host; }
     const std::string& GetRequestHeader(const std::string& name) const;
     const std::string& GetRequestHeader(WS_HEADER header) const { return GetRequestHeader(ws_header_to_upperstr(header)); }
     const std::string& GetURIParams() const { return m_uriParams; }
     bool IsPathHidden() const { return m_pathIsHidden; }
-    bool HasContent() const { return (m_contentLength > 0); }
+    bool HasContent() const { return (m_contentLength || m_contentChunked); }
+    bool IsChunkedTransfer() const { return m_contentChunked; }
     size_t GetContentLength() const { return m_contentLength; }
-    size_t ReadContent(char *buf, size_t buflen);
+    int ReadContent(char *buf, size_t buflen);
     size_t GetConsumed() const { return m_consumed; }
 
     const VARS& GetRequestHeaders() const { return m_requestHeaders; }
 
     static bool ExplodeURI(const std::string& in, std::string& path, std::string& uriparams, bool& ishidden);
     static VARS ExplodeQuery(const std::string& uriparams);
+    static bool ExplodeHost(const std::string& host, std::string& nameStr, std::string& portStr);
 
     bool ReplyData(const char * data, size_t size);
     bool RewritePath(const std::string& newpath);
 
+    void SetAuthUser(const std::string& authUser) { m_authUser = authUser; }
+    const std::string& GetAuthUser() const { return m_authUser; }
     void SetStatus(WS_STATUS status) { m_status = status; }
     WS_STATUS GetStatus() const { return m_status; }
     size_t GetBytesOut() const { return m_bytesOut; }
@@ -78,19 +90,25 @@ namespace NSROOT
     bool m_secure;
     bool m_parsed;
     std::string m_requestLine;
+    std::string m_requestUri;
     WS_METHOD m_method;
+    std::string m_methodKey;
     std::string m_path;
     std::string m_protocol;
     std::string m_uriParams;
+    std::string m_host;
     bool m_pathIsHidden;
     bool m_contentChunked;
+    bool m_chunkNext;
     size_t m_contentLength;
     size_t m_consumed;
     char* m_chunkBuffer;
     char* m_chunkPtr;
+    char* m_chunkEOR;
     char* m_chunkEnd;
     VARS m_requestHeaders;
 
+    std::string m_authUser;
     WS_STATUS m_status;
     size_t m_bytesOut;
 
@@ -100,7 +118,7 @@ namespace NSROOT
 
     bool ReadHeaderLine(const char *eol, std::string& line, size_t *len);
     bool ParseQuery();
-    size_t ReadChunk(void *buf, size_t buflen);
+    int ReadChunk(void *buf, size_t buflen);
   };
 
 }

@@ -243,7 +243,7 @@ void WSRequest::MakeMessage(std::string& msg) const
   case WS_METHOD_Options:
     MakeMessageHEAD(msg, "OPTIONS");
     break;
-  case WS_METHOD_UNKNOWN:
+  default:
     break;
   }
 }
