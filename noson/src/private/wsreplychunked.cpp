@@ -70,7 +70,7 @@ bool WSReplyChunked::Flush()
     if (!WriteChunk(m_buffer, m_head))
       return false;
   }
-  if (m_broker.ReplyData("0" WS_CRLF WS_CRLF, sizeof("0") + WS_CRLF_LEN + WS_CRLF_LEN))
+  if (m_broker.ReplyData("0" WS_CRLF WS_CRLF, 1 + WS_CRLF_LEN + WS_CRLF_LEN))
     return true;
   DBG(DBG_WARN, "%s: chunk %p failed\n", __FUNCTION__, &m_broker);
   return false;
