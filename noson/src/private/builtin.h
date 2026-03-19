@@ -115,6 +115,16 @@ static CC_INLINE void uint8_to_string(uint8_t num, BUILTIN_BUFFER *str)
   str->data[len] = '\0';
 }
 
+#define uint64_to_strdec __uint64strdec
+extern unsigned uint64_to_strdec(uint64_t u, char *str, unsigned len, int pad);
+
+#define uint64_to_string __uint64str
+static CC_INLINE void uint64_to_string(uint64_t num, BUILTIN_BUFFER *str)
+{
+  unsigned len = uint64_to_strdec(num, str->data, 20, 0);
+  str->data[len] = '\0';
+}
+
 #define double_to_string __doublestr
 static CC_INLINE void double_to_string(double dbl, BUILTIN_BUFFER *str)
 {
@@ -172,6 +182,9 @@ extern void time_to_iso8601(time_t time, BUILTIN_BUFFER *str);
 
 #define time_to_isodate __time2isodate
 extern void time_to_isodate(time_t time, BUILTIN_BUFFER *str);
+
+#define time_to_httptime __time2httptime
+extern void time_to_httptime(time_t time, BUILTIN_BUFFER *str);
 
 typedef struct { int tz_dir; int tz_hour; int tz_min; char tz_str[8]; } tz_t;
 #define time_tz __timetz

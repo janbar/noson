@@ -263,6 +263,42 @@ unsigned uint_to_strdec(unsigned u, char *str, unsigned len, int pad)
   return len;
 }
 
+unsigned uint64_to_strdec(uint64_t ul, char *str, unsigned len, int pad)
+{
+  static const char g[10] = {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+  };
+  if (len)
+  {
+    char *ptr = str, *end = str + len;
+    uint64_t n = ul, n10 = ul / 10;
+    do
+    {
+      *ptr++ = g[n - n10 * 10];
+      n = n10;
+    } while ((n10 = n / 10) > 0 && ptr < end);
+    if (ptr < end)
+    {
+      /* push last digit */
+      if (n > 0)
+        *ptr++ = g[n];
+      /* padding */
+      if (pad)
+        while (ptr < end) *ptr++ = '0';
+    }
+    len = ptr - str;
+    /* reorder digits */
+    while (--ptr > str)
+    {
+      char c = *str;
+      *str = *ptr;
+      *ptr = c;
+      ++str;
+    }
+  }
+  return len;
+}
+
 time_t __timegm(struct tm *utctime_tm)
 {
   time_t time;
@@ -487,6 +523,29 @@ void time_to_isodate(time_t time, BUILTIN_BUFFER *str)
   str->data[7] = '-';
   uint_to_strdec(time_tm.tm_mday, str->data + 8, 2, 1);
   str->data[10] = '\0';
+}
+
+void time_to_httptime(time_t time, BUILTIN_BUFFER *str)
+{
+  static const char* dw[] = {
+    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+  };
+  static const char* my[] = {
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  };
+
+  struct tm time_tm;
+
+  if (time == INVALID_TIME || NULL == gmtime_r(&time, &time_tm))
+  {
+    str->data[0] = '\0';
+    return;
+  }
+  sprintf(str->data, "%s, %2.2d %s %4.4d %2.2d:%2.2d:%2.2d GMT",
+          dw[time_tm.tm_wday], time_tm.tm_mday, my[time_tm.tm_mon],
+          time_tm.tm_year + 1900, time_tm.tm_hour, time_tm.tm_min,
+          time_tm.tm_sec);
 }
 
 tz_t *time_tz(time_t time, tz_t* tz) {
