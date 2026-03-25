@@ -30,8 +30,8 @@
 
 #define SOCKET_HOSTNAME_MAXSIZE       256
 #define SOCKET_RCVBUF_MINSIZE         16384
-#define SOCKET_READ_TIMEOUT_SEC       10
-#define SOCKET_READ_TIMEOUT_USEC      0
+#define SOCKET_TIMEOUT_SEC            10
+#define SOCKET_TIMEOUT_USEC           0
 #define SOCKET_READ_ATTEMPT           3
 #define SOCKET_BUFFER_SIZE            1472
 #define SOCKET_LISTEN_QUEUE_SIZE      50
@@ -51,8 +51,8 @@ namespace NSROOT
   public:
     NetSocket()
     {
-      m_timeout.tv_sec = SOCKET_READ_TIMEOUT_SEC;
-      m_timeout.tv_usec = SOCKET_READ_TIMEOUT_USEC;
+      m_timeout.tv_sec = SOCKET_TIMEOUT_SEC;
+      m_timeout.tv_usec = SOCKET_TIMEOUT_USEC;
     }
     virtual ~NetSocket() { }
     virtual bool SendData(const char* buf, size_t size) = 0;

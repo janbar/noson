@@ -129,8 +129,7 @@ static int __connectAddr(struct addrinfo *addr, net_socket_t *s, int rcvbuf)
   void (*old_sighandler)(int);
   int old_alarm;
 #endif
-  socklen_t size;
-  int err = 0, opt_rcvbuf;
+  int err = 0;
 
   if ((my_hostname[0] == '\0') && (gethostname(my_hostname, sizeof (my_hostname)) < 0))
   {
@@ -147,12 +146,19 @@ static int __connectAddr(struct addrinfo *addr, net_socket_t *s, int rcvbuf)
     return err;
   }
 
-  opt_rcvbuf = (rcvbuf < SOCKET_RCVBUF_MINSIZE ? SOCKET_RCVBUF_MINSIZE : rcvbuf);
-  size = sizeof (opt_rcvbuf);
-  if (setsockopt(*s, SOL_SOCKET, SO_RCVBUF, (char*)&opt_rcvbuf, size))
+  int opt_rcvbuf = (rcvbuf < SOCKET_RCVBUF_MINSIZE ? SOCKET_RCVBUF_MINSIZE : rcvbuf);
+  if (setsockopt(*s, SOL_SOCKET, SO_RCVBUF, (char*)&opt_rcvbuf, sizeof(opt_rcvbuf)))
     DBG(DBG_WARN, "%s: could not set SO_RCVBUF from socket (%d)\n", __FUNCTION__, LASTERROR);
-  if (getsockopt(*s, SOL_SOCKET, SO_RCVBUF, (char*)&opt_rcvbuf, &size))
-    DBG(DBG_WARN, "%s: could not get SO_RCVBUF from socket (%d)\n", __FUNCTION__, LASTERROR);
+
+#ifdef __WINDOWS__
+  int opt_timeo = SOCKET_TIMEOUT_SEC * 1000;
+#else
+  struct timeval opt_timeo;
+  opt_timeo.tv_sec = SOCKET_TIMEOUT_SEC;
+  opt_timeo.tv_usec = 0;
+#endif
+  if (setsockopt(*s, SOL_SOCKET, SO_SNDTIMEO, (char*)&opt_timeo, sizeof(opt_timeo)))
+    DBG(DBG_WARN, "%s: could not set SO_SNDTIMEO from socket (%d)\n", __FUNCTION__, LASTERROR);
 
 #ifdef SO_NOSIGPIPE
   int opt_set = 1;
@@ -675,6 +681,16 @@ TcpServerSocket::AcceptStatus TcpServerSocket::AcceptConnection(
   }
 #endif
 
+#ifdef __WINDOWS__
+  int opt_timeo = SOCKET_TIMEOUT_SEC * 1000;
+#else
+  struct timeval opt_timeo;
+  opt_timeo.tv_sec = SOCKET_TIMEOUT_SEC;
+  opt_timeo.tv_usec = 0;
+#endif
+  if (setsockopt(socket.m_socket, SOL_SOCKET, SO_SNDTIMEO, (char*)&opt_timeo, sizeof(opt_timeo)))
+    DBG(DBG_WARN, "%s: could not set SO_SNDTIMEO from socket (%d)\n", __FUNCTION__, LASTERROR);
+
   socket.SetReadAttempt(0);
   return ACCEPT_SUCCESS;
 }
@@ -980,8 +996,8 @@ UdpServerSocket::UdpServerSocket()
 {
   m_addr = new SocketAddress;
   m_from = new SocketAddress;
-  m_timeout.tv_sec = SOCKET_READ_TIMEOUT_SEC;
-  m_timeout.tv_usec = SOCKET_READ_TIMEOUT_USEC;
+  m_timeout.tv_sec = SOCKET_TIMEOUT_SEC;
+  m_timeout.tv_usec = SOCKET_TIMEOUT_USEC;
 
 }
 
@@ -995,8 +1011,8 @@ UdpServerSocket::UdpServerSocket(size_t bufferSize)
 {
   m_addr = new SocketAddress;
   m_from = new SocketAddress;
-  m_timeout.tv_sec = SOCKET_READ_TIMEOUT_SEC;
-  m_timeout.tv_usec = SOCKET_READ_TIMEOUT_USEC;
+  m_timeout.tv_sec = SOCKET_TIMEOUT_SEC;
+  m_timeout.tv_usec = SOCKET_TIMEOUT_USEC;
 }
 
 UdpServerSocket::~UdpServerSocket()
