@@ -28,7 +28,7 @@
 
 #include <cstddef>  // for size_t
 #include <string>
-#include <list>
+#include <map>
 
 namespace NSROOT
 {
@@ -58,6 +58,10 @@ namespace NSROOT
     {
       return p->GetHeaderValue(header, value);
     }
+    const std::string& GetHeaderValue(const std::string& header) const
+    {
+      return p->GetHeaderValue(header);
+    }
 
     // helpers
     static bool ReadHeaderLine(NetSocket *socket, const char *eol, std::string& line, size_t *len);
@@ -84,6 +88,7 @@ namespace NSROOT
       const std::string& Redirection() const { return m_location; }
 
       bool GetHeaderValue(const std::string& header, std::string& value);
+      const std::string& GetHeaderValue(const std::string& header) const;
 
     private:
       TcpSocket *m_socket;
@@ -105,8 +110,8 @@ namespace NSROOT
       char* m_chunkEnd;         ///< The end of the chunk buffer
       Decompressor *m_decoder;
 
-      typedef std::list<std::pair<std::string, std::string> > HeaderList;
-      HeaderList m_headers;
+      typedef std::map<std::string, std::string> VARS;
+      VARS m_headers;
 
       // prevent copy
       _response(const _response&);

@@ -199,6 +199,7 @@ WSRequestBroker::WSRequestBroker(TcpSocket* socket, bool secure, int timeout)
 , m_parsed(false)
 , m_method(WS_METHOD_UNKNOWN)
 , m_pathIsHidden(false)
+, m_hasContent(false)
 , m_contentChunked(false)
 , m_chunkNext(false)
 , m_contentLength(0)
@@ -345,21 +346,28 @@ bool WSRequestBroker::ParseQuery()
       case WS_HEADER_Content_Length:
       {
         int64_t num;
-        if (string_to_int64(newval.c_str(), &num) == 0 && num >= 0)
-          m_contentLength = (size_t)num;
-        else
+        if (string_to_int64(newval.c_str(), &num) != 0 || num < 0)
           ret = false;
+        else if (num > 0)
+        {
+          m_hasContent = true;
+          m_contentLength = (size_t)num;
+        }
         break;
       }
       case WS_HEADER_Transfer_Encoding:
         if (newval.find("chunked") != std::string::npos)
         {
+          m_hasContent = true;
           m_contentChunked = true;
           m_chunkNext = true;
         }
         break;
       case WS_HEADER_Host:
-        m_host.assign(newval);
+        if (!ExplodeHost(newval, m_serverName, m_serverPort))
+          ret = false;
+        else
+          m_host.assign(newval);
         break;
       default:
         break;
@@ -367,7 +375,8 @@ bool WSRequestBroker::ParseQuery()
     }
   }
 
-  return ret;
+  // request header HOST is required
+  return (ret && !m_host.empty());
 }
 
 int WSRequestBroker::ReadChunk(void *buf, size_t buflen)
@@ -442,6 +451,7 @@ int WSRequestBroker::ReadContent(char* buf, size_t buflen)
         m_consumed += s;
       return s;
     }
+    return 0;
   }
   else if (m_chunkNext)
   {

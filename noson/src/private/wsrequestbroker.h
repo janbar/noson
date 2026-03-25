@@ -59,11 +59,13 @@ namespace NSROOT
     const std::string& GetRequestPath() const { return m_path; }
     const std::string& GetRequestProtocol() const { return m_protocol; }
     const std::string& GetRequestHost() const { return m_host; }
+    const std::string& GetRequestServerName() const { return m_serverName; }
+    const std::string& GetRequestServerPort() const { return m_serverPort; }
     const std::string& GetRequestHeader(const std::string& name) const;
     const std::string& GetRequestHeader(WS_HEADER header) const { return GetRequestHeader(ws_header_to_upperstr(header)); }
     const std::string& GetURIParams() const { return m_uriParams; }
     bool IsPathHidden() const { return m_pathIsHidden; }
-    bool HasContent() const { return (m_contentLength || m_contentChunked); }
+    bool HasContent() const { return m_hasContent; }
     bool IsChunkedTransfer() const { return m_contentChunked; }
     size_t GetContentLength() const { return m_contentLength; }
     int ReadContent(char *buf, size_t buflen);
@@ -97,7 +99,10 @@ namespace NSROOT
     std::string m_protocol;
     std::string m_uriParams;
     std::string m_host;
+    std::string m_serverName;
+    std::string m_serverPort;
     bool m_pathIsHidden;
+    bool m_hasContent;
     bool m_contentChunked;
     bool m_chunkNext;
     size_t m_contentLength;

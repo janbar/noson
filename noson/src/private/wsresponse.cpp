@@ -263,7 +263,13 @@ bool WSResponse::_response::GetResponse()
       token[token_len] = 0;
       value_len = len - (val - line + 1);
       while (value_len > 0 && (*(++val) == ' ' || *val == '\t')) --value_len;
-      m_headers.push_back(std::make_pair(token, ""));
+      /*
+       * An existing field will be amended by adding an additional value.
+       * Therefore, the order of the values remains the same.
+       */
+      VARS::iterator it = m_headers.find(token);
+      if (it != m_headers.end())
+        it->second.append(", ");
     }
     else
     {
@@ -274,7 +280,7 @@ bool WSResponse::_response::GetResponse()
 
     if (token_len && val)
     {
-      std::string& newval = m_headers.back().second.append(val);
+      std::string& newval = m_headers[token].append(val);
       switch (ws_header_from_upperstr(token))
       {
         case WS_HEADER_ETag:
@@ -422,6 +428,12 @@ int WSResponse::_response::ReadContent(char* buf, size_t buflen)
           m_consumed += s;
         return s;
       }
+      else if (m_contentLength == 0 && !m_contentTypeStr.empty())
+      {
+        // let read on unknown length
+        int s = (int)m_socket->ReceiveData(buf, buflen);
+        return s;
+      }
     }
     else if (m_contentEncoding == WS_CENCODING_Gzip || m_contentEncoding == WS_CENCODING_Deflate)
     {
@@ -481,13 +493,18 @@ int WSResponse::_response::ReadContent(char* buf, size_t buflen)
 bool WSResponse::_response::GetHeaderValue(const std::string& header, std::string& value)
 {
   value.clear();
-  for (HeaderList::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
-  {
-    if (it->first != header)
-      continue;
-    if (!value.empty())
-      value.append(", ");
-    value.assign(it->second);
-  }
-  return !value.empty();
+  VARS::const_iterator it = m_headers.find(header);
+  if (it == m_headers.end())
+    return false;
+  value.assign(it->second);
+  return true;
+}
+
+const std::string& WSResponse::_response::GetHeaderValue(const std::string& header) const
+{
+  static std::string emptyStr = "";
+  VARS::const_iterator it = m_headers.find(header);
+  if (it != m_headers.end())
+    return it->second;
+  return emptyStr;
 }
