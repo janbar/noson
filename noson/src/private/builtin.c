@@ -196,6 +196,28 @@ int string_to_double(const char *str, double *dbl)
   return 0;
 }
 
+int string_to_timeout(const char *str, unsigned *ms)
+{
+  float q = 0.0;
+  char u[2] = { 0, 0 };
+  int n = sscanf(str, "%f%c%c", &q, u, u+1);
+  if (n < 2 || q < 0)
+    return -(EINVAL);
+  if (memcmp("ms", u, 2) == 0)
+    *ms = (unsigned)q;
+  else if (memcmp("s", u, 2) == 0)
+    *ms = (unsigned)(q * 1000);
+  else if (memcmp("m", u, 2) == 0)
+    *ms = (unsigned)(q * 60000);
+  else if (memcmp("h", u, 2) == 0)
+    *ms = (unsigned)(q * 3600000);
+  else if (memcmp("d", u, 2) == 0)
+    *ms = (unsigned)(q * 86400000);
+  else
+    return -(EINVAL);
+  return 0;
+}
+
 int hex_to_num(const char *str, int *num)
 {
   int val = 0;

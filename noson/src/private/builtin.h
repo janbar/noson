@@ -61,6 +61,9 @@ extern int string_to_uint8(const char *str, uint8_t *num);
 #define string_to_double __str2double
 extern int string_to_double(const char *str, double *dbl);
 
+#define string_to_timeout __str2timeout
+extern int string_to_timeout(const char *str, unsigned *ms);
+
 #define hex_to_num __hex2num
 extern int hex_to_num(const char *str, int *num);
 
