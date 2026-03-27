@@ -97,9 +97,9 @@ namespace NSROOT
       std::string m_serverInfo;
       std::string m_etag;
       std::string m_location;
-      std::string m_contentTypeStr;
-      WS_CTYPE m_contentType;
       WS_CENCODING m_contentEncoding;
+      bool m_hasContent;
+      bool m_contentEmpty;
       bool m_contentChunked;
       bool m_chunkNext;
       size_t m_contentLength;

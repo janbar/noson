@@ -130,9 +130,9 @@ WSResponse::_response::_response(const WSRequest &request)
 , m_serverInfo()
 , m_etag()
 , m_location()
-, m_contentTypeStr()
-, m_contentType(WS_CTYPE_None)
 , m_contentEncoding(WS_CENCODING_None)
+, m_hasContent(false)
+, m_contentEmpty(false)
 , m_contentChunked(false)
 , m_chunkNext(false)
 , m_contentLength(0)
@@ -293,12 +293,18 @@ bool WSResponse::_response::GetResponse()
           m_location.assign(newval);
           break;
         case WS_HEADER_Content_Type:
-          m_contentTypeStr.assign(newval);
-          m_contentType = ws_ctype_from_str(newval.c_str());
+          m_hasContent = true;
           break;
         case WS_HEADER_Content_Length:
-          m_contentLength = atol(newval.c_str());
+        {
+          int64_t num = atol(newval.c_str());
+          if (num >= 0)
+          {
+            m_contentLength = (size_t)num;
+            m_contentEmpty = (num == 0);
+          }
           break;
+        }
         case WS_HEADER_Content_Encoding:
           m_contentEncoding = ws_cencoding_from_str(newval.c_str());
           if (m_contentEncoding == WS_CENCODING_UNKNOWN)
@@ -428,7 +434,7 @@ int WSResponse::_response::ReadContent(char* buf, size_t buflen)
           m_consumed += s;
         return s;
       }
-      else if (m_contentLength == 0 && !m_contentTypeStr.empty())
+      else if (!m_contentEmpty && m_hasContent)
       {
         // let read on unknown length
         int s = (int)m_socket->ReceiveData(buf, buflen);
