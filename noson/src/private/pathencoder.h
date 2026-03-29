@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2017-2019 Jean-Luc Barriere
+ *      Copyright (C) 2026 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef URLENCODER_H
-#define URLENCODER_H
+#ifndef PATHENCODER_H
+#define PATHENCODER_H
 
 #include "builtin.h"
 
@@ -28,15 +28,19 @@
 #include <cstring>
 #include <string>
 
-#define urlencode __urlencode
-inline std::string __urlencode(const std::string& str) {
+#define pathencode __pathencode
+inline std::string __pathencode(const std::string& str) {
   std::string out;
   out.reserve(2 * str.length());
   const char* cstr = str.c_str();
   while (*cstr)
   {
     if (isalnum(*cstr)
-            || *cstr == '-' || *cstr == '_' || *cstr == '.' || *cstr == '~')
+            || *cstr == '-' || *cstr == '_' || *cstr == '.' || *cstr == '~'
+            || *cstr == '/' || *cstr == '!' || *cstr == '$' || *cstr == '&'
+            || *cstr == '(' || *cstr == ')' || *cstr == '*' || *cstr == '\''
+            || *cstr == '+' || *cstr == ',' || *cstr == ';' || *cstr == '='
+            || *cstr == ':' || *cstr == '@')
       out.push_back(*cstr);
     else
     {
@@ -49,8 +53,8 @@ inline std::string __urlencode(const std::string& str) {
   return out;
 }
 
-#define urldecode __urldecode
-inline std::string __urldecode(const std::string& str) {
+#define pathdecode __pathdecode
+inline std::string __pathdecode(const std::string& str) {
   std::string out;
   out.reserve(str.length());
   const char* cstr = str.c_str();
@@ -75,5 +79,5 @@ inline std::string __urldecode(const std::string& str) {
   return out;
 }
 
-#endif /* URLENCODER_H */
+#endif /* PATHENCODER_H */
 

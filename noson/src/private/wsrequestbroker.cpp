@@ -21,6 +21,7 @@
 
 #include "wsrequestbroker.h"
 #include "urlencoder.h"
+#include "pathencoder.h"
 #include "uriparser.h"
 #include "socket.h"
 #include "debug.h"
@@ -28,7 +29,7 @@
 #include "tokenizer.h"
 #include "wsstatic.h"
 
-#define HTTP_TOKEN_MAXSIZE    20
+#define HTTP_TOKEN_MAXSIZE    80
 #define HTTP_HEADER_MAXSIZE   4000
 #define QUERY_BUFFER_SIZE     4000
 #define CHUNK_MAX_SIZE        0x20000
@@ -114,7 +115,7 @@ bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::
   std::vector<std::string> clean;
   std::vector<std::string>::const_iterator it;
   // decode and split path by dirname
-  tokenize(urldecode(parser.Path()), "/", "", dirty, true);
+  tokenize(pathdecode(parser.Path()), "/", "", dirty, true);
   // rebuild normalized path
   it = dirty.cbegin();
   while (it != dirty.cend())

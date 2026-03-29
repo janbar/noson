@@ -86,6 +86,7 @@ namespace NSROOT
     WS_STATUS GetStatus() const { return m_status; }
     size_t GetBytesOut() const { return m_bytesOut; }
     const std::string& GetRequestLine() const { return m_requestLine; }
+    TcpSocket * Socket() { return m_socket; }
 
   private:
     TcpSocket* m_socket;

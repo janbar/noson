@@ -28,7 +28,7 @@
 #include <cstdio>
 #include <cstring>
 
-#define HTTP_TOKEN_MAXSIZE    20
+#define HTTP_TOKEN_MAXSIZE    80
 #define HTTP_HEADER_MAXSIZE   0x1000
 #define RESPONSE_BUFFER_SIZE  0x1000
 #define CHUNK_MAX_SIZE        0x20000
