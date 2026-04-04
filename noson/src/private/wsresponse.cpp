@@ -28,8 +28,8 @@
 #include <cstdio>
 #include <cstring>
 
-#define HTTP_TOKEN_MAXSIZE    80
-#define HTTP_HEADER_MAXSIZE   0x1000
+#define HTTP_TOKEN_MAXLEN     80
+#define HTTP_HEADER_MAXLEN    4000
 #define RESPONSE_BUFFER_SIZE  0x1000
 #define CHUNK_MAX_SIZE        0x20000
 
@@ -117,7 +117,7 @@ bool WSResponse::ReadHeaderLine(NetSocket *socket, const char *eol, std::string&
       return false;
     }
   }
-  while (l < HTTP_HEADER_MAXSIZE);
+  while (l < HTTP_HEADER_MAXLEN);
 
   *len = l;
   return true;
@@ -201,7 +201,7 @@ bool WSResponse::_response::GetResponse()
 {
   size_t len;
   std::string strread;
-  char token[HTTP_TOKEN_MAXSIZE + 1];
+  char token[HTTP_TOKEN_MAXLEN + 1];
   int n = 0, token_len = 0;
   bool ret = false;
 
@@ -256,20 +256,16 @@ bool WSResponse::_response::GetResponse()
     else if ((val = strchr(line, ':')))
     {
       int p;
-      if ((token_len = val - line) > HTTP_TOKEN_MAXSIZE)
-        token_len = HTTP_TOKEN_MAXSIZE;
+      if ((token_len = val - line) > HTTP_TOKEN_MAXLEN)
+        token_len = HTTP_TOKEN_MAXLEN;
       for (p = 0; p < token_len; ++p)
         token[p] = toupper(line[p]);
       token[token_len] = 0;
       value_len = len - (val - line + 1);
       while (value_len > 0 && (*(++val) == ' ' || *val == '\t')) --value_len;
-      /*
-       * An existing field will be amended by adding an additional value.
-       * Therefore, the order of the values remains the same.
-       */
-      VARS::iterator it = m_headers.find(token);
-      if (it != m_headers.end())
-        it->second.append(", ");
+      WSHeader& hv = m_headers[token];
+      hv.SetName(line, token_len);
+      hv.AddValue("");
     }
     else
     {
@@ -280,7 +276,7 @@ bool WSResponse::_response::GetResponse()
 
     if (token_len && val)
     {
-      std::string& newval = m_headers[token].append(val);
+      std::string& newval = m_headers[token].Back().append(val);
       switch (ws_header_from_upperstr(token))
       {
         case WS_HEADER_ETag:
@@ -502,7 +498,7 @@ bool WSResponse::_response::GetHeaderValue(const std::string& header, std::strin
   VARS::const_iterator it = m_headers.find(header);
   if (it == m_headers.end())
     return false;
-  value.assign(it->second);
+  value.assign(it->second.Last());
   return true;
 }
 
@@ -511,6 +507,6 @@ const std::string& WSResponse::_response::GetHeaderValue(const std::string& head
   static std::string emptyStr = "";
   VARS::const_iterator it = m_headers.find(header);
   if (it != m_headers.end())
-    return it->second;
+    return it->second.Last();
   return emptyStr;
 }

@@ -27,8 +27,6 @@
 #include "private/cppdef.h"
 #include "private/debug.h"
 #include "private/uriparser.h"
-#include "private/tokenizer.h"
-#include "private/urlencoder.h"
 #include "private/socket.h"
 #include "didlparser.h"
 #include "sonossystem.h"

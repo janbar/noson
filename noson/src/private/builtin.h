@@ -70,6 +70,9 @@ extern int hex_to_num(const char *str, int *num);
 #define char_to_hex __charhex
 extern void char_to_hex(char c, BUILTIN_BUFFER *str);
 
+#define char_to_uhex __charuhex
+extern void char_to_uhex(char c, BUILTIN_BUFFER *str);
+
 #define int64_to_string __int64str
 static CC_INLINE void int64_to_string(int64_t num, BUILTIN_BUFFER *str)
 {

@@ -25,10 +25,10 @@
 #include "local_config.h"
 #include "wsrequestbroker.h"
 #include "wsstatic.h"
+#include "wsheader.h"
 
 #include <string>
-#include <list>
-#include <utility>
+#include <map>
 
 namespace NSROOT
 {
@@ -51,9 +51,11 @@ namespace NSROOT
 
     STAGE GetStage() const { return m_stage; }
 
-    void AddHeader(const std::string& headerStr, const std::string& str, bool encap = false);
+    void SetHeader(WS_HEADER header, const std::string& str, bool encap = false);
+    void SetHeader(WS_HEADER header, uint32_t num);
     void AddHeader(WS_HEADER header, const std::string& str, bool encap = false);
     void AddHeader(WS_HEADER header, uint32_t num);
+    void AddHeader(const std::string& headerStr, const std::string& str, bool encap = false);
 
     /**
      * Clear the header to refill and post.
@@ -118,6 +120,15 @@ namespace NSROOT
     int WriteInputStream(InputStream& in);
 
     /**
+     * Write a null-terminated string in content stream.
+     * Note: Only valid at stage CONTENT.
+     * @param str
+     * @param len The byte count to send
+     * @return true on success, else false
+     */
+    bool WriteString(const char* str);
+
+    /**
      * Flush the content stream, and close the reply. All data remaining
      * in the stream buffer is sent, and the stage move to CLOSE.
      * Note: Only valid at stage CONTENT.
@@ -133,10 +144,19 @@ namespace NSROOT
      */
     STAGE Abort();
 
+    /**
+     * One-step reply for the builtin status report
+     * @param rb
+     * @param status
+     */
+    static void ReturnStatus(WSRequestBroker& rb, WS_STATUS status);
+
   private:
     WSRequestBroker& m_broker;
-    typedef std::list<std::pair<std::string, std::string> > header_container;
-    header_container m_headers;
+
+    typedef std::map<std::string, WSHeader> VARS;
+    VARS m_headers;
+
     STAGE m_stage;
     WSReplyChunked* m_chunked;
 

@@ -24,6 +24,7 @@
 
 #include "local_config.h"
 #include "wsstatic.h"
+#include "wsheader.h"
 #include "wsrequest.h"
 
 #include <cstddef>  // for size_t
@@ -40,6 +41,8 @@ namespace NSROOT
   class WSResponse
   {
   public:
+    typedef std::map<std::string, WSHeader> VARS;
+
     WSResponse(const WSRequest& request)
     { init(request, 1, true, false); }
     WSResponse(const WSRequest &request, int maxRedirs, bool trustedLocation, bool followAny)
@@ -61,6 +64,10 @@ namespace NSROOT
     const std::string& GetHeaderValue(const std::string& header) const
     {
       return p->GetHeaderValue(header);
+    }
+    const VARS& GetRequestHeaders() const
+    {
+      return p->GetRequestHeaders();
     }
 
     // helpers
@@ -89,6 +96,7 @@ namespace NSROOT
 
       bool GetHeaderValue(const std::string& header, std::string& value);
       const std::string& GetHeaderValue(const std::string& header) const;
+      const VARS& GetRequestHeaders() const { return m_headers; }
 
     private:
       TcpSocket *m_socket;
@@ -110,7 +118,6 @@ namespace NSROOT
       char* m_chunkEnd;         ///< The end of the chunk buffer
       Decompressor *m_decoder;
 
-      typedef std::map<std::string, std::string> VARS;
       VARS m_headers;
 
       // prevent copy

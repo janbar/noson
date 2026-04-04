@@ -27,7 +27,7 @@
 #include "private/wsresponse.h"
 #include "private/builtin.h"
 #include "private/cppdef.h"
-#include "private/urlencoder.h"
+#include "private/uriencoder.h"
 #include "sonossystem.h"
 
 #define DEVICE_PROVIDER         "Sonos"

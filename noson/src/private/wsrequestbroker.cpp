@@ -20,18 +20,16 @@
  */
 
 #include "wsrequestbroker.h"
-#include "urlencoder.h"
-#include "pathencoder.h"
+#include "uriencoder.h"
 #include "uriparser.h"
 #include "socket.h"
 #include "debug.h"
 #include "builtin.h"
 #include "tokenizer.h"
-#include "wsstatic.h"
 
-#define HTTP_TOKEN_MAXSIZE    80
-#define HTTP_HEADER_MAXSIZE   4000
-#define QUERY_BUFFER_SIZE     4000
+#define HTTP_TOKEN_MAXLEN     80
+#define HTTP_HEADER_MAXLEN    4000
+#define QUERY_BUFFER_SIZE     0x1000
 #define CHUNK_MAX_SIZE        0x20000
 
 using namespace NSROOT;
@@ -83,18 +81,18 @@ bool WSRequestBroker::ReadHeaderLine(const char *eol, std::string& line, size_t 
       return false;
     }
   }
-  while (l < HTTP_HEADER_MAXSIZE);
+  while (l < HTTP_HEADER_MAXLEN);
 
   *len = l;
   return true;
 }
 
-bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::string& uriparams, bool& ishidden)
+bool WSRequestBroker::ExplodeURI(const std::string& uri, std::string& path, std::string& uriparams, bool& ishidden)
 {
-  if (in.empty())
+  if (uri.empty())
     return false;
   // convert generic uri * to nil
-  else if (in == "*")
+  else if (uri == "*")
   {
     path.clear();
     uriparams.clear();
@@ -102,11 +100,11 @@ bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::
     return true;
   }
   // accept only local uri, therefore reject url starting by scheme
-  else if (in.front() != '/')
+  else if (uri.front() != '/')
     return false;
 
   // force sheme and parse uri
-  URIParser parser(std::string("file://").append(in));
+  URIParser parser(std::string("file://").append(uri));
   if (!parser.Path())
     return false;
   unsigned len = 0;
@@ -115,7 +113,8 @@ bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::
   std::vector<std::string> clean;
   std::vector<std::string>::const_iterator it;
   // decode and split path by dirname
-  tokenize(pathdecode(parser.Path()), "/", "", dirty, true);
+  std::string r_path(pathdecode(parser.Path()));
+  tokenize(r_path, "/", "", dirty, true);
   // rebuild normalized path
   it = dirty.cbegin();
   while (it != dirty.cend())
@@ -144,7 +143,7 @@ bool WSRequestBroker::ExplodeURI(const std::string& in, std::string& path, std::
   path.reserve(len);
   for (auto& str : clean)
     path.append("/").append(str);
-  if (in.back() == '/')
+  if (path.empty() || r_path.back() == '/')
     path.push_back('/');
   // store params string
   if (parser.Params())
@@ -199,6 +198,7 @@ WSRequestBroker::WSRequestBroker(TcpSocket* socket, bool secure, int timeout)
 , m_secure(secure)
 , m_parsed(false)
 , m_method(WS_METHOD_UNKNOWN)
+, m_rewritten(false)
 , m_pathIsHidden(false)
 , m_hasContent(false)
 , m_contentChunked(false)
@@ -241,12 +241,12 @@ std::string WSRequestBroker::GetHostAddrInfo() const
   return m_socket->GetHostAddrInfo();
 }
 
-const std::string& WSRequestBroker::GetRequestHeader(const std::string& name) const
+const std::string& WSRequestBroker::GetRequestHeader(const std::string& key) const
 {
   static std::string emptyStr = "";
-  VARS::const_iterator it = m_requestHeaders.find(name);
+  VARS::const_iterator it = m_requestHeaders.find(key);
   if (it != m_requestHeaders.end())
-    return it->second;
+    return it->second.Last();
   return emptyStr;
 }
 
@@ -254,7 +254,7 @@ bool WSRequestBroker::ParseQuery()
 {
   size_t len;
   std::string strread;
-  char token[HTTP_TOKEN_MAXSIZE + 1];
+  char token[HTTP_TOKEN_MAXLEN + 1];
   int n = 0, token_len = 0;
   bool ret = false;
 
@@ -317,20 +317,20 @@ bool WSRequestBroker::ParseQuery()
     else if ((val = strchr(line, ':')))
     {
       int p;
-      if ((token_len = val - line) > HTTP_TOKEN_MAXSIZE)
-        token_len = HTTP_TOKEN_MAXSIZE;
+      if ((token_len = val - line) > HTTP_TOKEN_MAXLEN)
+        token_len = HTTP_TOKEN_MAXLEN;
       for (p = 0; p < token_len; ++p)
         token[p] = toupper(line[p]);
       token[token_len] = 0;
       value_len = len - (val - line + 1);
       while (value_len > 0 && (*(++val) == ' ' || *val == '\t')) --value_len;
       /*
-       * An existing field will be amended by adding an additional value.
+       * An existing field will be amended by appending the content.
        * Therefore, the order of the values remains the same.
        */
-      VARS::iterator it = m_requestHeaders.find(token);
-      if (it != m_requestHeaders.end())
-        it->second.append(", ");
+      WSHeader& hv = m_requestHeaders[token];
+      hv.SetName(line, token_len);
+      hv.MergeValue("");
     }
     else
     {
@@ -341,7 +341,8 @@ bool WSRequestBroker::ParseQuery()
 
     if (token_len && val)
     {
-      std::string& newval = m_requestHeaders[token].append(val);
+      /* append the content */
+      std::string& newval = m_requestHeaders[token].Back().append(val);
       switch (ws_header_from_upperstr(token))
       {
       case WS_HEADER_Content_Length:
@@ -376,8 +377,8 @@ bool WSRequestBroker::ParseQuery()
     }
   }
 
-  // request header HOST is required
-  return (ret && !m_host.empty());
+  // the server name is required
+  return (ret && !m_serverName.empty());
 }
 
 int WSRequestBroker::ReadChunk(void *buf, size_t buflen)
@@ -475,11 +476,12 @@ bool WSRequestBroker::RewritePath(const std::string& newpath)
   std::string path;
   std::string params;
   bool hidden;
-  if (ExplodeURI(newpath, path, params, hidden))
+  if (ExplodeURI(pathencode(newpath), path, params, hidden))
   {
     // do not override query params
     m_path = path;
     m_pathIsHidden = hidden;
+    m_rewritten = true;
     return true;
   }
   return false;

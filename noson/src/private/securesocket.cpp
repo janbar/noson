@@ -347,6 +347,36 @@ size_t SecureSocket::ReceiveData(void* buf, size_t n)
   return 0;
 }
 
+size_t SecureSocket::BlockingRead(void* buf, size_t n)
+{
+  if (m_connected && n > 0)
+  {
+    m_ssl_error = SSL_ERROR_NONE;
+    for (;;)
+    {
+      int r = SSL_read(static_cast<SSL*>(m_ssl), buf, (int) n);
+      if (r >= 0)
+        return (size_t) r;
+      int err = SSL_get_error(static_cast<SSL*>(m_ssl), r);
+      if (err == SSL_ERROR_WANT_READ)
+      {
+        DBG(DBG_DEBUG, "%s: SSL retry\n", __FUNCTION__);
+        continue;
+      }
+      if (err == SSL_ERROR_WANT_WRITE)
+      {
+        DBG(DBG_DEBUG, "%s: SSL wants write\n", __FUNCTION__);
+        m_ssl_error = ERR_get_error();
+        break;
+      }
+      m_ssl_error = ERR_get_error();
+      DBG(DBG_ERROR, "%s: SSL read failed: %s\n", __FUNCTION__, GetSSLError());
+      break;
+    }
+  }
+  return 0;
+}
+
 bool SecureSocket::SendData(const char* buf, size_t size)
 {
   if (m_connected && size > 0)
@@ -478,6 +508,13 @@ bool SecureSocket::Connect(const char* server, unsigned port, int rcvbuf)
 }
 
 size_t SecureSocket::ReceiveData(void* buf, size_t n)
+{
+  (void)buf;
+  (void)n;
+  return 0;
+}
+
+size_t SecureSocket::BlockingRead(void* buf, size_t n)
 {
   (void)buf;
   (void)n;

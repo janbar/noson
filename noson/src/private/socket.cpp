@@ -414,6 +414,31 @@ size_t TcpSocket::ReceiveData(void *buf, size_t n)
   return 0;
 }
 
+size_t TcpSocket::BlockingRead(void *buf, size_t n)
+{
+  if (IsValid() && n > 0)
+  {
+    // Check for data remaining in buffer
+    if (m_buffer)
+    {
+      if (m_bufptr < m_buffer + m_rcvlen)
+      {
+        size_t rcvlen = m_rcvlen - (m_bufptr - m_buffer);
+        if (rcvlen > n)
+          rcvlen = n;
+        memcpy(buf, m_bufptr, rcvlen);
+        m_bufptr += rcvlen;
+        return rcvlen;
+      }
+    }
+
+    int r = 0;
+    if ((r = recv(m_socket, buf, n, 0)) > 0)
+      return r;
+  }
+  return 0;
+}
+
 void TcpSocket::Disconnect()
 {
   if (IsValid())

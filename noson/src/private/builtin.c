@@ -249,6 +249,18 @@ void char_to_hex(char c, BUILTIN_BUFFER *str)
   p[2] = '\0';
 }
 
+void char_to_uhex(char c, BUILTIN_BUFFER *str)
+{
+  static const char g[16] = {
+    '0', '1', '2', '3', '4', '5', '6', '7',
+    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+  };
+  char * p = str->data;
+  p[0] = g[(0xf & (c >> 4))];
+  p[1] = g[(0xf & (c))];
+  p[2] = '\0';
+}
+
 unsigned uint_to_strdec(unsigned u, char *str, unsigned len, int pad)
 {
   static const char g[10] = {

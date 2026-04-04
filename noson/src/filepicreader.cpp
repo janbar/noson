@@ -21,7 +21,7 @@
 #include "filepicreader.h"
 #include "private/debug.h"
 #include "private/tokenizer.h"
-#include "private/urlencoder.h"
+#include "private/uriencoder.h"
 #include "private/byteorder.h"
 #include "private/base64.h"
 

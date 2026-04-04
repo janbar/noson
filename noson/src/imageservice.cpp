@@ -20,7 +20,7 @@
 #include "private/debug.h"
 #include "data/datareader.h"
 #include "filepicreader.h"
-#include "private/urlencoder.h"
+#include "private/uriencoder.h"
 #include "private/wsstatic.h"
 #include "private/wsrequestbroker.h"
 #include "private/wsrequestreply.h"

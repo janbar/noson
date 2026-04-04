@@ -111,6 +111,7 @@ namespace NSROOT
     bool Connect(const char *server, unsigned port, int rcvbuf);
     bool SendData(const char* buf, size_t size);
     size_t ReceiveData(void* buf, size_t n);
+    size_t BlockingRead(void* buf, size_t n);
     void Disconnect();
 
     bool IsCertificateValid(std::string& info);

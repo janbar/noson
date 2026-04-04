@@ -108,6 +108,14 @@ namespace NSROOT
     virtual size_t ReceiveData(void* buf, size_t n);
 
     /**
+     * Read data or block.
+     * @param buf the pointer to write data
+     * @param n read at most n bytes
+     * @return the number of received byte
+     */
+    virtual size_t BlockingRead(void* buf, size_t n);
+
+    /**
      * Gracefully disconnect the socket.
      */
     virtual void Disconnect();

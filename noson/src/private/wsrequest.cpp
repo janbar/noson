@@ -20,7 +20,7 @@
  */
 
 #include "wsrequest.h"
-#include "urlencoder.h"
+#include "uriencoder.h"
 #include "debug.h"
 
 #include <cstdio>

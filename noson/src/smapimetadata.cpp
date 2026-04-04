@@ -23,7 +23,7 @@
 #include "private/builtin.h"
 #include "private/tinyxml2.h"
 #include "private/xmldict.h"
-#include "private/urlencoder.h"
+#include "private/uriencoder.h"
 #include "didlparser.h"
 #include "sonostypes.h"
 
