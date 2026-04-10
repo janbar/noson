@@ -433,7 +433,7 @@ size_t TcpSocket::BlockingRead(void *buf, size_t n)
     }
 
     int r = 0;
-    if ((r = recv(m_socket, buf, n, 0)) > 0)
+    if ((r = recv(m_socket, (char*)buf, n, 0)) > 0)
       return r;
   }
   return 0;
