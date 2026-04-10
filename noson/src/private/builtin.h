@@ -64,6 +64,9 @@ extern int string_to_double(const char *str, double *dbl);
 #define string_to_timeout __str2timeout
 extern int string_to_timeout(const char *str, unsigned *ms);
 
+#define string_to_size __str2size
+extern int string_to_size(const char *str, int64_t *sz);
+
 #define hex_to_num __hex2num
 extern int hex_to_num(const char *str, int *num);
 

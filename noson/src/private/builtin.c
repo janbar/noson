@@ -218,6 +218,26 @@ int string_to_timeout(const char *str, unsigned *ms)
   return 0;
 }
 
+int string_to_size(const char *str, int64_t *sz)
+{
+  float q = 0.0;
+  char u[2] = { 0, 0 };
+  int n = sscanf(str, "%f%c%c", &q, u, u+1);
+  if (n < 1 || q < 0)
+    return -(EINVAL);
+  if (*u == 0)
+    *sz = (int64_t)q;
+  else if (memcmp("k", u, 2) == 0)
+    *sz = (int64_t)(q * (1<<10));
+  else if (memcmp("m", u, 2) == 0)
+    *sz = (int64_t)(q * (1<<20));
+  else if (memcmp("g", u, 2) == 0)
+    *sz = (int64_t)(q * (1<<30));
+  else
+    return -(EINVAL);
+  return 0;
+}
+
 int hex_to_num(const char *str, int *num)
 {
   int val = 0;
