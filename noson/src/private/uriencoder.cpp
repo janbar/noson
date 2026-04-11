@@ -52,7 +52,7 @@ std::string pathencode(const std::string& str)
   const char* cstr = str.c_str();
   while (*cstr)
   {
-    if (*cstr > 0 && uri_pchar_table[*cstr])
+    if (*cstr > 0 && uri_pchar_table[(unsigned char)*cstr])
       out.push_back(*cstr);
     else
     {
@@ -83,7 +83,7 @@ std::string pathdecode(const std::string& str)
       {
         char d = static_cast<char>(v);
         // do not decode valid pchar
-        if (d < 0 || uri_pchar_table[d] == 0)
+        if (d < 0 || uri_pchar_table[(unsigned char)d] == 0)
         {
           c = d;
           cstr += 2;
@@ -116,7 +116,7 @@ std::string urlencode(const std::string& str)
   const char* cstr = str.c_str();
   while (*cstr)
   {
-    if (*cstr > 0 && uri_uchar_table[*cstr])
+    if (*cstr > 0 && uri_uchar_table[(unsigned char)*cstr])
       out.push_back(*cstr);
     else
     {
