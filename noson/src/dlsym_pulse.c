@@ -426,10 +426,13 @@ int initialize_pulse(int verbose) {
   char *error;
   handle = dlopen("libpulse-simple.so.0", RTLD_LAZY);
   if (!handle) {
-    if (verbose) {
-      fprintf(stderr, "%s\n", dlerror());
+    handle = dlopen("libpulse-simple.so", RTLD_LAZY);
+    if (!handle) {
+      if (verbose) {
+        fprintf(stderr, "%s\n", dlerror());
+      }
+      return(1);
     }
-    return(1);
   }
   dlerror();
 // pa_operation_unref
@@ -624,5 +627,5 @@ int initialize_pulse(int verbose) {
       fprintf(stderr, "%s\n", error);
     }
   }
-return 0;
+  return 0;
 }
