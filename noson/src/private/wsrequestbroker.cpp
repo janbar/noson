@@ -27,9 +27,10 @@
 #include "builtin.h"
 #include "tokenizer.h"
 
-#define HTTP_TOKEN_MAXLEN     80
-#define HTTP_HEADER_MAXLEN    4000
-#define QUERY_BUFFER_SIZE     0x1000
+#define HTTP_TOKEN_MAXLEN     79
+#define HTTP_HEADER_MAXLEN    0x4000    // maximum header length (16k)
+#define QUERY_BUFFER_SIZE     0x400     // size of read buffer for headers
+#define QUERY_MAX_SIZE        0x20000   // maximum size for the entire query
 #define CHUNK_MAX_SIZE        0x20000
 
 using namespace NSROOT;
@@ -253,6 +254,7 @@ const std::string& WSRequestBroker::GetRequestHeader(const std::string& key) con
 bool WSRequestBroker::ParseQuery()
 {
   size_t len;
+  size_t sum = 0;
   std::string strread;
   char token[HTTP_TOKEN_MAXLEN + 1];
   int n = 0, token_len = 0;
@@ -261,6 +263,11 @@ bool WSRequestBroker::ParseQuery()
   token[0] = 0;
   while (ReadHeaderLine(WS_CRLF, strread, &len))
   {
+    /* The query length shouldn't exceed the limit */
+    sum += len;
+    if (sum > QUERY_MAX_SIZE)
+      return false;
+
     const char *line = strread.c_str(), *val = nullptr;
     int value_len = 0;
 

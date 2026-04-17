@@ -28,9 +28,10 @@
 #include <cstdio>
 #include <cstring>
 
-#define HTTP_TOKEN_MAXLEN     80
-#define HTTP_HEADER_MAXLEN    4000
-#define RESPONSE_BUFFER_SIZE  0x1000
+#define HTTP_TOKEN_MAXLEN     79
+#define HTTP_HEADER_MAXLEN    0x4000    // maximum header length (16k)
+#define RESPONSE_BUFFER_SIZE  0x400     // size of read buffer for headers
+#define RESPONSE_MAX_SIZE     0x20000   // maximum size for the entire response
 #define CHUNK_MAX_SIZE        0x20000
 
 using namespace NSROOT;
@@ -200,6 +201,7 @@ bool WSResponse::_response::SendRequest(const WSRequest &request)
 bool WSResponse::_response::GetResponse()
 {
   size_t len;
+  size_t sum = 0;
   std::string strread;
   char token[HTTP_TOKEN_MAXLEN + 1];
   int n = 0, token_len = 0;
@@ -208,6 +210,11 @@ bool WSResponse::_response::GetResponse()
   token[0] = 0;
   while (WSResponse::ReadHeaderLine(m_socket, WS_CRLF, strread, &len))
   {
+    /* The response length shouldn't exceed the limit */
+    sum += len;
+    if (sum > RESPONSE_MAX_SIZE)
+      return false;
+
     const char *line = strread.c_str(), *val = nullptr;
     int value_len = 0;
 
