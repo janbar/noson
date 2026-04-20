@@ -29,6 +29,9 @@
 #include <cctype>
 #include <algorithm>
 
+namespace NSROOT
+{
+
 class WSHeader
 {
 public:
@@ -105,6 +108,8 @@ private:
   std::string m_name;
   container_t m_values;
 };
+
+}
 
 #endif /* WSHEADER_H */
 
