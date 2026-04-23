@@ -34,7 +34,7 @@ size_t _flush_decompressed_data(SONOS::Decompressor * d, char * out)
 
 TEST_CASE("Compress Z data")
 {
-  SONOS::Compressor * c =  new SONOS::Compressor((const char*)pcm_s16le_raw, pcm_s16le_raw_len);
+  SONOS::Compressor * c =  new SONOS::Compressor((const char*)pcm_s16le_raw, pcm_s16le_raw_len, true);
   char * zip = new char[pcm_s16le_raw_len];
   size_t lz = _flush_compressed_data(c, zip);
   REQUIRE(c->HasStreamError() == false);
@@ -43,7 +43,7 @@ TEST_CASE("Compress Z data")
   REQUIRE((lz > 0 && lz < pcm_s16le_raw_len));
 
   char * raw = new char[pcm_s16le_raw_len];
-  SONOS::Decompressor * d =  new SONOS::Decompressor((const char*)zip, lz);
+  SONOS::Decompressor * d =  new SONOS::Decompressor((const char*)zip, lz, true);
   size_t lr = _flush_decompressed_data(d, raw);
   REQUIRE(d->HasStreamError() == false);
   REQUIRE(d->HasBufferError() == false);
