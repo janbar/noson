@@ -1,7 +1,10 @@
 
 #include "wsreplychunked.h"
 #include "wsrequestbroker.h"
+#include "wsstatic.h"
 #include "debug.h"
+
+#include <cstring>
 
 #define CHUNK_MAXSIZE   0x10000
 

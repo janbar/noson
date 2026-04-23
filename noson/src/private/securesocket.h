@@ -103,7 +103,6 @@ namespace NSROOT
   {
     friend class SSLSessionFactory;
     friend class SSLServerContext;
-    friend class SecureServerSocket;
   public:
     virtual ~SecureSocket();
 

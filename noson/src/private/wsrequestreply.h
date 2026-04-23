@@ -27,6 +27,7 @@
 #include "wsstatic.h"
 #include "wsheader.h"
 
+#include <cstdint>
 #include <string>
 #include <map>
 

@@ -23,12 +23,10 @@
 #define	WSREQUESTBROKER_H
 
 #include "local_config.h"
-#include "os/os.h"
 #include "wsstatic.h"
 #include "wsheader.h"
 
 #include <string>
-#include <vector>
 #include <map>
 
 #define SERVER_PROTOCOL       "HTTP/1.1"

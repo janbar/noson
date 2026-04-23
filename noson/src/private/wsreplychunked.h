@@ -5,9 +5,6 @@
 #include "local_config.h"
 #include "wsrequestbroker.h"
 #include "iostream.h"
-#include "wsstatic.h"
-
-#include <string>
 
 namespace NSROOT
 {
