@@ -23,22 +23,26 @@
 
 #if HAVE_ZLIB
 #include <zlib.h>
+#define DFLT_WINDOWS_BIT  (-MAX_WBITS)
+#define GZIP_WINDOWS_BIT  ((MAX_WBITS)+16)
+#define GZIP_CHUNK_SIZE   16384
 #else
-#define Z_NO_FLUSH      0
-#define Z_OK            0
-#define Z_STREAM_END    1
-#define Z_STREAM_ERROR (-2)
-#define Z_BUF_ERROR    (-5)
+#define Z_NO_FLUSH        0
+#define Z_OK              0
+#define Z_STREAM_END      1
+#define Z_STREAM_ERROR    (-2)
+#define Z_BUF_ERROR       (-5)
+#define DFLT_WINDOWS_BIT  0
+#define GZIP_WINDOWS_BIT  0
+#define GZIP_CHUNK_SIZE   0
 #endif
 
-#define GZIP_WINDOWS_BIT  15 + 16
-#define GZIP_CHUNK_SIZE   16384
 #define MIN(a,b)          (a > b ? b : a)
 #define MAX(a,b)          (a > b ? a : b)
 
 using namespace NSROOT;
 
-Compressor::Compressor(const char *input, size_t len, int level /*= -1*/)
+Compressor::Compressor(const char *input, size_t len, bool gzip, int level /*= -1*/)
 : m_status(Z_STREAM_ERROR)
 , m_flush(Z_NO_FLUSH)
 , m_stop(true)
@@ -57,12 +61,14 @@ Compressor::Compressor(const char *input, size_t len, int level /*= -1*/)
 #if HAVE_ZLIB
   m_output = new char[m_chunk_size];
   _opaque = new z_stream;
-  m_status = _init(_opaque, m_output, m_chunk_size, level);
+  m_status = _init(_opaque, m_output, m_chunk_size,
+                   (gzip ? GZIP_WINDOWS_BIT : DFLT_WINDOWS_BIT),
+                   level);
   m_stop = (m_status != Z_OK);
 #endif
 }
 
-Compressor::Compressor(STREAM_READER reader, void *handle, int level /*= -1*/)
+Compressor::Compressor(STREAM_READER reader, void *handle, bool gzip, int level /*= -1*/)
 : m_status(Z_STREAM_ERROR)
 , m_flush(Z_NO_FLUSH)
 , m_stop(true)
@@ -82,7 +88,9 @@ Compressor::Compressor(STREAM_READER reader, void *handle, int level /*= -1*/)
   m_rstream_buf = new char[m_chunk_size];
   m_output = new char[m_chunk_size];
   _opaque = new z_stream;
-  m_status = _init(_opaque, m_output, m_chunk_size, level);
+  m_status = _init(_opaque, m_output, m_chunk_size,
+                   (gzip ? GZIP_WINDOWS_BIT : DFLT_WINDOWS_BIT),
+                   level);
   m_stop = (m_status != Z_OK);
 #endif
 }
@@ -219,7 +227,7 @@ size_t Compressor::FetchOutput(const char **data)
   return 0;
 }
 
-int Compressor::_init(void *zp, void *out, size_t len, int level)
+int Compressor::_init(void *zp, void *out, size_t len, int wbits, int level)
 {
 #if HAVE_ZLIB
   z_stream *strm = static_cast<z_stream*>(zp);
@@ -231,7 +239,7 @@ int Compressor::_init(void *zp, void *out, size_t len, int level)
   strm->next_in = Z_NULL;
   strm->avail_out = len;
   strm->next_out = (unsigned char*)out;
-  return deflateInit2(strm, MAX(-1, MIN(level, 9)), Z_DEFLATED, GZIP_WINDOWS_BIT, 8, Z_DEFAULT_STRATEGY);
+  return deflateInit2(strm, MAX(-1, MIN(level, 9)), Z_DEFLATED, wbits, 8, Z_DEFAULT_STRATEGY);
 #else
   return Z_STREAM_ERROR;
 #endif
@@ -285,7 +293,7 @@ size_t Compressor::NextChunk()
   return sz;
 }
 
-Decompressor::Decompressor(const char *input, size_t len)
+Decompressor::Decompressor(const char *input, size_t len, bool gzip)
 : m_status(Z_STREAM_ERROR)
 , m_stop(true)
 , m_chunk_size(GZIP_CHUNK_SIZE)
@@ -303,12 +311,13 @@ Decompressor::Decompressor(const char *input, size_t len)
 #if HAVE_ZLIB
   m_output = new char[m_chunk_size];
   _opaque = new z_stream;
-  m_status = _init(_opaque, m_output, m_chunk_size);
+  m_status = _init(_opaque, m_output, m_chunk_size,
+                   (gzip ? GZIP_WINDOWS_BIT : DFLT_WINDOWS_BIT));
   m_stop = (m_status != Z_OK);
 #endif
 }
 
-Decompressor::Decompressor(STREAM_READER reader, void *handle)
+Decompressor::Decompressor(STREAM_READER reader, void *handle, bool gzip)
 : m_status(Z_STREAM_ERROR)
 , m_stop(true)
 , m_chunk_size(GZIP_CHUNK_SIZE)
@@ -327,7 +336,8 @@ Decompressor::Decompressor(STREAM_READER reader, void *handle)
   m_rstream_buf = new char[m_chunk_size];
   m_output = new char[m_chunk_size];
   _opaque = new z_stream;
-  m_status = _init(_opaque, m_output, m_chunk_size);
+  m_status = _init(_opaque, m_output, m_chunk_size,
+                   (gzip ? GZIP_WINDOWS_BIT : DFLT_WINDOWS_BIT));
   m_stop = (m_status != Z_OK);
 #endif
 }
@@ -464,7 +474,7 @@ size_t Decompressor::FetchOutput(const char **data)
   return 0;
 }
 
-int Decompressor::_init(void *zp, void *out, size_t len)
+int Decompressor::_init(void *zp, void *out, size_t len, int wbits)
 {
 #if HAVE_ZLIB
   z_stream *strm = static_cast<z_stream*>(zp);
@@ -476,7 +486,7 @@ int Decompressor::_init(void *zp, void *out, size_t len)
   strm->next_in = Z_NULL;
   strm->avail_out = len;
   strm->next_out = (unsigned char*)out;
-  return inflateInit2(strm, GZIP_WINDOWS_BIT);
+  return inflateInit2(strm, wbits);
 #else
   return Z_STREAM_ERROR;
 #endif

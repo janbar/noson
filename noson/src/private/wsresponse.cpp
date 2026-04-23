@@ -448,7 +448,7 @@ int WSResponse::_response::ReadContent(char* buf, size_t buflen)
     {
       int s = 0;
       if (m_decoder == nullptr)
-        m_decoder = new Decompressor(&SocketStreamReader, this);
+        m_decoder = new Decompressor(&SocketStreamReader, this, (m_contentEncoding == WS_CENCODING_Gzip));
       if (m_decoder->HasOutputData())
         s = (int)m_decoder->ReadOutput(buf, buflen);
       if (s == 0 && !m_decoder->IsCompleted())
@@ -480,7 +480,7 @@ int WSResponse::_response::ReadContent(char* buf, size_t buflen)
     {
       int s = 0;
       if (m_decoder == nullptr)
-        m_decoder = new Decompressor(&ChunkStreamReader, this);
+        m_decoder = new Decompressor(&ChunkStreamReader, this, (m_contentEncoding == WS_CENCODING_Gzip));
       if (m_decoder->HasOutputData())
         s = (int)m_decoder->ReadOutput(buf, buflen);
       if (s == 0 && !m_decoder->IsCompleted())

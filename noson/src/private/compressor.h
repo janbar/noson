@@ -35,8 +35,8 @@ namespace NSROOT
   public:
     typedef int(*STREAM_READER)(void *handle, void *buf, int sz);
 
-    Compressor(STREAM_READER reader, void *handle, int level = -1);
-    Compressor(const char *input, size_t len, int level = -1);
+    Compressor(STREAM_READER reader, void *handle, bool gzip, int level = -1);
+    Compressor(const char *input, size_t len, bool gzip, int level = -1);
     virtual ~Compressor();
 
     /**
@@ -104,7 +104,7 @@ namespace NSROOT
 
     void *_opaque;
 
-    static int _init(void *zp, void *out, size_t len, int level);
+    static int _init(void *zp, void *out, size_t len, int wbits, int level);
     size_t NextChunk();
   };
 
@@ -114,8 +114,8 @@ namespace NSROOT
   public:
     typedef int(*STREAM_READER)(void *handle, void *buf, int sz);
 
-    Decompressor(STREAM_READER reader, void *handle);
-    Decompressor(const char *input, size_t len);
+    Decompressor(STREAM_READER reader, void *handle, bool gzip);
+    Decompressor(const char *input, size_t len, bool gzip);
     virtual ~Decompressor();
 
     /**
@@ -182,7 +182,7 @@ namespace NSROOT
 
     void *_opaque;
 
-    static int _init(void *zp, void *out, size_t len);
+    static int _init(void *zp, void *out, size_t len, int wbits);
     size_t NextChunk();
   };
 
