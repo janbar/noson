@@ -25,9 +25,9 @@
 #include "local_config.h"
 #include "wsresponse.h"
 #include "sajson.h"
-#include "os/os.h"
 
 #include <string>
+#include <cstdint>
 
 /**
  * @namespace NSROOT::JSON
