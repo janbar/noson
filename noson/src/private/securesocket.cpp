@@ -244,7 +244,7 @@ SecureSocket::SecureSocket(void* ssl)
 
 SecureSocket::~SecureSocket()
 {
-  Disconnect();
+  SecureSocket::Disconnect();
   SSL_free(static_cast<SSL*>(m_ssl));
   if (m_errmsg)
     delete [] m_errmsg;
@@ -314,7 +314,7 @@ size_t SecureSocket::ReceiveData(void* buf, size_t n)
             break;
           else if (s == 0)
           {
-            DBG(DBG_WARN, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, hangcount);
+            DBG(DBG_INFO, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, hangcount);
             m_errno = ETIMEDOUT;
             if (++hangcount >= m_attempt)
               return 0;

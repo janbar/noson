@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2019 Jean-Luc Barriere
+ *      Copyright (C) 2014-2026 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -37,6 +37,7 @@ typedef IN_ADDR in_addr_t;
 
 #else
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
@@ -93,14 +94,6 @@ namespace NSROOT
 ////
 
 static char my_hostname[SOCKET_HOSTNAME_MAXSIZE];
-static volatile net_socket_t my_socket;
-
-static void __sigHandler(int sig)
-{
-  closesocket(my_socket);
-  my_socket = INVALID_SOCKET_VALUE;
-  (void)sig;
-}
 
 TcpSocket::TcpSocket()
 : NetSocket()
@@ -117,21 +110,18 @@ TcpSocket::TcpSocket()
 
 TcpSocket::~TcpSocket()
 {
-  if (IsValid())
-    Disconnect();
+  if (TcpSocket::IsValid())
+    TcpSocket::Disconnect();
   if (m_buffer)
     delete[] m_buffer;
 }
 
 static int __connectAddr(struct addrinfo *addr, net_socket_t *s, int rcvbuf)
 {
-#ifndef __WINDOWS__
-  void (*old_sighandler)(int);
-  int old_alarm;
-#endif
   int err = 0;
 
-  if ((my_hostname[0] == '\0') && (gethostname(my_hostname, sizeof (my_hostname)) < 0))
+  // set my hostname if it hasn't already been done
+  if ((my_hostname[0] == '\0') && (gethostname(my_hostname, sizeof(my_hostname)) < 0))
   {
     err = LASTERROR;
     DBG(DBG_ERROR, "%s: gethostname failed (%d)\n", __FUNCTION__, err);
@@ -146,49 +136,120 @@ static int __connectAddr(struct addrinfo *addr, net_socket_t *s, int rcvbuf)
     return err;
   }
 
-  int opt_rcvbuf = (rcvbuf < SOCKET_RCVBUF_MINSIZE ? SOCKET_RCVBUF_MINSIZE : rcvbuf);
-  if (setsockopt(*s, SOL_SOCKET, SO_RCVBUF, (char*)&opt_rcvbuf, sizeof(opt_rcvbuf)))
-    DBG(DBG_WARN, "%s: could not set SO_RCVBUF from socket (%d)\n", __FUNCTION__, LASTERROR);
+  {
+    int opt_rcvbuf = (rcvbuf < SOCKET_RCVBUF_MINSIZE ? SOCKET_RCVBUF_MINSIZE : rcvbuf);
+    if (setsockopt(*s, SOL_SOCKET, SO_RCVBUF, (char*)&opt_rcvbuf, sizeof(opt_rcvbuf)))
+      DBG(DBG_WARN, "%s: could not set SO_RCVBUF from socket (%d)\n", __FUNCTION__, LASTERROR);
+  }
 
+  {
 #ifdef __WINDOWS__
-  int opt_timeo = SOCKET_TIMEOUT_SEC * 1000;
+    int opt_timeo = SOCKET_TIMEOUT_SEC * 1000;
 #else
-  struct timeval opt_timeo;
-  opt_timeo.tv_sec = SOCKET_TIMEOUT_SEC;
-  opt_timeo.tv_usec = 0;
+    struct timeval opt_timeo;
+    opt_timeo.tv_sec = SOCKET_TIMEOUT_SEC;
+    opt_timeo.tv_usec = 0;
 #endif
-  if (setsockopt(*s, SOL_SOCKET, SO_SNDTIMEO, (char*)&opt_timeo, sizeof(opt_timeo)))
-    DBG(DBG_WARN, "%s: could not set SO_SNDTIMEO from socket (%d)\n", __FUNCTION__, LASTERROR);
+    if (setsockopt(*s, SOL_SOCKET, SO_SNDTIMEO, (char*)&opt_timeo, sizeof(opt_timeo)))
+      DBG(DBG_WARN, "%s: could not set SO_SNDTIMEO from socket (%d)\n", __FUNCTION__, LASTERROR);
+  }
 
 #ifdef SO_NOSIGPIPE
-  int opt_set = 1;
-  if (setsockopt(*s, SOL_SOCKET, SO_NOSIGPIPE, (char*)&opt_set, sizeof(int)))
-    DBG(DBG_WARN, "%s: could not set SO_NOSIGPIPE from socket (%d)\n", __FUNCTION__, LASTERROR);
+  {
+    int opt_set = 1;
+    if (setsockopt(*s, SOL_SOCKET, SO_NOSIGPIPE, (char*)&opt_set, sizeof(int)))
+      DBG(DBG_WARN, "%s: could not set SO_NOSIGPIPE from socket (%d)\n", __FUNCTION__, LASTERROR);
+  }
 #endif
 
-#ifndef __WINDOWS__
-  old_sighandler = signal(SIGALRM, __sigHandler);
-  old_alarm = alarm(5);
-  my_socket = *s;
-#endif
-  if (connect(*s, addr->ai_addr, addr->ai_addrlen) < 0)
+  // configure the socket in non-blocking mode temporarily and so the connection
+  // attempt timeout will be handled by the internal select() call
+#ifdef __WINDOWS__
   {
-    err = LASTERROR;
+    u_long nonblock = 1;
+    ioctlsocket(*s, FIONBIO, &nonblock);
+  }
+#else
+  int flags = fcntl(*s, F_GETFL, 0);
+  if (flags == -1) flags = 0;
+  fcntl(*s, F_SETFL, flags | O_NONBLOCK);
+#endif
+
+  if (connect(*s, addr->ai_addr, addr->ai_addrlen) == 0)
+  {
+    // restore blocking mode
+#ifdef __WINDOWS__
+    u_long nonblock = 0;
+    ioctlsocket(*s, FIONBIO, &nonblock);
+#else
+    fcntl(*s, F_SETFL, flags);
+#endif
+    DBG(DBG_PROTO, "%s: connected to socket(%p)\n", __FUNCTION__, s);
+    return 0;
+  }
+
+  err = LASTERROR;
+#ifdef __WINDOWS__
+  if (err != WSAEWOULDBLOCK && err != WSAEINPROGRESS)
+  {
     DBG(DBG_ERROR, "%s: failed to connect (%d)\n", __FUNCTION__, err);
     closesocket(*s);
     *s = INVALID_SOCKET_VALUE;
-#ifndef __WINDOWS__
-    signal(SIGALRM, old_sighandler);
-    alarm(old_alarm);
-#endif
     return err;
   }
-#ifndef __WINDOWS__
-  my_socket = INVALID_SOCKET_VALUE;
-  signal(SIGALRM, old_sighandler);
-  alarm(old_alarm);
+#else
+  if (err != EINPROGRESS)
+  {
+    DBG(DBG_ERROR, "%s: failed to connect (%d)\n", __FUNCTION__, err);
+    closesocket(*s);
+    *s = INVALID_SOCKET_VALUE;
+    return err;
+  }
 #endif
-  DBG(DBG_PROTO, "%s: connected to socket(%p)\n", __FUNCTION__, s);
+
+  // wait for socket writable within the timeout
+  fd_set fds;
+  FD_ZERO(&fds);
+  FD_SET(*s, &fds);
+  struct timeval tv;
+  tv.tv_sec = SOCKET_TIMEOUT_SEC;
+  tv.tv_usec = 0;
+
+  int r = select((*s) + 1, nullptr, &fds, nullptr, &tv);
+  if (r > 0)
+  {
+    // check socket error
+    int so_error = 0;
+    socklen_t so_len = sizeof(so_error);
+    if (getsockopt(*s, SOL_SOCKET, SO_ERROR, (char*)&so_error, &so_len) == 0)
+    {
+      if (so_error != 0)
+      {
+        DBG(DBG_ERROR, "%s: failed to connect (SO_ERROR=%d)\n", __FUNCTION__, so_error);
+        closesocket(*s);
+        *s = INVALID_SOCKET_VALUE;
+        return so_error;
+      }
+    }
+    // restore blocking mode
+#ifdef __WINDOWS__
+    u_long nonblock = 0;
+    ioctlsocket(*s, FIONBIO, &nonblock);
+#else
+    fcntl(*s, F_SETFL, flags);
+#endif
+    DBG(DBG_PROTO, "%s: connected to socket(%p)\n", __FUNCTION__, s);
+    return 0;
+  }
+
+  if (r == 0)
+    err = ETIMEDOUT;
+  else
+    err = LASTERROR;
+
+  DBG(DBG_ERROR, "%s: failed to connect (%d)\n", __FUNCTION__, err);
+  closesocket(*s);
+  *s = INVALID_SOCKET_VALUE;
   return err;
 }
 
@@ -396,7 +457,7 @@ size_t TcpSocket::ReceiveData(void *buf, size_t n)
       }
       if (r == 0)
       {
-        DBG(DBG_WARN, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, hangcount);
+        DBG(DBG_INFO, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, hangcount);
         m_errno = ETIMEDOUT;
         if (++hangcount >= m_attempt)
           break;
@@ -556,7 +617,7 @@ TcpServerSocket::~TcpServerSocket()
   Close();
   if (m_addr)
   {
-    delete(m_addr);
+    delete m_addr;
     m_addr = nullptr;
   }
 }
