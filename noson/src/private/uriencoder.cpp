@@ -52,7 +52,8 @@ std::string pathencode(const std::string& str)
   const char* cstr = str.c_str();
   while (*cstr)
   {
-    if (*cstr > 0 && uri_pchar_table[(unsigned char)*cstr])
+    /* supports both signed and unsigned char (RISC-V) */
+    if (*cstr > 0 && *cstr < 128 && uri_pchar_table[(unsigned)*cstr])
       out.push_back(*cstr);
     else
     {
@@ -81,11 +82,10 @@ std::string pathdecode(const std::string& str)
       buf[2] = '\0';
       if (hex_to_num(buf, &v) == 0)
       {
-        char d = static_cast<char>(v);
         // do not decode valid pchar
-        if (d < 0 || uri_pchar_table[(unsigned char)d] == 0)
+        if (v < 0 || v > 127 || uri_pchar_table[v] == 0)
         {
-          c = d;
+          c = static_cast<char>(v);
           cstr += 2;
         }
       }
@@ -116,7 +116,8 @@ std::string urlencode(const std::string& str)
   const char* cstr = str.c_str();
   while (*cstr)
   {
-    if (*cstr > 0 && uri_uchar_table[(unsigned char)*cstr])
+    /* supports both signed and unsigned char (RISC-V) */
+    if (*cstr > 0 && *cstr < 128 && uri_uchar_table[(unsigned)*cstr])
       out.push_back(*cstr);
     else
     {
