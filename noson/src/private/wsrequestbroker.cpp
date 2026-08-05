@@ -406,7 +406,7 @@ int WSRequestBroker::ReadChunk(void *buf, size_t buflen)
       DBG(DBG_PROTO, "%s: chunked data (%s)\n", __FUNCTION__, strread.c_str());
       std::string chunkStr("0x0");
       uint32_t chunkSize;
-      if (strread.empty() || sscanf(chunkStr.append(strread.substr(0, strread.find(','))).c_str(), "%x", &chunkSize) != 1)
+      if (strread.empty() || sscanf(chunkStr.append(strread.substr(0, strread.find(';'))).c_str(), "%x", &chunkSize) != 1)
         return (-1);
       if (chunkSize > 0)
       {

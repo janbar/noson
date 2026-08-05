@@ -52,8 +52,8 @@ std::string pathencode(const std::string& str)
   const char* cstr = str.c_str();
   while (*cstr)
   {
-    /* supports both signed and unsigned char (RISC-V) */
-    if (*cstr > 0 && *cstr < 128 && uri_pchar_table[(unsigned)*cstr])
+    /* supports both signed and unsigned char (ARM, RISC-V) */
+    if (*cstr > 0 && *cstr <= 127 && uri_pchar_table[(unsigned)*cstr])
       out.push_back(*cstr);
     else
     {
@@ -116,8 +116,8 @@ std::string urlencode(const std::string& str)
   const char* cstr = str.c_str();
   while (*cstr)
   {
-    /* supports both signed and unsigned char (RISC-V) */
-    if (*cstr > 0 && *cstr < 128 && uri_uchar_table[(unsigned)*cstr])
+    /* supports both signed and unsigned char (ARM, RISC-V) */
+    if (*cstr > 0 && *cstr <= 127 && uri_uchar_table[(unsigned)*cstr])
       out.push_back(*cstr);
     else
     {
