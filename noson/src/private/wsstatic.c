@@ -139,7 +139,7 @@ static const WS_HEADER_TABLE ws_header_table[] = {
   { 17, "X-Forwarded-Host",       "X-FORWARDED-HOST" },
   { 18, "X-Forwarded-Proto",      "X-FORWARDED-PROTO" },
   { 10, "X-Real-IP",              "X-REAL-IP" },
-  { 0,  NULL }
+  { 0,  NULL, NULL }
 };
 
 WS_HEADER ws_header_from_upperstr(const char* upperstr)
@@ -164,85 +164,85 @@ const char* ws_header_to_upperstr(WS_HEADER h)
   return ws_header_table[(unsigned)h].upper_txt;
 }
 
-typedef struct { unsigned sz; const char* numstr; const char* msgstr; int num; } WS_STATUS_TABLE;
+typedef struct { int num; unsigned sz; const char* numstr; const char* msgstr; } WS_STATUS_TABLE;
 static const WS_STATUS_TABLE ws_status_table[] = {
   /* 2xx */
-  { 4,  "200",  "OK",                                 200 },
-  { 4,  "201",  "Created",                            201 },
-  { 4,  "202",  "Accepted",                           202 },
-  { 4,  "203",  "Non-Authoritative Information",      203 },
-  { 4,  "204",  "No content",                         204 },
-  { 4,  "205",  "Reset Content",                      205 },
-  { 4,  "206",  "Partial content",                    206 },
-  { 4,  "207",  "Multi-Status",                       207 },
-  { 4,  "208",  "Already Reported",                   208 },
+  { 200, 4,  "200",  "OK" },
+  { 201, 4,  "201",  "Created" },
+  { 202, 4,  "202",  "Accepted" },
+  { 203, 4,  "203",  "Non-Authoritative Information" },
+  { 204, 4,  "204",  "No content" },
+  { 205, 4,  "205",  "Reset Content" },
+  { 206, 4,  "206",  "Partial content" },
+  { 207, 4,  "207",  "Multi-Status" },
+  { 208, 4,  "208",  "Already Reported" },
 
   /* 3xx */
-  { 4,  "301",  "Moved permanently",                  301 },
-  { 4,  "302",  "Moved temporarily",                  302 },
-  { 4,  "303",  "See Other",                          303 },
-  { 4,  "304",  "Not modified",                       304 },
-  { 4,  "305",  "Use Proxy",                          305 },
-  { 4,  "306",  "RESERVED",                           306 },
-  { 4,  "307",  "Temporary Redirect",                 307 },
-  { 4,  "308",  "Permanent Redirect",                 308 },
+  { 301, 4,  "301",  "Moved permanently" },
+  { 302, 4,  "302",  "Moved temporarily" },
+  { 303, 4,  "303",  "See Other" },
+  { 304, 4,  "304",  "Not modified" },
+  { 305, 4,  "305",  "Use Proxy" },
+  { 306, 4,  "306",  "RESERVED" },
+  { 307, 4,  "307",  "Temporary Redirect" },
+  { 308, 4,  "308",  "Permanent Redirect" },
 
   /* 4xx */
-  { 4,  "400",  "Bad request",                        400 },
-  { 4,  "401",  "Unauthorized",                       401 },
-  { 4,  "402",  "Payment Required",                   402 },
-  { 4,  "403",  "Forbidden",                          403 },
-  { 4,  "404",  "Not found",                          404 },
-  { 4,  "405",  "Method Not Allowed",                 405 },
-  { 4,  "406",  "Not Acceptable",                     406 },
-  { 4,  "407",  "Proxy Authentication Required",      407 },
-  { 4,  "408",  "Request Timeout",                    408 },
-  { 4,  "409",  "Conflict",                           409 },
-  { 4,  "410",  "Gone",                               410 },
-  { 4,  "411",  "Length Required",                    411 },
-  { 4,  "412",  "Precondition Failed",                412 },
-  { 4,  "413",  "Content Too Large",                  413 },
-  { 4,  "414",  "URI Too Long",                       414 },
-  { 4,  "415",  "Unsupported Media Type",             415 },
-  { 4,  "416",  "Range Not Satisfiable",              416 },
-  { 4,  "417",  "Expectation Failed",                 417 },
-  { 4,  "418",  "I'm a teapot",                       418 },
+  { 400, 4,  "400",  "Bad request" },
+  { 401, 4,  "401",  "Unauthorized" },
+  { 402, 4,  "402",  "Payment Required" },
+  { 403, 4,  "403",  "Forbidden" },
+  { 404, 4,  "404",  "Not found" },
+  { 405, 4,  "405",  "Method Not Allowed" },
+  { 406, 4,  "406",  "Not Acceptable" },
+  { 407, 4,  "407",  "Proxy Authentication Required" },
+  { 408, 4,  "408",  "Request Timeout" },
+  { 409, 4,  "409",  "Conflict" },
+  { 410, 4,  "410",  "Gone" },
+  { 411, 4,  "411",  "Length Required" },
+  { 412, 4,  "412",  "Precondition Failed" },
+  { 413, 4,  "413",  "Content Too Large" },
+  { 414, 4,  "414",  "URI Too Long" },
+  { 415, 4,  "415",  "Unsupported Media Type" },
+  { 416, 4,  "416",  "Range Not Satisfiable" },
+  { 417, 4,  "417",  "Expectation Failed" },
+  { 418, 4,  "418",  "I'm a teapot" },
 
-  { 4,  "421",  "Misdirected Request",                421 },
-  { 4,  "422",  "Unprocessable Content",              422 },
-  { 4,  "423",  "Locked",                             423 },
-  { 4,  "424",  "Failed Dependency",                  424 },
-  { 4,  "425",  "Too Early",                          425 },
-  { 4,  "426",  "Upgrade Required",                   426 },
+  { 421, 4,  "421",  "Misdirected Request" },
+  { 422, 4,  "422",  "Unprocessable Content" },
+  { 423, 4,  "423",  "Locked" },
+  { 424, 4,  "424",  "Failed Dependency" },
+  { 425, 4,  "425",  "Too Early" },
+  { 426, 4,  "426",  "Upgrade Required" },
 
-  { 4,  "428",  "Precondition Required",              428 },
-  { 4,  "429",  "Too Many Requests",                  429 },
+  { 428, 4,  "428",  "Precondition Required" },
+  { 429, 4,  "429",  "Too Many Requests" },
 
-  { 4,  "431",  "Request Header Fields Too Large",    431 },
+  { 431, 4,  "431",  "Request Header Fields Too Large" },
 
-  { 4,  "451",  "Unavailable For Legal Reasons",      451 },
+  { 451, 4,  "451",  "Unavailable For Legal Reasons" },
 
   /* 5xx */
-  { 4,  "500",  "Internal server error",              500 },
-  { 4,  "501",  "Not implemented",                    501 },
-  { 4,  "502",  "Bad gateway",                        502 },
-  { 4,  "503",  "Service unavailable",                503 },
-  { 4,  "504",  "Gateway Timeout",                    504 },
-  { 4,  "505",  "HTTP Version Not Supported",         505 },
-  { 4,  "506",  "Variant Also Negotiates",            506 },
-  { 4,  "507",  "Insufficient Storage",               507 },
-  { 4,  "508",  "Loop Detected",                      508 },
+  { 500, 4,  "500",  "Internal server error" },
+  { 501, 4,  "501",  "Not implemented" },
+  { 502, 4,  "502",  "Bad gateway" },
+  { 503, 4,  "503",  "Service unavailable" },
+  { 504, 4,  "504",  "Gateway Timeout" },
+  { 505, 4,  "505",  "HTTP Version Not Supported" },
+  { 506, 4,  "506",  "Variant Also Negotiates" },
+  { 507, 4,  "507",  "Insufficient Storage" },
+  { 508, 4,  "508",  "Loop Detected" },
 
-  { 4,  "510",  "Not Extended",                       510 },
-  { 4,  "511",  "Network Authentication Required",    511 },
+  { 510, 4,  "510",  "Not Extended" },
+  { 511, 4,  "511",  "Network Authentication Required" },
 
   /* 1xx */
-  { 4,  "100",  "Continue",                           100 },
-  { 4,  "101",  "Switching Protocols",                101 },
-  { 4,  "102",  "Processing",                         102 },
-  { 4,  "103",  "Early Hints",                        103 },
+  { 100, 4,  "100",  "Continue" },
+  { 101, 4,  "101",  "Switching Protocols" },
+  { 102, 4,  "102",  "Processing" },
+  { 103, 4,  "103",  "Early Hints" },
 
-  { 0,  NULL , NULL, 0 }
+  { 0, 0,  NULL , NULL }
 };
 
 
