@@ -26,7 +26,6 @@
 #include "wsstatic.h"
 #include "uriparser.h"
 
-#include <cstddef>  // for size_t
 #include <string>
 #include <map>
 
@@ -56,6 +55,7 @@ namespace NSROOT
     void SetContentParam(const std::string& param, const std::string& value);
     void SetContentCustom(const std::string& contentType, const char *content);
     void SetHeader(const std::string& field, const std::string& value);
+    void EraseHeader(const std::string& field);
     const std::string& GetContent() const { return m_contentData; }
     void ClearContent();
 
@@ -78,7 +78,8 @@ namespace NSROOT
     WS_CTYPE m_contentType;
     std::string m_contentTypeStr;
     std::string m_contentData;
-    std::map<std::string, std::string> m_headers;
+    typedef std::pair<std::string, std::string> header_t;
+    std::map<std::string, header_t> m_headers;
     std::string m_userAgent;
 
     void MakeMessageGET(std::string& msg, const char* method = "GET") const;

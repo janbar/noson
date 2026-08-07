@@ -47,14 +47,25 @@ void WSResponse::init(const WSRequest &request, int maxRedirs, bool trustedLocat
       // handle redirection
       URIParser uri(p->Redirection());
       bool trusted = (uri.Scheme() && strncmp("https", uri.Scheme(), 5) == 0);
+      unsigned port = uri.Port();
+      if (!port)
+        port = (trusted ? 443 : 80);
+      bool samehost = (!uri.Host() || request.GetServer() == uri.Host());
+      bool sameorigin = (!uri.Host() || (samehost && request.GetPort() == port));
       if (
-          /* relative */ !uri.Host() ||
-          /* same origin */ (request.GetServer() == uri.Host() && (!trustedLocation || trusted)) ||
-          /* follow any */ (followAny && (!trustedLocation || trusted))
+          /* same origin  */ sameorigin ||
+          /* same host    */ (samehost && (!trustedLocation || trusted)) ||
+          /* follow any   */ (followAny && (!trustedLocation || trusted))
           )
       {
         DBG(DBG_DEBUG, "%s: (%d) LOCATION = %s\n", __FUNCTION__, p->GetStatusCode(), p->Redirection().c_str());
         WSRequest redir(request, uri);
+        if (!sameorigin)
+        {
+          /* clear credentials */
+          redir.EraseHeader(ws_header_to_upperstr(WS_HEADER_Authorization));
+          redir.EraseHeader("COOKIE");
+        }
         delete p;
         p = new _response(redir);
         continue;

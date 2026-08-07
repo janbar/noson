@@ -21,10 +21,11 @@
 
 #include "wsrequest.h"
 #include "uriencoder.h"
-#include "debug.h"
 
 #include <cstdio>
 #include <cstring> // for strlen
+#include <cstddef> // for size_t
+#include <algorithm>
 
 using namespace NSROOT;
 
@@ -202,7 +203,18 @@ void WSRequest::SetContentCustom(const std::string& contentType, const char *con
 
 void WSRequest::SetHeader(const std::string& field, const std::string& value)
 {
-  m_headers[field] = value;
+  std::string _key(field);
+  std::transform(_key.cbegin(), _key.cend(), _key.begin(), ::toupper);
+  m_headers[_key] = std::make_pair(field, value);
+}
+
+void  WSRequest::EraseHeader(const std::string& field)
+{
+  std::string _key(field);
+  std::transform(_key.cbegin(), _key.cend(), _key.begin(), ::toupper);
+  std::map<std::string, header_t>::const_iterator it = m_headers.find(_key);
+  if (it != m_headers.end())
+    m_headers.erase(it);
 }
 
 void WSRequest::ClearContent()
@@ -273,8 +285,8 @@ void WSRequest::MakeMessageGET(std::string& msg, const char* method) const
   if (!m_accept.empty())
     msg.append(ws_header_to_str(WS_HEADER_Accept)).append(": ").append(m_accept).append(WS_CRLF);
   msg.append(ws_header_to_str(WS_HEADER_Accept_Charset)).append(": ").append(m_charset).append(WS_CRLF);
-  for (std::map<std::string, std::string>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
-    msg.append(it->first).append(": ").append(it->second).append(WS_CRLF);
+  for (std::map<std::string, header_t>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
+    msg.append(it->second.first).append(": ").append(it->second.second).append(WS_CRLF);
   msg.append(WS_CRLF);
 }
 
@@ -311,8 +323,8 @@ void WSRequest::MakeMessagePOST(std::string& msg, const char* method) const
     msg.append("; charset=" REQUEST_STD_CHARSET WS_CRLF);
     msg.append(ws_header_to_str(WS_HEADER_Content_Length)).append(": ").append(buf).append(WS_CRLF);
   }
-  for (std::map<std::string, std::string>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
-    msg.append(it->first).append(": ").append(it->second).append(WS_CRLF);
+  for (std::map<std::string, header_t>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
+    msg.append(it->second.first).append(": ").append(it->second.second).append(WS_CRLF);
   msg.append(WS_CRLF);
   if (content_len)
     msg.append(m_contentData);
@@ -343,7 +355,7 @@ void WSRequest::MakeMessageHEAD(std::string& msg, const char* method) const
   if (!m_accept.empty())
     msg.append(ws_header_to_str(WS_HEADER_Accept)).append(": ").append(m_accept).append(WS_CRLF);
   msg.append(ws_header_to_str(WS_HEADER_Accept_Charset)).append(": ").append(m_charset).append(WS_CRLF);
-  for (std::map<std::string, std::string>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
-    msg.append(it->first).append(": ").append(it->second).append(WS_CRLF);
+  for (std::map<std::string, header_t>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
+    msg.append(it->second.first).append(": ").append(it->second.second).append(WS_CRLF);
   msg.append(WS_CRLF);
 }
