@@ -409,7 +409,7 @@ size_t TcpSocket::ReceiveData(void *buf, size_t n)
     else if ((m_buffer = new char[m_buflen]) == nullptr)
     {
       m_errno = ENOMEM;
-      DBG(DBG_ERROR, "%s: cannot allocate %u bytes for buffer\n", __FUNCTION__, m_buflen);
+      DBG(DBG_ERROR, "%s: cannot allocate %u bytes for buffer\n", __FUNCTION__, (unsigned)m_buflen);
       return 0;
     }
     // Reset buffer
@@ -1010,7 +1010,7 @@ size_t UdpSocket::ReceiveData(void* buf, size_t n)
     else if ((m_buffer = new char[m_buflen]) == nullptr)
     {
       m_errno = ENOMEM;
-      DBG(DBG_ERROR, "%s: cannot allocate %u bytes for buffer\n", __FUNCTION__, m_buflen);
+      DBG(DBG_ERROR, "%s: cannot allocate %u bytes for buffer\n", __FUNCTION__, (unsigned)m_buflen);
       return 0;
     }
     // fill buffer with the next incoming datagram
@@ -1392,7 +1392,7 @@ size_t UdpServerSocket::AwaitIncoming()
     if (!m_buffer && (m_buffer = new char[m_buflen]) == nullptr)
     {
       m_errno = ENOMEM;
-      DBG(DBG_ERROR, "%s: cannot allocate %u bytes for buffer\n", __FUNCTION__, m_buflen);
+      DBG(DBG_ERROR, "%s: cannot allocate %u bytes for buffer\n", __FUNCTION__, (unsigned)m_buflen);
       return 0;
     }
     // reset buffer
