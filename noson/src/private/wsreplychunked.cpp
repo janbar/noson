@@ -79,7 +79,7 @@ bool WSReplyChunked::Flush()
   return false;
 }
 
-int WSReplyChunked::ReadFileStream(FILE * file)
+int WSReplyChunked::WriteFileStream(FILE * file)
 {
   if (!m_tail)
   {
@@ -98,7 +98,7 @@ int WSReplyChunked::ReadFileStream(FILE * file)
   return r;
 }
 
-int WSReplyChunked::ReadFileStream(FILE * file, unsigned maxlen)
+int WSReplyChunked::WriteFileStream(FILE * file, unsigned maxlen)
 {
   if (!m_tail)
   {
@@ -119,7 +119,7 @@ int WSReplyChunked::ReadFileStream(FILE * file, unsigned maxlen)
   return r;
 }
 
-int WSReplyChunked::ReadInputStream(InputStream& in)
+int WSReplyChunked::WriteInputStream(InputStream& in)
 {
   if (!m_tail)
   {

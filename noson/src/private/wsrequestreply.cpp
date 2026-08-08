@@ -189,7 +189,7 @@ int WSRequestReply::WriteFileStream(FILE* file)
     DBG(DBG_ERROR, "%s: bad stage (%d)\n", __FUNCTION__, m_stage);
     return false;
   }
-  return m_chunked->ReadFileStream(file);
+  return m_chunked->WriteFileStream(file);
 }
 
 int WSRequestReply::WriteFileStream(FILE* file, unsigned maxlen)
@@ -199,7 +199,7 @@ int WSRequestReply::WriteFileStream(FILE* file, unsigned maxlen)
     DBG(DBG_ERROR, "%s: bad stage (%d)\n", __FUNCTION__, m_stage);
     return false;
   }
-  return m_chunked->ReadFileStream(file, maxlen);
+  return m_chunked->WriteFileStream(file, maxlen);
 }
 
 int WSRequestReply::WriteInputStream(InputStream& in)
@@ -209,7 +209,7 @@ int WSRequestReply::WriteInputStream(InputStream& in)
     DBG(DBG_ERROR, "%s: bad stage (%d)\n", __FUNCTION__, m_stage);
     return false;
   }
-  return m_chunked->ReadInputStream(in);
+  return m_chunked->WriteInputStream(in);
 }
 
 bool WSRequestReply::WriteString(const char* str)

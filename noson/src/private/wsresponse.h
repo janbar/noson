@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2015 Jean-Luc Barriere
+ *      Copyright (C) 2014-2026 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -80,11 +80,11 @@ namespace NSROOT
     WSResponse(const WSResponse&);
     WSResponse& operator=(const WSResponse&);
 
-    class _response
+    class _response : private WSRequestStreamSink
     {
     public:
       _response(const WSRequest& request);
-      ~_response();
+      virtual ~_response();
 
       bool IsSuccessful() const { return m_successful; }
       bool IsChunkedTransfer() const { return m_contentChunked; }
@@ -124,8 +124,10 @@ namespace NSROOT
       _response(const _response&);
       _response& operator=(const _response&);
 
-      bool SendRequest(const WSRequest& request);
-      bool GetResponse();
+      bool WriteRequestStream(const char * data, unsigned len) override;
+      bool FlushRequestStream() override;
+
+      bool ReadResponse();
       int ReadChunk(void *buf, size_t buflen);
       static int SocketStreamReader(void *hdl, void *buf, int sz);
       static int ChunkStreamReader(void *hdl, void *buf, int sz);

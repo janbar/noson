@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2015 Jean-Luc Barriere
+ *      Copyright (C) 2014-2026 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -21,9 +21,10 @@
 
 #include "wsrequest.h"
 #include "uriencoder.h"
+#include "builtin.h"
+#include "debug.h"
 
 #include <cstdio>
-#include <cstring> // for strlen
 #include <cstddef> // for size_t
 #include <algorithm>
 
@@ -185,6 +186,22 @@ void WSRequest::SetUserAgent(const std::string& value)
   m_userAgent = value;
 }
 
+void WSRequest::SetHeader(const std::string& field, const std::string& value)
+{
+  std::string _key(field);
+  std::transform(_key.cbegin(), _key.cend(), _key.begin(), ::toupper);
+  m_headers[_key] = std::make_pair(field, value);
+}
+
+void  WSRequest::ClearHeader(const std::string& field)
+{
+  std::string _key(field);
+  std::transform(_key.cbegin(), _key.cend(), _key.begin(), ::toupper);
+  std::map<std::string, header_t>::const_iterator it = m_headers.find(_key);
+  if (it != m_headers.end())
+    m_headers.erase(it);
+}
+
 void WSRequest::SetContentParam(const std::string& param, const std::string& value)
 {
   if (m_contentType != WS_CTYPE_Form)
@@ -201,22 +218,6 @@ void WSRequest::SetContentCustom(const std::string& contentType, const char *con
   m_contentData = content;
 }
 
-void WSRequest::SetHeader(const std::string& field, const std::string& value)
-{
-  std::string _key(field);
-  std::transform(_key.cbegin(), _key.cend(), _key.begin(), ::toupper);
-  m_headers[_key] = std::make_pair(field, value);
-}
-
-void  WSRequest::EraseHeader(const std::string& field)
-{
-  std::string _key(field);
-  std::transform(_key.cbegin(), _key.cend(), _key.begin(), ::toupper);
-  std::map<std::string, header_t>::const_iterator it = m_headers.find(_key);
-  if (it != m_headers.end())
-    m_headers.erase(it);
-}
-
 void WSRequest::ClearContent()
 {
   m_contentData.clear();
@@ -224,138 +225,140 @@ void WSRequest::ClearContent()
   m_contentTypeStr.clear();
 }
 
-void WSRequest::MakeMessage(std::string& msg) const
+bool WSRequest::WriteMessage(WSRequestStreamSink& sink) const
 {
   switch (m_service_method)
   {
   case WS_METHOD_Get:
-    MakeMessageGET(msg);
-    break;
+    return WriteMessageGET(sink, "GET");
   case WS_METHOD_Post:
-    MakeMessagePOST(msg);
-    break;
+    return WriteMessagePOST(sink, "POST");
   case WS_METHOD_Head:
-    MakeMessageHEAD(msg);
-    break;
+    return WriteMessageGET(sink, "HEAD");
   case WS_METHOD_Subscribe:
-    MakeMessageHEAD(msg, "SUBSCRIBE");
-    break;
+    return WriteMessageGET(sink, "SUBSCRIBE");
   case WS_METHOD_Unsubscribe:
-    MakeMessageHEAD(msg, "UNSUBSCRIBE");
-    break;
+    return WriteMessageGET(sink, "UNSUBSCRIBE");
   case WS_METHOD_Notify:
-    MakeMessagePOST(msg, "NOTIFY");
-    break;
+    return WriteMessagePOST(sink, "NOTIFY");
   case WS_METHOD_Put:
-    MakeMessagePOST(msg, "PUT");
-    break;
+    return WriteMessagePOST(sink, "PUT");
   case WS_METHOD_Delete:
-    MakeMessageHEAD(msg, "DELETE");
-    break;
+    return WriteMessageGET(sink, "DELETE");
   case WS_METHOD_Options:
-    MakeMessageHEAD(msg, "OPTIONS");
-    break;
+    return WriteMessageGET(sink, "OPTIONS");
   default:
-    break;
+    return false;
   }
 }
 
-void WSRequest::MakeMessageGET(std::string& msg, const char* method) const
+bool WSRequest::WriteCommonHeading(WSRequestStreamSink& sink) const
 {
-  char buf[32];
+  BUILTIN_BUFFER buf;
+  std::string msg;
+  msg.reserve(255);
 
-  msg.clear();
-  msg.reserve(256);
-  msg.append(method).append(" ").append(m_service_url);
-  if (!m_contentData.empty())
-    msg.append("?").append(m_contentData);
-  msg.append(" " REQUEST_PROTOCOL WS_CRLF);
+  // Host
   msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ");
   if (m_server.find(':') == std::string::npos)
     msg.append(m_server);
   else
     msg.append("[").append(m_server).append("]");
-  snprintf(buf, sizeof(buf), "%u", m_port);
-  msg.append(":").append(buf).append(WS_CRLF);
+  unsigned len = uint_to_strdec(m_port, buf.data, 12, 0);
+  msg.append(":").append(buf.data, len).append(WS_CRLF);
+
+  // User-Agent
   if (m_userAgent.empty())
     msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": " REQUEST_USER_AGENT WS_CRLF);
   else
     msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": ").append(m_userAgent).append(WS_CRLF);
+
+  // Connection
   msg.append(ws_header_to_str(WS_HEADER_Connection)).append(": " REQUEST_CONNECTION WS_CRLF);
+
+  // Accept
   if (!m_accept.empty())
     msg.append(ws_header_to_str(WS_HEADER_Accept)).append(": ").append(m_accept).append(WS_CRLF);
+
+  // Accept-Charset
   msg.append(ws_header_to_str(WS_HEADER_Accept_Charset)).append(": ").append(m_charset).append(WS_CRLF);
+
+  if (!sink.WriteRequestStream(msg.c_str(), msg.size()))
+    return false;
+
+  // the rest
   for (std::map<std::string, header_t>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
-    msg.append(it->second.first).append(": ").append(it->second.second).append(WS_CRLF);
-  msg.append(WS_CRLF);
+  {
+    msg.assign(it->second.first).append(": ").append(it->second.second).append(WS_CRLF);
+    if (!sink.WriteRequestStream(msg.c_str(), msg.size()))
+      return false;
+  }
+
+  return true;
 }
 
-void WSRequest::MakeMessagePOST(std::string& msg, const char* method) const
+bool WSRequest::WriteMessageGET(WSRequestStreamSink& sink, const char* method) const
 {
-  char buf[32];
-  size_t content_len = m_contentData.size();
+  std::string msg;
+  msg.reserve(127);
 
-  msg.clear();
-  msg.reserve(256);
+  // the request with parameters
+  msg.append(method).append(" ").append(m_service_url);
+  if (!m_contentData.empty() && m_contentType == WS_CTYPE_Form)
+    msg.append("?").append(m_contentData);
+  msg.append(" " REQUEST_PROTOCOL WS_CRLF);
+
+  DBG(DBG_PROTO, "%s: %s", __FUNCTION__, msg.c_str());
+  if (!sink.WriteRequestStream(msg.c_str(), msg.size()))
+    return false;
+  if (!WriteCommonHeading(sink))
+    return false;
+  // close headers
+  if (!sink.WriteRequestStream(WS_CRLF, WS_CRLF_LEN))
+    return false;
+
+  return sink.FlushRequestStream();
+}
+
+bool WSRequest::WriteMessagePOST(WSRequestStreamSink& sink, const char* method) const
+{
+  std::string msg;
+  msg.reserve(127);
+
+  // the request
   msg.append(method).append(" ").append(m_service_url).append(" " REQUEST_PROTOCOL WS_CRLF);
-  msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ");
-  if (m_server.find(':') == std::string::npos)
-    msg.append(m_server);
-  else
-    msg.append("[").append(m_server).append("]");
-  snprintf(buf, sizeof(buf), "%u", m_port);
-  msg.append(":").append(buf).append(WS_CRLF);
-  if (m_userAgent.empty())
-    msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": " REQUEST_USER_AGENT WS_CRLF);
-  else
-    msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": ").append(m_userAgent).append(WS_CRLF);
-  msg.append(ws_header_to_str(WS_HEADER_Connection)).append(": " REQUEST_CONNECTION WS_CRLF);
-  if (!m_accept.empty())
-    msg.append(ws_header_to_str(WS_HEADER_Accept)).append(": ").append(m_accept).append(WS_CRLF);
-  msg.append(ws_header_to_str(WS_HEADER_Accept_Charset)).append(": ").append(m_charset).append(WS_CRLF);
-  if (m_contentType != WS_CTYPE_None && content_len)
+
+  DBG(DBG_PROTO, "%s: %s", __FUNCTION__, msg.c_str());
+  if (!sink.WriteRequestStream(msg.c_str(), msg.size()))
+    return false;
+  if (!WriteCommonHeading(sink))
+    return false;
+
+  if (!m_contentData.empty() && m_contentType != WS_CTYPE_None)
   {
-    snprintf(buf, sizeof(buf), "%lu", (unsigned long)content_len);
+    BUILTIN_BUFFER buf;
+    unsigned bl = uint_to_strdec(m_contentData.size(), buf.data, 12, 0);
+    msg.clear();
     if (m_contentType == WS_CTYPE_UNKNOWN)
       msg.append(ws_header_to_str(WS_HEADER_Content_Type)).append(": ").append(m_contentTypeStr);
     else
       msg.append(ws_header_to_str(WS_HEADER_Content_Type)).append(": ").append(ws_ctype_to_str(m_contentType));
     msg.append("; charset=" REQUEST_STD_CHARSET WS_CRLF);
-    msg.append(ws_header_to_str(WS_HEADER_Content_Length)).append(": ").append(buf).append(WS_CRLF);
+    msg.append(ws_header_to_str(WS_HEADER_Content_Length)).append(": ").append(buf.data, bl).append(WS_CRLF);
+    // close headers
+    msg.append(WS_CRLF);
+    if (!sink.WriteRequestStream(msg.c_str(), msg.size()))
+      return false;
+    // the body
+    if (!sink.WriteRequestStream(m_contentData.c_str(), m_contentData.size()))
+      return false;
   }
-  for (std::map<std::string, header_t>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
-    msg.append(it->second.first).append(": ").append(it->second.second).append(WS_CRLF);
-  msg.append(WS_CRLF);
-  if (content_len)
-    msg.append(m_contentData);
-}
-
-void WSRequest::MakeMessageHEAD(std::string& msg, const char* method) const
-{
-  char buf[32];
-
-  msg.clear();
-  msg.reserve(256);
-  msg.append(method).append(" ").append(m_service_url);
-  if (!m_contentData.empty())
-    msg.append("?").append(m_contentData);
-  msg.append(" " REQUEST_PROTOCOL WS_CRLF);
-  msg.append(ws_header_to_str(WS_HEADER_Host)).append(": ");
-  if (m_server.find(':') == std::string::npos)
-    msg.append(m_server);
   else
-    msg.append("[").append(m_server).append("]");
-  snprintf(buf, sizeof(buf), "%u", m_port);
-  msg.append(":").append(buf).append(WS_CRLF);
-  if (m_userAgent.empty())
-    msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": " REQUEST_USER_AGENT WS_CRLF);
-  else
-    msg.append(ws_header_to_str(WS_HEADER_User_Agent)).append(": ").append(m_userAgent).append(WS_CRLF);
-  msg.append(ws_header_to_str(WS_HEADER_Connection)).append(": " REQUEST_CONNECTION WS_CRLF);
-  if (!m_accept.empty())
-    msg.append(ws_header_to_str(WS_HEADER_Accept)).append(": ").append(m_accept).append(WS_CRLF);
-  msg.append(ws_header_to_str(WS_HEADER_Accept_Charset)).append(": ").append(m_charset).append(WS_CRLF);
-  for (std::map<std::string, header_t>::const_iterator it = m_headers.begin(); it != m_headers.end(); ++it)
-    msg.append(it->second.first).append(": ").append(it->second.second).append(WS_CRLF);
-  msg.append(WS_CRLF);
+  {
+    // close headers
+    if (!sink.WriteRequestStream(WS_CRLF, WS_CRLF_LEN))
+      return false;
+  }
+
+  return sink.FlushRequestStream();
 }

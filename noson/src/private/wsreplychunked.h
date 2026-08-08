@@ -15,12 +15,42 @@ public:
   WSReplyChunked(WSRequestBroker& rb, int ckunkSize);
   virtual ~WSReplyChunked();
 
+  /**
+   * Write data into the chunked stream.
+   * @param data
+   * @param len The size of data
+   * @return 0 on failure, else the size of data
+   */
   virtual int Write(const char * data, int len) override;
 
+  /**
+   * Finalize the chunked stream
+   * @return true on success, else false
+   */
   bool Flush();
-  int ReadFileStream(FILE * file);
-  int ReadFileStream(FILE * file, unsigned maxlen);
-  int ReadInputStream(InputStream& in);
+
+  /**
+   * Write FILE stream into the chunked stream.
+   * @param file The file stream to be read
+   * @return The number of bytes actually read
+   */
+  int WriteFileStream(FILE * file);
+
+  /**
+   * Write FILE stream into the chunked stream.
+   * @param file The file stream to be read
+   * @param maxlen The maximum number of bytes to read
+   * @return The number of bytes actually read
+   */
+  int WriteFileStream(FILE * file, unsigned maxlen);
+
+
+  /**
+   * Write input stream into the chunked stream.
+   * @param in The input stream to be read
+   * @return The number of bytes actually read
+   */
+  int WriteInputStream(InputStream& in);
 
 private:
   WSRequestBroker& m_broker;
