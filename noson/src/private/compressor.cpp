@@ -99,9 +99,11 @@ Compressor::~Compressor()
 {
 #if HAVE_ZLIB
   z_stream *strm = static_cast<z_stream*>(_opaque);
-  deflateEnd(strm);
   if (strm)
+  {
+    deflateEnd(strm);
     delete strm;
+  }
   if (m_output)
     delete [] m_output;
   m_output = nullptr;
@@ -346,9 +348,11 @@ Decompressor::~Decompressor()
 {
 #if HAVE_ZLIB
   z_stream *strm = static_cast<z_stream*>(_opaque);
-  inflateEnd(strm);
   if (strm)
+  {
+    inflateEnd(strm);
     delete strm;
+  }
   if (m_output)
     delete [] m_output;
   m_output = nullptr;
