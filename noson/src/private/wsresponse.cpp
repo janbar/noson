@@ -33,7 +33,7 @@
 #define RESPONSE_BUFFER_SIZE  0x400     // size of read buffer for headers
 #define RESPONSE_MAX_SIZE     0x20000   // maximum size for the entire response
 #define CHUNK_MAX_SIZE        0x20000
-#define REQUEST_BUFFER_SIZE   0x400
+#define REQUEST_BUFFER_SIZE   0x1000
 
 using namespace NSROOT;
 
@@ -165,7 +165,9 @@ WSResponse::_response::_response(const WSRequest &request)
   else if (m_socket->Connect(request.GetServer().c_str(), request.GetPort(), SOCKET_RCVBUF_MINSIZE))
   {
     m_socket->SetReadAttempt(6); // 60 sec to hang up
-    if (request.WriteMessage(*this) && ReadResponse())
+    if (!request.WriteMessage(*this))
+      DBG(DBG_WARN, "%s: broken request\n", __FUNCTION__);
+    if (ReadResponse())
     {
       if (m_statusCode < 200)
         DBG(DBG_WARN, "%s: status %d\n", __FUNCTION__, m_statusCode);
@@ -200,10 +202,10 @@ bool WSResponse::_response::WriteRequestStream(const char * data, unsigned len)
 {
   if (!m_chunkBuffer)
   {
-    if (!(m_chunkBuffer = new char[RESPONSE_BUFFER_SIZE]))
+    if (!(m_chunkBuffer = new char[REQUEST_BUFFER_SIZE]))
       return false;
     m_chunkPtr = m_chunkEOR = m_chunkBuffer;
-    m_chunkEnd = m_chunkBuffer + RESPONSE_BUFFER_SIZE;
+    m_chunkEnd = m_chunkBuffer + REQUEST_BUFFER_SIZE;
   }
 
   for(;;)
@@ -219,7 +221,7 @@ bool WSResponse::_response::WriteRequestStream(const char * data, unsigned len)
     {
       memcpy(m_chunkPtr, data, s);
       data += s;
-      if (!m_socket->SendData(m_chunkBuffer, RESPONSE_BUFFER_SIZE))
+      if (!m_socket->SendData(m_chunkBuffer, REQUEST_BUFFER_SIZE))
       {
         DBG(DBG_ERROR, "%s: failed (%d)\n", __FUNCTION__, m_socket->GetErrNo());
         delete [] m_chunkBuffer;
