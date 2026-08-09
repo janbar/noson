@@ -11,6 +11,7 @@
 #else
 #include <unistd.h>
 #include <sys/time.h>
+#include <signal.h>
 #endif
 
 #include "private/wsresponse.h"
@@ -20,6 +21,25 @@
 #include <string.h>
 #include <cstdio>
 
+#ifndef __WINDOWS__
+static void signalHandler(int signal, siginfo_t * info, void * data)
+{
+  SONOS::DBG(DBG_DEBUG, "signal %d catched\n", signal);
+  (void)info;
+  (void)data;
+}
+
+static bool catchSignal(int signal)
+{
+  struct sigaction act;
+  memset(&act, '\0', sizeof(struct sigaction));
+  act.sa_sigaction = &signalHandler;
+  act.sa_flags |= SA_SIGINFO;
+  sigemptyset(&act.sa_mask);
+  return (sigaction(signal, &act, 0) == 0);
+}
+#endif
+
 int main(int argc, char** argv) {
 
   int ret = 0;
@@ -28,6 +48,8 @@ int main(int argc, char** argv) {
   WSADATA wsaData;
   if ((ret = WSAStartup(MAKEWORD(2, 2), &wsaData)))
     return ret;
+#else
+  catchSignal(SIGPIPE);
 #endif /* __WINDOWS__ */
 
   const char* dest_host = "www.google.fr";
