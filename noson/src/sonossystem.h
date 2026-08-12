@@ -83,6 +83,10 @@ namespace NSROOT
     // Device properties
     const std::string& GetHouseholdID() const { return m_householdID; }
 
+    // The "Muse" household id (e.g. "Sonos_xxx.yyy") used by the Sonos cloud
+    // content API; fetched live from ZoneGroupTopology. Empty if unavailable.
+    std::string GetMuseHouseholdID();
+
     const std::string& GetSerialNumber() const { return m_serialNumber; }
 
     const std::string& GetSoftwareVersion() const { return m_softwareVersion; }

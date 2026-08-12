@@ -98,6 +98,13 @@ bool ZoneGroupTopology::GetZoneGroupState()
   return false;
 }
 
+bool ZoneGroupTopology::GetZoneGroupAttributes(ElementList& attributes)
+{
+  ElementList args;
+  attributes = Request("GetZoneGroupAttributes", args);
+  return (!attributes.empty() && attributes[0]->compare("GetZoneGroupAttributesResponse") == 0);
+}
+
 void ZoneGroupTopology::HandleEventMessage(EventMessagePtr msg)
 {
   if (!msg)

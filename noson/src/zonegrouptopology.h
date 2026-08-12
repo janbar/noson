@@ -53,6 +53,8 @@ namespace NSROOT
 
     bool GetZoneGroupState();
 
+    bool GetZoneGroupAttributes(ElementList& attributes);
+
     unsigned GetTopologyKey() const { return m_topologyKey; }
 
     Locked<ZoneList>& GetZoneList() { return m_zones; }

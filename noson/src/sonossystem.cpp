@@ -191,6 +191,18 @@ void System::RenewSubscriptions()
   m_subscriptionPool->RenewSubscriptions();
 }
 
+std::string System::GetMuseHouseholdID()
+{
+  OS::LockGuard lock(*m_mutex);
+  if (m_groupTopology)
+  {
+    ElementList attrs;
+    if (m_groupTopology->GetZoneGroupAttributes(attrs))
+      return attrs.GetValue("CurrentMuseHouseholdId");
+  }
+  return std::string();
+}
+
 ZoneList System::GetZoneList() const
 {
   OS::LockGuard lock(*m_mutex);
