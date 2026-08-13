@@ -382,14 +382,18 @@ namespace sajson {
     private:
         void assert_type(type expected) const {
             assert(expected == get_type());
+            (void)expected;
         }
 
         void assert_type_2(type e1, type e2) const {
             assert(e1 == get_type() || e2 == get_type());
+            (void)e1;
+            (void)e2;
         }
 
         void assert_in_bounds(size_t i) const {
             assert(i < get_length());
+            (void)i;
         }
 
         const type value_type;
