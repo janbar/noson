@@ -6,11 +6,15 @@
 #include <WinSock2.h>
 #include <Windows.h>
 #include <time.h>
+#define STDOUT stdout
+#define STDERR stderr
 #define usleep(t) Sleep((DWORD)(t)/1000)
 #define sleep(t)  Sleep((DWORD)(t)*1000)
 #else
 #include <unistd.h>
 #include <sys/time.h>
+#define STDOUT stdout
+#define STDERR stderr
 #endif
 
 #include <noson/sonossystem.h>
@@ -24,18 +28,16 @@
 #include <string>
 #include <cstdlib>
 
-#define PRINT(a) fprintf(stderr, a)
-#define PRINT1(a,b) fprintf(stderr, a, b)
-#define PRINT2(a,b,c) fprintf(stderr, a, b, c)
-#define PRINT3(a,b,c,d) fprintf(stderr, a, b, c, d)
-#define PRINT4(a,b,c,d,e) fprintf(stderr, a, b, c, d, e)
-
+#define PRINT(a) fputs(a, STDOUT)
+#define PRINTF(a, ...) fprintf(STDOUT, a, __VA_ARGS__)
+#define PERROR(a) fputs(a, STDERR)
+#define PERRORF(a, ...) fprintf(STDERR, a, __VA_ARGS__)
 
 void handleEventCB(void* handle)
 {
-//  fprintf(stderr, "#########################\n");
-//  fprintf(stderr, "### Handling event CB ###\n");
-//  fprintf(stderr, "#########################\n");
+//  PERROR("#########################\n");
+//  PERROR("### Handling event CB ###\n");
+//  PERROR("#########################\n");
 }
 
 
@@ -78,31 +80,31 @@ int main(int argc, char** argv)
     if (strcmp(argv[i], "--debug") == 0)
     {
       g_loglevel = 4;
-      fprintf(stderr, "debug=Yes, ");
+      PERROR("debug=Yes, ");
     }
     else if (strcmp(argv[i], "--zone") == 0 && argc > i+1)
     {
-      fprintf(stderr, "zone=%s, ", argv[i+1]);
+      PERRORF("zone=%s, ", argv[i+1]);
       tryzone.assign(argv[i+1]);
     }
     else if (strcmp(argv[i], "--service") == 0 && argc > i+1)
     {
-      fprintf(stderr, "service=%s, ", argv[i+1]);
+      PERRORF("service=%s, ", argv[i+1]);
       tstServiceName.assign(argv[i+1]);
     }
     else if (strcmp(argv[i], "--search") == 0 && argc > i+1)
     {
-      fprintf(stderr, "search=%s, ", argv[i+1]);
+      PERRORF("search=%s, ", argv[i+1]);
       tstServiceMediaId.assign(argv[i+1]);
     }
     else if (strcmp(argv[i], "--username") == 0 && argc > i+1)
     {
-      fprintf(stderr, "username=%s, ", argv[i+1]);
+      PERRORF("username=%s, ", argv[i+1]);
       username.assign(argv[i+1]);
     }
     else if (strcmp(argv[i], "--password") == 0 && argc > i+1)
     {
-      fprintf(stderr, "password=%s, ", argv[i+1]);
+      PERRORF("password=%s, ", argv[i+1]);
       password.assign(argv[i+1]);
     }
     else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0)
@@ -111,7 +113,7 @@ int main(int argc, char** argv)
       return 0;
     }
   }
-  fprintf(stderr, "\n");
+  PERROR("\n");
   SONOS::System::Debug(g_loglevel);
 
   {
@@ -128,46 +130,46 @@ int main(int argc, char** argv)
          */
         for (auto&& item : sonos.GetAvailableServices())
        	{
-          PRINT3("MusicService: %s : %s , %s\n", item->GetName().c_str(), item->GetServiceType().c_str(), (item->GetPresentationMap() ? item->GetPresentationMap()->GetAttribut("Uri").c_str() : "No presentation map"));
-          PRINT2("Policy      = Auth:%s , Poll:%s\n", item->GetPolicy()->GetAttribut("Auth").c_str(), item->GetPolicy()->GetAttribut("PollInterval").c_str());
-          PRINT1("Capabilities= %s\n", item->GetCapabilities().c_str());
-          PRINT1("small icon  = %s\n", SONOS::System::GetLogoForService(item, "small").c_str());
-          PRINT1("xlarge icon = %s\n", SONOS::System::GetLogoForService(item, "x-large").c_str());
-          PRINT1("square icon = %s\n", SONOS::System::GetLogoForService(item, "square").c_str());
+          PRINTF("MusicService: %s : %s , %s\n", item->GetName().c_str(), item->GetServiceType().c_str(), (item->GetPresentationMap() ? item->GetPresentationMap()->GetAttribut("Uri").c_str() : "No presentation map"));
+          PRINTF("Policy      = Auth:%s , Poll:%s\n", item->GetPolicy()->GetAttribut("Auth").c_str(), item->GetPolicy()->GetAttribut("PollInterval").c_str());
+          PRINTF("Capabilities= %s\n", item->GetCapabilities().c_str());
+          PRINTF("small icon  = %s\n", SONOS::System::GetLogoForService(item, "small").c_str());
+          PRINTF("xlarge icon = %s\n", SONOS::System::GetLogoForService(item, "x-large").c_str());
+          PRINTF("square icon = %s\n", SONOS::System::GetLogoForService(item, "square").c_str());
           PRINT("\n");
 
           if (tstServiceName.empty() && item->GetName() == "TuneIn")
           {
             SONOS::System::Debug((g_loglevel < 3 ? 3 : g_loglevel));
-            PRINT1("Testing service %s ...\n", item->GetName().c_str());
+            PRINTF("Testing service %s ...\n", item->GetName().c_str());
             SONOS::SMAPI sm(sonos);
             sm.Init(item, "fr_FR");
             SONOS::SMAPIMetadata meta;
-            PRINT1("\n...search stations for term '%s'\n", "jazz");
+            PRINTF("\n...search stations for term '%s'\n", "jazz");
             sm.Search("stations", "jazz", 0, 10, meta);
             for (auto&& data : meta.GetItems())
             {
-              PRINT2("item: %s, %s\n", data.item->GetObjectID().c_str(), data.item->GetValue("dc:title").c_str());
+              PRINTF("item: %s, %s\n", data.item->GetObjectID().c_str(), data.item->GetValue("dc:title").c_str());
               if (data.uriMetadata)
-                PRINT1("%s\n\n", data.uriMetadata->DIDL().c_str());
+                PRINTF("%s\n\n", data.uriMetadata->DIDL().c_str());
               else
-                PRINT1("%s\n\n", data.item->DIDL().c_str());
+                PRINTF("%s\n\n", data.item->DIDL().c_str());
             }
             SONOS::System::Debug(g_loglevel);
           }
           if (item->GetName() == tstServiceName)
           {
             SONOS::System::Debug((g_loglevel < 3 ? 3 : g_loglevel));
-            PRINT1("Testing service %s ...\n", item->GetName().c_str());
+            PRINTF("Testing service %s ...\n", item->GetName().c_str());
             SONOS::SMAPI sm(sonos);
             sm.Init(item, "fr_FR");
 
             for (auto&& search : sm.AvailableSearchCategories())
-              PRINT2("Search category: %s, %s\n", search->GetKey().c_str(), search->c_str());
+              PRINTF("Search category: %s, %s\n", search->GetKey().c_str(), search->c_str());
 
             bool rs;
             SONOS::SMAPIMetadata meta;
-            PRINT1("\n...browse id '%s'\n", tstServiceMediaId.c_str());
+            PRINTF("\n...browse id '%s'\n", tstServiceMediaId.c_str());
             if (!(rs = sm.GetMetadata(tstServiceMediaId, 0, 10, false, meta)))
               rs = sm.GetMediaMetadata(tstServiceMediaId, meta);
             if (!rs)
@@ -175,7 +177,7 @@ int main(int argc, char** argv)
               std::string regUrl;
               std::string linkCode;
               if (!sm.AuthTokenExpired())
-                PRINT1("!!! Browsing failed for service %s !!!\n", item->GetName().c_str());
+                PRINTF("!!! Browsing failed for service %s !!!\n", item->GetName().c_str());
               else
               {
                 SONOS::SMOAKeyring::Data auth;
@@ -184,57 +186,57 @@ int main(int argc, char** argv)
                 case SONOS::SMAPI::Auth_UserId:
                   if (sm.GetSessionId(username, password, auth))
                   {
-                    PRINT1("Session ID = %s\n", auth.key.c_str());
+                    PRINTF("Session ID = %s\n", auth.key.c_str());
                     if (!(rs = sm.GetMetadata(tstServiceMediaId, 0, 10, false, meta)))
                       rs = sm.GetMediaMetadata(tstServiceMediaId, meta);
                   }
                   else
-                    PRINT1("!!! Getting session token failed for service %s !!!\n", item->GetName().c_str());
+                    PRINTF("!!! Getting session token failed for service %s !!!\n", item->GetName().c_str());
                   break;
 
                 case SONOS::SMAPI::Auth_DeviceLink:
                   if (sm.GetDeviceLinkCode(regUrl, linkCode))
                   {
-                    PRINT1("Go to manual registration URL: %s\n", regUrl.c_str());
+                    PRINTF("Go to manual registration URL: %s\n", regUrl.c_str());
                     if (!linkCode.empty())
-                      PRINT1("Link code: %s\n", linkCode.c_str());
+                      PRINTF("Link code: %s\n", linkCode.c_str());
                     while (sm.GetDeviceAuthToken(auth))
                     {
-                      PRINT1("Retrying %s\n", "...");
+                      PRINTF("Retrying %s\n", "...");
                       sleep(5);
                     }
-                    PRINT1("OAuth key   = %s\n", auth.key.c_str());
-                    PRINT1("OAuth token = %s\n", auth.token.c_str());
+                    PRINTF("OAuth key   = %s\n", auth.key.c_str());
+                    PRINTF("OAuth token = %s\n", auth.token.c_str());
                     if (!auth.key.empty())
                     {
                       if (!(rs = sm.GetMetadata(tstServiceMediaId, 0, 10, false, meta)))
                         rs = sm.GetMediaMetadata(tstServiceMediaId, meta);
                     }
                     else
-                      PRINT1("!!! Getting auth token failed for service %s !!!\n", item->GetName().c_str());
+                      PRINTF("!!! Getting auth token failed for service %s !!!\n", item->GetName().c_str());
                   }
                   break;
 
                 case SONOS::SMAPI::Auth_AppLink:
                   if (sm.GetAppLink(regUrl, linkCode))
                   {
-                    PRINT1("Go to manual registration URL: %s\n", regUrl.c_str());
+                    PRINTF("Go to manual registration URL: %s\n", regUrl.c_str());
                     if (!linkCode.empty())
-                      PRINT1("Link code: %s\n", linkCode.c_str());
+                      PRINTF("Link code: %s\n", linkCode.c_str());
                     while (sm.GetDeviceAuthToken(auth))
                     {
-                      PRINT1("Retrying %s\n", "...");
+                      PRINTF("Retrying %s\n", "...");
                       sleep(5);
                     }
-                    PRINT1("OAuth key   = %s\n", auth.key.c_str());
-                    PRINT1("OAuth token = %s\n", auth.token.c_str());
+                    PRINTF("OAuth key   = %s\n", auth.key.c_str());
+                    PRINTF("OAuth token = %s\n", auth.token.c_str());
                     if (!auth.key.empty())
                     {
                       if (!(rs = sm.GetMetadata(tstServiceMediaId, 0, 10, false, meta)))
                         rs = sm.GetMediaMetadata(tstServiceMediaId, meta);
                     }
                     else
-                      PRINT1("!!! Getting auth token failed for service %s !!!\n", item->GetName().c_str());
+                      PRINTF("!!! Getting auth token failed for service %s !!!\n", item->GetName().c_str());
                   }
                   break;
 
@@ -245,11 +247,11 @@ int main(int argc, char** argv)
             }
             for (auto&& data : meta.GetItems())
             {
-              PRINT2("item: %s, %s\n", data.item->GetObjectID().c_str(), data.item->GetValue("dc:title").c_str());
+              PRINTF("item: %s, %s\n", data.item->GetObjectID().c_str(), data.item->GetValue("dc:title").c_str());
               if (data.uriMetadata)
-                PRINT1("%s\n\n", data.uriMetadata->DIDL().c_str());
+                PRINTF("%s\n\n", data.uriMetadata->DIDL().c_str());
               else
-                PRINT1("%s\n\n", data.item->DIDL().c_str());
+                PRINTF("%s\n\n", data.item->DIDL().c_str());
             }
             SONOS::System::Debug(g_loglevel);
           }
