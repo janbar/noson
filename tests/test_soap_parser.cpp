@@ -18,7 +18,7 @@ TEST_CASE("Parse SOAP response 1")
   tinyxml2::XMLDocument rootdoc;
   REQUIRE((rootdoc.Parse(data.c_str(), data.size()) == tinyxml2::XML_SUCCESS));
 
-  const tinyxml2::XMLElement* elem; // an element
+  const tinyxml2::XMLElement* elem = nullptr; // an element
   // Check for response: Envelope/Body/{respTag}
 
   REQUIRE(((elem = rootdoc.RootElement()) && SONOS::XMLNS::NameEqual(elem->Name(), "Envelope")));
