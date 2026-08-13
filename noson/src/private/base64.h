@@ -22,7 +22,6 @@
 #include "local_config.h"
 
 #include <cstddef>
-#include <string>
 
 namespace NSROOT
 {

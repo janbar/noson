@@ -162,7 +162,7 @@ int FLACEncoder::writeEncoded(const char * data, int len)
 
 FLAC__StreamEncoderWriteStatus FLACEncoder::FLACEncoderPrivate::write_callback(const FLAC__byte buffer[], size_t bytes, unsigned samples, unsigned current_frame)
 {
-  DBG(DBG_DEBUG, "FLAC encoder wrote %" PRIu64 " bytes, %u samples, %u frame\n", (uint64_t)bytes, samples, current_frame);
+  DBG(DBG_DEBUG, "FLAC encoder wrote %u bytes, %u samples, %u frame\n", (unsigned)bytes, samples, current_frame);
   int r = m_p->writeEncoded((const char*)buffer, (int)bytes);
   return (r == (int)bytes ? FLAC__STREAM_ENCODER_WRITE_STATUS_OK : FLAC__STREAM_ENCODER_WRITE_STATUS_FATAL_ERROR);
 }

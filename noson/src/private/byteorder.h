@@ -19,8 +19,8 @@
 #ifndef BYTEORDER_H
 #define BYTEORDER_H
 
-#include <inttypes.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 
 #ifndef BYTE_ORDER
 #define LITTLE_ENDIAN     1234

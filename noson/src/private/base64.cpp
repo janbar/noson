@@ -4,7 +4,7 @@
 
 #include "base64.h"
 
-#include <string.h>
+#include <cstring>
 
 using namespace NSROOT;
 

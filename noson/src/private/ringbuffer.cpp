@@ -22,7 +22,6 @@
 #include "ringbuffer.h"
 
 #include "os/threads/mutex.h"
-#include "debug.h"
 
 using namespace NSROOT;
 
@@ -83,7 +82,7 @@ void RingBuffer::init()
       previous->next = *it;
     previous = *it;
   }
-  if (m_buffer.begin() != m_buffer.end())
+  if (previous)
     previous->next = *(m_buffer.begin());
   m_write = *(m_buffer.begin());
   m_read = m_write;
