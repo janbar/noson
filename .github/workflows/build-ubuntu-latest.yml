@@ -14,12 +14,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install libflac-dev libflac++-dev libpulse-dev
+
       - name: Configure build
-        run: "cmake -B build
-                    -Wno-dev"
+        run: |
+          cmake -B build -Wno-dev -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS="-Wall -Wpedantic" \
+            -DCMAKE_C_FLAGS="-Wall -Wpedantic"
+
       - name: Build
         run:  cmake --build build
+
       - name: Tests
         run:  cmake --build build --target test
