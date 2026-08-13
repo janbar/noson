@@ -2,7 +2,6 @@
 
 #include "test.h"
 #include "sample_pcm_s16le.c"
-#include "hashvalue.c"
 
 #include <noson/audioformat.h>
 #include <noson/flacencoder.h>

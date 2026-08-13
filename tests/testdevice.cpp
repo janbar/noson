@@ -128,7 +128,7 @@ int main(int argc, char** argv)
 
         SONOS::ElementList vars;
         playerPtr->GetTransportInfo(vars);
-        for(int i = 0; i < vars.size(); ++i)
+        for(unsigned i = 0; i < vars.size(); ++i)
           PRINTF("TransportInfo: %s : %s\n", vars[i]->GetKey().c_str(), vars[i]->c_str());
 
         SONOS::ContentDirectory mycontent(playerPtr->GetHost(), playerPtr->GetPort());

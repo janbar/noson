@@ -414,7 +414,7 @@ static inline std::string makeETag(const char * path, time_t time)
     h = ((h << 5) + h) + *path++;
   uint32_t l = h;
   char * tt = (char*)&time;
-  for (int i = 0; i < sizeof(time_t); ++i)
+  for (unsigned i = 0; i < sizeof(time_t); ++i)
     l = ((l << 5) + l) + tt[i];
   char etag[24];
   snprintf(etag, sizeof(etag), "%08x-%08x", h, l);
@@ -481,17 +481,16 @@ void FileStreamer::streamFileRange(handle * handle, const std::string& filePath,
       if (reply.BeginContent(wss, FILESTREAMER_CHUNK))
       {
         size_t tb = 0; // count transfered bytes
-        int buflen = FILESTREAMER_CHUNK;
-        char * buf = new char [buflen];
+        char * buf = new char [FILESTREAMER_CHUNK];
         size_t r = 0;
-        size_t chunk = (len > buflen ? buflen : len);
+        size_t chunk = (len > FILESTREAMER_CHUNK ? FILESTREAMER_CHUNK : len);
         while (!IsAborted() && chunk > 0 && (r = fread(buf, 1, chunk, file)) > 0)
         {
           if (!reply.WriteData(buf, r))
             break;
           tb += r;
           len -= r;
-          if (len < buflen)
+          if (len < FILESTREAMER_CHUNK)
             chunk = len;
         }
         delete [] buf;
@@ -538,17 +537,16 @@ void FileStreamer::streamFileRange(handle * handle, const std::string& filePath,
 
         size_t len = it->end - it->start + 1;
         size_t tb = 0; // count transfered bytes
-        int buflen = FILESTREAMER_CHUNK;
-        char * buf = new char [buflen];
+        char * buf = new char [FILESTREAMER_CHUNK];
         size_t r = 0;
-        size_t chunk = (len > buflen ? buflen : len);
+        size_t chunk = (len > FILESTREAMER_CHUNK ? FILESTREAMER_CHUNK : len);
         while (!IsAborted() && chunk > 0 && (r = fread(buf, 1, chunk, file)) > 0)
         {
           if (!reply.WriteData(buf, r))
             break;
           tb += r;
           len -= r;
-          if (len < buflen)
+          if (len < FILESTREAMER_CHUNK)
             chunk = len;
         }
         delete [] buf;

@@ -3,7 +3,6 @@
 
 #include "test.h"
 #include "soap_response_1.c"
-#include "hashvalue.c"
 
 #include <noson/element.h>
 #include <noson/didlparser.h>
