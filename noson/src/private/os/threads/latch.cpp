@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2024 Jean-Luc Barriere
+ *      Copyright (C) 2026 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -20,8 +20,6 @@
  */
 
 #include "latch.h"
-
-// Compatibility with C++98 remains
 
 #include <cassert>
 
@@ -48,7 +46,7 @@ void Latch::init()
 Latch::TNode * Latch::find_node(const thread_t& id)
 {
   TNode * p = s_nodes;
-  while (p != NULL && thread_equal(p->id, id) == 0)
+  while (p != nullptr && thread_equal(p->id, id) == 0)
   {
     p = p->_next;
   }
@@ -58,7 +56,7 @@ Latch::TNode * Latch::find_node(const thread_t& id)
 Latch::TNode * Latch::new_node(const thread_t& id)
 {
   TNode * p;
-  if (s_freed == NULL)
+  if (s_freed == nullptr)
   {
     /* create node */
     p = new TNode();
@@ -75,9 +73,9 @@ Latch::TNode * Latch::new_node(const thread_t& id)
   p->count = 0;
 
   /* push front in list */
-  p->_prev = NULL;
+  p->_prev = nullptr;
   p->_next = s_nodes;
-  if (s_nodes != NULL)
+  if (s_nodes != nullptr)
   {
     s_nodes->_prev = p;
   }
@@ -96,18 +94,18 @@ void Latch::free_node(TNode * n)
   {
     n->_prev->_next = n->_next;
   }
-  if (n->_next != NULL)
+  if (n->_next != nullptr)
   {
     n->_next->_prev = n->_prev;
   }
 
   /* push front in free list */
-  if (s_freed != NULL)
+  if (s_freed != nullptr)
   {
     s_freed->_prev = n;
   }
   n->_next = s_freed;
-  n->_prev = NULL;
+  n->_prev = nullptr;
   s_freed = n;
 }
 
@@ -117,8 +115,8 @@ Latch::Latch()
 , x_wait(0)
 , x_flag(0)
 , px(true)
-, s_freed(NULL)
-, s_nodes(NULL)
+, s_freed(nullptr)
+, s_nodes(nullptr)
 {
   init();
 }
@@ -129,8 +127,8 @@ Latch::Latch(bool _px)
 , x_wait(0)
 , x_flag(0)
 , px(_px)
-, s_freed(NULL)
-, s_nodes(NULL)
+, s_freed(nullptr)
+, s_nodes(nullptr)
 {
   init();
 }
@@ -138,13 +136,13 @@ Latch::Latch(bool _px)
 Latch::~Latch()
 {
   /* destroy free nodes */
-  while (s_freed != NULL) {
+  while (s_freed != nullptr) {
     TNode * n = s_freed;
     s_freed = s_freed->_next;
     delete n;
   }
   /* it should be empty, but still tries to destroy any existing busy node */
-  while (s_nodes != NULL) {
+  while (s_nodes != nullptr) {
     TNode * n = s_nodes;
     s_nodes = s_nodes->_next;
     delete n;
@@ -215,7 +213,7 @@ void Latch::lock()
       /* if the count of S is zeroed, or equal to self count, then it finalizes
        * with no wait,
        * in other case it has to wait for S gate */
-      if (s_nodes == NULL || (s_nodes == n && s_nodes->_next == NULL))
+      if (s_nodes == nullptr || (s_nodes == n && s_nodes->_next == nullptr))
       {
         x_flag = X_STEP_3;
         break;
@@ -311,7 +309,7 @@ void Latch::lock_shared()
         /* X precedence is true,
          * test if this thread holds a recursive S lock
          */
-        if (x_flag == X_STEP_0 || (x_flag == X_STEP_1 && n != NULL))
+        if (x_flag == X_STEP_0 || (x_flag == X_STEP_1 && n != nullptr))
         {
           break;
         }
@@ -324,7 +322,7 @@ void Latch::lock_shared()
       spin_lock();
     }
   }
-  if (n == NULL)
+  if (n == nullptr)
   {
     n = new_node(tid);
   }
@@ -343,7 +341,7 @@ void Latch::unlock_shared()
   /* find the thread node */
   TNode * n = find_node(tid);
   /* does it own shared lock ? */
-  assert(n != NULL);
+  assert(n != nullptr);
 
   /* decrement recursive count for this thread, finally free */
   if (--n->count == 0)
@@ -352,7 +350,7 @@ void Latch::unlock_shared()
     /* on last S, finalize X request in wait, and notify */
     if (x_flag == X_STEP_1 && !thread_equal(x_owner, tid))
     {
-      if (s_nodes == NULL)
+      if (s_nodes == nullptr)
       {
         x_flag = X_STEP_3;
       }
@@ -385,7 +383,7 @@ bool Latch::try_lock_shared()
   {
     /* find the thread node, else create */
     TNode * n = find_node(tid);
-    if (n == NULL)
+    if (n == nullptr)
     {
       n = new_node(tid);
     }

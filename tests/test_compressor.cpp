@@ -1,8 +1,8 @@
 #include <iostream>
 
-#include "include/testmain.h"
-#include "include/sample_pcm_s16le.c"
-#include "include/hashvalue.c"
+#include <test.h>
+#include "hashvalue.c"
+#include "sample_pcm_s16le.c"
 
 #include <private/compressor.h>
 

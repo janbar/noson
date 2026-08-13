@@ -22,9 +22,6 @@
 
 #include "../os.h"
 
-// Compatibility with C++98 remains
-#include <cstddef> // for NULL
-
 #if defined(_MSC_VER)
 #include "../windows/winpthreads.h"
 #else
@@ -41,7 +38,7 @@ namespace OS
 #define gettimeofday __gettimeofday
   inline int __gettimeofday(struct timeval *pcur_time, struct timezone *tz)
   {
-    if (pcur_time == NULL)
+    if (pcur_time == nullptr)
     {
       SetLastError(EFAULT);
       return -1;
@@ -56,6 +53,14 @@ namespace OS
       tz->tz_dsttime = current.dstflag;       /* type of dst correction  */
     }
     return 0;
+  }
+
+#define sched_yield __sched_yield
+  inline int __sched_yield()
+  {
+    if (SwitchToThread())
+      return 0;
+    return (-1);
   }
 #endif
 
@@ -112,7 +117,7 @@ namespace OS
   typedef pthread_cond_t condition_t;
 
 #define cond_init(a) __cond_init(a)
-  inline bool __cond_init(condition_t* cond) { return pthread_cond_init(cond, NULL) == 0; }
+  inline bool __cond_init(condition_t* cond) { return pthread_cond_init(cond, nullptr) == 0; }
 
 #define cond_signal(a) __cond_signal(a)
   inline void __cond_signal(condition_t* cond) { pthread_cond_signal(cond); }
@@ -132,7 +137,7 @@ namespace OS
     struct timespec time;
 #if defined(__APPLE__) || defined(__WINDOWS__)
     struct timeval tv;
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv, nullptr);
     tv.tv_usec += (millisec % 1000) * 1000;
     tv.tv_sec += millisec / 1000;
     time.tv_sec = tv.tv_sec + tv.tv_usec / 1000000;

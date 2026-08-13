@@ -79,7 +79,7 @@ System::System(void* CBHandle, EventCB eventCB)
 
 System::~System()
 {
-  m_mutex->Lock();
+  m_mutex->lock();
   SAFE_DELETE(m_musicServices);
   SAFE_DELETE(m_contentDirectory);
   SAFE_DELETE(m_alarmClock);
@@ -132,7 +132,7 @@ bool System::Discover(const std::string& url)
   }
 
   // Wait event notification
-  ret = m_cbzgt->Wait(CB_TIMEOUT);
+  ret = m_cbzgt->wait_for(CB_TIMEOUT);
 
   {
     // begin critical section
@@ -717,7 +717,7 @@ bool System::FindDeviceDescription(std::string& url)
   sock.SetMulticastTTL(4);
 
   OS::Timeout timeout(DISCOVER_TIMEOUT);
-  while (!ret && timeout.TimeLeft() > 0 && !laddr.empty())
+  while (!ret && timeout.time_left() > 0 && !laddr.empty())
   {
     std::pair<std::string, unsigned> addr = laddr.front();
     laddr.pop_front();
@@ -840,7 +840,7 @@ void System::CB_ZGTopology(void* handle)
     *_mask |= SVCEvent_ZGTopologyChanged;
     // END CRITICAL SECTION
   }
-  _handle->m_cbzgt->Broadcast();
+  _handle->m_cbzgt->notify_all();
   if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
     _handle->m_eventCB(_handle->m_CBHandle);
 }

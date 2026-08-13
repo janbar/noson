@@ -22,8 +22,6 @@
 
 #include "os-threads.h"
 
-// Compatibility with C++98 remains
-
 #ifdef NSROOT
 namespace NSROOT {
 #endif
@@ -41,16 +39,16 @@ namespace OS
 
     ~Mutex()
     {
-      Clear();
+      clear();
       mutex_destroy(&m_handle);
     }
 
-    mutex_t* NativeHandle()
+    mutex_t* native_handle()
     {
       return &m_handle;
     }
 
-    bool TryLock()
+    bool try_lock()
     {
       if (mutex_trylock(&m_handle))
       {
@@ -60,26 +58,26 @@ namespace OS
       return false;
     }
 
-    void Lock()
+    void lock()
     {
       mutex_lock(&m_handle);
       ++m_lockCount;
     }
 
-    void Unlock()
+    void unlock()
     {
       if (mutex_trylock(&m_handle))
       {
         if (m_lockCount > 0)
         {
-          mutex_unlock(&m_handle);
           --m_lockCount;
+          mutex_unlock(&m_handle);
         }
         mutex_unlock(&m_handle);
       }
     }
 
-    void Clear()
+    void clear()
     {
       if (mutex_trylock(&m_handle))
       {
@@ -90,40 +88,27 @@ namespace OS
       }
     }
 
-#if __cplusplus >= 201103L
     // Prevent copy
     Mutex(const Mutex& other) = delete;
     Mutex& operator=(const Mutex& other) = delete;
-#endif
 
   private:
     mutex_t           m_handle;
     unsigned          m_lockCount;
-
-#if __cplusplus < 201103L
-    // Prevent copy
-    Mutex(const Mutex& other);
-    Mutex& operator=(const Mutex& other);
-#endif
   };
 
   class LockGuard
   {
   public:
-    LockGuard(Mutex& mutex) : m_mutex(mutex) { m_mutex.Lock(); }
-    ~LockGuard() { m_mutex.Unlock(); }
-#if __cplusplus >= 201103L
+    LockGuard(Mutex& mutex) : m_mutex(mutex) { m_mutex.lock(); }
+    ~LockGuard() { m_mutex.unlock(); }
+
     // Prevent copy
     LockGuard(const LockGuard& other) = delete;
     LockGuard& operator=(const LockGuard& other) = delete;
-#endif
+
   private:
     Mutex&            m_mutex;
-#if __cplusplus < 201103L
-    // Prevent copy
-    LockGuard(const LockGuard& other);
-    LockGuard& operator=(const LockGuard& other);
-#endif
   };
 
 }

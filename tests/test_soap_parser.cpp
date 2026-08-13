@@ -1,9 +1,9 @@
 #include <iostream>
 #include <list>
 
-#include "include/testmain.h"
-#include "include/soap_response_1.c"
-#include "include/hashvalue.c"
+#include "test.h"
+#include "soap_response_1.c"
+#include "hashvalue.c"
 
 #include <noson/element.h>
 #include <noson/didlparser.h>
@@ -66,7 +66,7 @@ TEST_CASE("Parse SOAP response 1")
           "x-file-cifs://bart/share/music/FLAC/Erik%20Satie/%c5%92uvres%20pour%"
           "20piano%20(France%20Clidat)/Embryons%20dess%c3%a9ch%c3%a9s%20_%20De%"
           "20Podophthalma.flac");
-  REQUIRE(item->GetValue("upnp:albumArtURI") == 
+  REQUIRE(item->GetValue("upnp:albumArtURI") ==
           "/getaa?u=x-file-cifs%3a%2f%2fbart%2fshare%2fmusic%2fFLAC%2fErik%2520"
           "Satie%2f%25c5%2592uvres%2520pour%2520piano%2520(France%2520Clidat)%2"
           "fEmbryons%2520dess%25c3%25a9ch%25c3%25a9s%2520_%2520De%2520Podophtha"

@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2015 Jean-Luc Barriere
+ *      Copyright (C) 2015-2026 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -23,8 +23,6 @@
 #include "thread.h"
 #include "event.h"
 
-// Compatibility with C++98 remains
-#include <cstddef> // for NULL
 #include <queue>
 #include <set>
 
@@ -46,29 +44,29 @@ namespace OS
     ThreadPool(unsigned size);
     ~ThreadPool();
 
-    bool Enqueue(Worker* worker);
+    bool enqueue(Worker* worker);
 
-    unsigned GetMaxSize() const { return m_size; }
+    unsigned max_size() const { return m_size; }
 
-    void SetMaxSize(unsigned size);
+    void set_max_size(unsigned size);
 
-    void SetKeepAlive(unsigned millisec);
+    void set_keep_alive(unsigned millisec);
 
-    unsigned Size() const;
+    unsigned size() const;
 
-    unsigned QueueSize() const;
-    bool IsQueueEmpty() const;
-    bool waitEmpty(unsigned millisec);
-    bool waitEmpty();
+    unsigned queue_size() const;
+    bool is_queue_empty() const;
+    bool wait_empty();
+    bool wait_empty_for(unsigned millisec);
 
-    void Suspend();
-    void Resume();
-    bool IsSuspended() const;
+    void suspend();
+    void resume();
+    bool is_suspended() const;
 
-    void Reset();
-    void Stop();
-    void Start();
-    bool IsStopped() const;
+    void reset();
+    void stop();
+    void start();
+    bool is_stopped() const;
 
   private:
     unsigned      m_size;
@@ -86,10 +84,10 @@ namespace OS
     Event                     m_queueFill;
     Event                     m_queueEmpty;
 
-    Worker* PopQueue(WorkerThread* _thread);
-    void WaitQueue(WorkerThread* _thread);
-    void StartThread(WorkerThread* _thread);
-    void FinalizeThread(WorkerThread* _thread);
+    Worker* pop_queue(WorkerThread* _thread);
+    void wait_queue(WorkerThread* _thread);
+    void start_thread(WorkerThread* _thread);
+    void finalize_thread(WorkerThread* _thread);
     void __resize();
   };
 
@@ -99,7 +97,7 @@ namespace OS
   public:
     Worker() : m_queued(false) { }
     virtual ~Worker() { }
-    virtual void Process() = 0;
+    virtual void process() = 0;
 
   private:
     bool m_queued;
@@ -112,34 +110,34 @@ namespace OS
     : Thread()
     , m_threadPool(pool) { m_finalizeOnStop = true; }
 
-    void* Process(void)
+    void* process(void)
     {
       bool waiting = false;
 
-      while (!IsStopped())
+      while (!is_stopped())
       {
-        Worker* worker = m_threadPool.PopQueue(this);
-        if (worker != NULL)
+        Worker* worker = m_threadPool.pop_queue(this);
+        if (worker != nullptr)
         {
-          worker->Process();
+          worker->process();
           delete worker;
           waiting = false;
         }
         else if (!waiting)
         {
-          m_threadPool.WaitQueue(this);
+          m_threadPool.wait_queue(this);
           waiting = true;
         }
         else
           break;
       }
 
-      return NULL;
+      return nullptr;
     }
 
-    void Finalize(void)
+    void finalize(void)
     {
-      m_threadPool.FinalizeThread(this);
+      m_threadPool.finalize_thread(this);
     }
 
   private:

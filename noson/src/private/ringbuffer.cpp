@@ -58,17 +58,17 @@ RingBuffer::RingBuffer(int capacity)
 
 RingBuffer::~RingBuffer()
 {
-  m_ringlock->Lock();
+  m_ringlock->lock();
   for (std::vector<Chunk*>::iterator it = m_buffer.begin(); it != m_buffer.end(); ++it)
     delete *it;
-  m_ringlock->Unlock();
-  m_poollock->Lock();
+  m_ringlock->unlock();
+  m_poollock->lock();
   while (!m_pool.empty())
   {
     delete m_pool.front();
     m_pool.pop_front();
   }
-  m_poollock->Unlock();
+  m_poollock->unlock();
   delete m_poollock;
   delete m_ringlock;
 }
@@ -204,20 +204,20 @@ RingBufferPacket * RingBuffer::read()
 
 void RingBuffer::freePacket(RingBufferPacket * p)
 {
-  m_poollock->Lock();
+  m_poollock->lock();
   m_pool.push_back(p);
-  m_poollock->Unlock();
+  m_poollock->unlock();
 }
 
 RingBufferPacket * RingBuffer::needPacket(int size)
 {
   RingBufferPacket * p = nullptr;
-  m_poollock->Lock();
+  m_poollock->lock();
   if (!m_pool.empty())
   {
     p = m_pool.front();
     m_pool.pop_front();
-    m_poollock->Unlock();
+    m_poollock->unlock();
     if (p->capacity >= size)
     {
       p->id = 0;
@@ -228,7 +228,7 @@ RingBufferPacket * RingBuffer::needPacket(int size)
   }
   else
   {
-    m_poollock->Unlock();
+    m_poollock->unlock();
   }
   p = new RingBufferPacket(size);
   //DBG(DBG_DEBUG, "%s: allocated packet to buffer (%d)\n", __FUNCTION__, p->capacity);

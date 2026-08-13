@@ -12,6 +12,10 @@
 #define NOMINMAX
 #endif
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 /* Disable warning C4005: '_WINSOCKAPI_' : macro redefinition */
 #pragma warning(disable:4005)
 #include <WinSock2.h>
@@ -25,21 +29,9 @@
 #include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
 
-/* prevent inclusion of wingdi.h */
+/* Prevent inclusion of wingdi.h */
 #define NOGDI
-
-typedef SOCKET net_socket_t;
-#define INVALID_SOCKET_VALUE        INVALID_SOCKET
-
-/* OS dependent path separator */
-#ifndef PATH_SEPARATOR_CHAR
-#define PATH_SEPARATOR_CHAR '\\'
-#define PATH_SEPARATOR_STRING "\\"
-#endif
 
 #ifndef _SSIZE_T_DEFINED
 #if (defined(_WIN64) || defined(_M_ARM64))
@@ -49,6 +41,22 @@ typedef _W64 int   ssize_t;
 #endif
 #define _SSIZE_T_DEFINED
 #endif
+
+#ifndef PATH_MAX
+#ifdef _MAX_PATH
+#define PATH_MAX _MAX_PATH
+#else
+#define PATH_MAX 256
+#endif
+#endif
+
+#ifndef PATH_SEPARATOR_CHAR
+#define PATH_SEPARATOR_CHAR         '\\'
+#define PATH_SEPARATOR_STRING       "\\"
+#endif
+
+#define INVALID_SOCKET_VALUE        INVALID_SOCKET
+typedef SOCKET net_socket_t;
 
 __inline int usleep(unsigned int usec)
 {
@@ -62,39 +70,29 @@ __inline unsigned int sleep(unsigned int sec)
   return 0;
 }
 
-__inline int sched_yield()
-{
-  if (SwitchToThread())
-    return 0;
-  return (-1);
-}
-
-/* Using MS Visual C++ compilers */
-#if defined(_MSC_VER)
-
-#if (_MSC_VER < 1800)
-#include "msc_inttypes.h"
-#else
-#include <inttypes.h>
-#endif
-
 struct timezone
 {
   int	tz_minuteswest;
   int	tz_dsttime;
 };
 
-/* String to 64-bit int */
+#if defined(_MSC_VER)
+
 #if (_MSC_VER < 1800)
+#include "msc_inttypes.h"
 #define atoll(S) _atoi64(S)
+#else
+#include <inttypes.h>
 #endif
 
-/* Prevent deprecation warnings */
 #if (_MSC_VER < 1900)
 #define snprintf _snprintf
 #endif
 
 #define strnicmp _strnicmp
+#define strncasecmp _strnicmp
+#define stricmp _stricmp
+#define strcasecmp _stricmp
 
 #else
 #include <inttypes.h>

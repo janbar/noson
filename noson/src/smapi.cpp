@@ -265,7 +265,7 @@ bool SMAPI::GetDeviceLinkCode(std::string& regUrl, std::string& linkCode)
   string_to_uint16(m_service->GetPolicy()->GetAttribut("PollInterval").c_str(), &poll);
   if (!m_authLinkTimeout)
     m_authLinkTimeout = new OS::Timeout();
-  m_authLinkTimeout->Set((poll < 60 ? 60 : poll) * 1000);
+  m_authLinkTimeout->set((poll < 60 ? 60 : poll) * 1000);
   m_authLinkCode = vars.GetValue("linkCode");
   m_authLinkDeviceId = vars.GetValue("linkDeviceId");
   regUrl = vars.GetValue("regUrl");
@@ -324,7 +324,7 @@ bool SMAPI::GetAppLink(std::string& regUrl, std::string& linkCode)
   string_to_uint16(m_service->GetPolicy()->GetAttribut("PollInterval").c_str(), &poll);
   if (!m_authLinkTimeout)
     m_authLinkTimeout = new OS::Timeout();
-  m_authLinkTimeout->Set(poll * 1000);
+  m_authLinkTimeout->set(poll * 1000);
   m_authLinkCode = vars.GetValue("linkCode");
   m_authLinkDeviceId = vars.GetValue("linkDeviceId");
   regUrl = vars.GetValue("regUrl");
@@ -338,7 +338,7 @@ bool SMAPI::GetAppLink(std::string& regUrl, std::string& linkCode)
 bool SMAPI::GetDeviceAuthToken(SMOAKeyring::Data& auth)
 {
   auth = SMOAKeyring::Data();
-  if (!m_authLinkTimeout || !m_authLinkTimeout->TimeLeft())
+  if (!m_authLinkTimeout || !m_authLinkTimeout->time_left())
     return false;
 
   SMAccount::Credentials oa = m_service->GetAccount()->GetCredentials();

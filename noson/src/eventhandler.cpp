@@ -65,7 +65,7 @@ namespace NSROOT
     SubscriptionHandlerThread(EventSubscriber *handle, unsigned subid);
     virtual ~SubscriptionHandlerThread();
     EventSubscriber *GetHandle() { return m_handle; }
-    bool IsRunning() { return OS::Thread::IsRunning(); }
+    bool IsRunning() { return OS::Thread::is_running(); }
     void PostMessage(const EventMessagePtr& msg);
 
   private:
@@ -77,7 +77,7 @@ namespace NSROOT
 
     bool Start();
     void Stop();
-    void *Process();
+    void *process();
   };
 }
 
@@ -103,21 +103,21 @@ SubscriptionHandlerThread::~SubscriptionHandlerThread()
 
 bool SubscriptionHandlerThread::Start()
 {
-  if (OS::Thread::IsRunning())
+  if (OS::Thread::is_running())
     return true;
-  return OS::Thread::StartThread();
+  return OS::Thread::start_thread();
 }
 
 void SubscriptionHandlerThread::Stop()
 {
-  if (OS::Thread::IsRunning())
+  if (OS::Thread::is_running())
   {
     DBG(DBG_DEBUG, "%s: subscription thread (%p:%u)\n", __FUNCTION__, m_handle, m_subId);
     // Set stopping. don't wait as we need to signal the thread first
-    OS::Thread::StopThread(false);
-    m_queueContent.Signal();
+    OS::Thread::stop_thread(false);
+    m_queueContent.notify_one();
     // Wait for thread to stop
-    OS::Thread::StopThread(true);
+    OS::Thread::stop_thread(true);
     DBG(DBG_DEBUG, "%s: subscription thread (%p:%u) stopped\n", __FUNCTION__, m_handle, m_subId);
   }
 }
@@ -127,25 +127,25 @@ void SubscriptionHandlerThread::PostMessage(const EventMessagePtr& msg)
   // Critical section
   OS::LockGuard lock(m_mutex);
   m_msgQueue.push_back(msg);
-  m_queueContent.Signal();
+  m_queueContent.notify_one();
 }
 
-void *SubscriptionHandlerThread::Process()
+void *SubscriptionHandlerThread::process()
 {
-  while (!IsStopped())
+  while (!is_stopped())
   {
-    while (!m_msgQueue.empty() && !IsStopped())
+    while (!m_msgQueue.empty() && !is_stopped())
     {
       // Critical section
-      m_mutex.Lock();
+      m_mutex.lock();
       EventMessagePtr msg = m_msgQueue.front();
       m_msgQueue.pop_front();
-      m_mutex.Unlock();
+      m_mutex.unlock();
       // Do work
       m_handle->HandleEventMessage(msg);
     }
     // The tread is woken up by m_queueContent.Signal();
-    m_queueContent.Wait();
+    m_queueContent.wait();
   }
   return NULL;
 }
@@ -188,7 +188,7 @@ namespace NSROOT
     typedef std::map<unsigned, SubscriptionHandlerThread*> subscriptions_t;
     subscriptions_t m_subscriptions;
 
-    virtual void* Process(void);
+    virtual void* process(void);
     void AnnounceStatus(const char *status);
 
     typedef std::map<std::string, RequestBrokerPtr> RBList;
@@ -202,16 +202,16 @@ BasicEventHandler::BasicEventHandler(unsigned bindingPort)
 , m_RBList(RBList())
 {
   m_listenerAddress = EVENTHANDLER_LOOP_ADDRESS;
-  m_threadpool.SetMaxSize(EVENTHANDLER_THREADS);
-  m_threadpool.SetKeepAlive(EVENTHANDLER_THREAD_KEEPALIVE);
-  m_threadpool.Start();
+  m_threadpool.set_max_size(EVENTHANDLER_THREADS);
+  m_threadpool.set_keep_alive(EVENTHANDLER_THREAD_KEEPALIVE);
+  m_threadpool.start();
 }
 
 BasicEventHandler::~BasicEventHandler()
 {
   Stop();
   UnregisterAllRequestBroker();
-  m_threadpool.Suspend();
+  m_threadpool.suspend();
   {
     OS::LockGuard lock(m_mutex);
     for (subscriptions_t::iterator it = m_subscriptions.begin(); it != m_subscriptions.end(); ++it)
@@ -224,24 +224,24 @@ BasicEventHandler::~BasicEventHandler()
 
 bool BasicEventHandler::Start()
 {
-  if (OS::Thread::IsRunning())
+  if (OS::Thread::is_running())
     return true;
-  return OS::Thread::StartThread();
+  return OS::Thread::start_thread();
 }
 
 void BasicEventHandler::Stop()
 {
-  if (OS::Thread::IsRunning())
+  if (OS::Thread::is_running())
   {
     DBG(DBG_DEBUG, "%s: event handler thread (%p)\n", __FUNCTION__, this);
-    OS::Thread::StopThread(true);
+    OS::Thread::stop_thread(true);
     DBG(DBG_DEBUG, "%s: event handler thread (%p) stopped\n", __FUNCTION__, this);
   }
 }
 
 bool BasicEventHandler::HasStarted()
 {
-  return OS::Thread::IsRunning();
+  return OS::Thread::is_running();
 }
 
 void BasicEventHandler::RegisterRequestBroker(RequestBrokerPtr rb)
@@ -377,7 +377,7 @@ void BasicEventHandler::DispatchEvent(const EventMessagePtr& msg)
     m_subscriptionsByEvent[msg->event].erase(*itr);
 }
 
-void *BasicEventHandler::Process()
+void *BasicEventHandler::process()
 {
   bool bound = false;
   if (m_socket->Create(SOCKET_AF_INET4))
@@ -398,7 +398,7 @@ void *BasicEventHandler::Process()
   if (bound)
   {
     AnnounceStatus(EVENTHANDLER_STARTED);
-    while (!OS::Thread::IsStopped())
+    while (!OS::Thread::is_stopped())
     {
       SHARED_PTR<TcpSocket> sockPtr(new TcpSocket);
       TcpServerSocket::AcceptStatus r = m_socket->AcceptConnection(*sockPtr, 1);
@@ -406,7 +406,7 @@ void *BasicEventHandler::Process()
       {
         DBG(DBG_DEBUG, "%s: accepting new connection\n", __FUNCTION__);
         EventBroker* eb = new EventBroker(this, sockPtr);
-        m_threadpool.Enqueue(eb);
+        m_threadpool.enqueue(eb);
         continue;
       }
       if (r == TcpServerSocket::ACCEPT_FAILURE)

@@ -35,28 +35,28 @@ LockGuard::LockGuard(Lockable* lock)
 : m_lock(lock)
 {
   if (m_lock)
-    m_lock->mutex.Lock();
+    m_lock->mutex.lock();
 }
 
 LockGuard::~LockGuard()
 {
   if (m_lock)
-    m_lock->mutex.Unlock();
+    m_lock->mutex.unlock();
 }
 
 LockGuard::LockGuard(const LockGuard& other)
 : m_lock(other.m_lock)
 {
   if (m_lock)
-    m_lock->mutex.Lock();
+    m_lock->mutex.lock();
 }
 
 LockGuard& LockGuard::operator=(const LockGuard& other)
 {
   if (m_lock)
-    m_lock->mutex.Unlock();
+    m_lock->mutex.unlock();
   if (other.m_lock)
-    other.m_lock->mutex.Lock();
+    other.m_lock->mutex.lock();
   m_lock = other.m_lock;
   return *this;
 }
@@ -73,15 +73,15 @@ void LockGuard::DestroyLock(Lockable* lock)
 
 void LockGuard::Lock(Lockable* lock)
 {
-  lock->mutex.Lock();
+  lock->mutex.lock();
 }
 
 void LockGuard::Unlock(Lockable* lock)
 {
-  lock->mutex.Unlock();
+  lock->mutex.unlock();
 }
 
 void LockGuard::ClearLock(Lockable* lock)
 {
-  lock->mutex.Clear();
+  lock->mutex.clear();
 }

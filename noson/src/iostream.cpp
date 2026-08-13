@@ -40,25 +40,25 @@ AsyncInputStream::~AsyncInputStream()
 
 int AsyncInputStream::ReadAsync(char* data, int maxlen, unsigned timeout)
 {
-  m_lock->Lock();
+  m_lock->lock();
   if (BytesAvailable() == 0)
   {
     OS::Timeout _timeout(timeout);
-    bool signaled = m_readyRead->Wait(*m_lock, _timeout);
+    bool signaled = m_readyRead->wait_for(*m_lock, _timeout);
     if (!signaled)
     {
-      m_lock->Unlock();
+      m_lock->unlock();
       return 0;
     }
   }
   int r = Read(data, maxlen);
-  m_lock->Unlock();
+  m_lock->unlock();
   return r;
 }
 
 void AsyncInputStream::SignalReadyRead()
 {
-  m_readyRead->Broadcast();
+  m_readyRead->notify_all();
 }
 
 BufferedStream::BufferedStream(int capacity)

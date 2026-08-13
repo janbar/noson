@@ -95,7 +95,7 @@ bool AVTransport::GetTransportInfo(ElementList& vars)
 bool AVTransport::GetPositionInfo(ElementList& vars)
 {
   Locked<AVTransportLastInfo*>::pointer p = m_lastPositionInfo.Get();
-  if ((*p)->expiry.TimeLeft() > 0)
+  if ((*p)->expiry.time_left() > 0)
   {
     vars = (*p)->vars;
     return true;
@@ -106,7 +106,7 @@ bool AVTransport::GetPositionInfo(ElementList& vars)
   if (!vars.empty() && vars[0]->compare("GetPositionInfoResponse") == 0)
   {
     (*p)->vars = vars;
-    (*p)->expiry.Set(1000); // expire in 1 second
+    (*p)->expiry.set(1000); // expire in 1 second
     return true;
   }
   return false;

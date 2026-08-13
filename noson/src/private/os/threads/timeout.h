@@ -66,24 +66,24 @@ namespace OS
   {
   public:
     Timeout() : m_time(0) { }
-    Timeout(unsigned millisec) : m_time(0) { Set(millisec); }
+    Timeout(unsigned millisec) : m_time(0) { set(millisec); }
 
-    void Set(unsigned millisec)
+    void set(unsigned millisec)
     {
       m_time = gettime_ms() + millisec;
     }
 
-    bool IsSet() const
+    bool is_set() const
     {
       return (m_time > 0 ? true : false);
     }
 
-    void Clear()
+    void clear()
     {
       m_time = 0;
     }
 
-    unsigned TimeLeft() const
+    unsigned time_left() const
     {
       int64_t time = gettime_ms();
       return (time > m_time ? 0 : static_cast<unsigned>(m_time - time));

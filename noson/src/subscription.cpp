@@ -77,24 +77,24 @@ namespace NSROOT
 
     virtual bool Start()
     {
-      return OS::Thread::StartThread();
+      return OS::Thread::start_thread();
     }
 
     virtual void Stop()
     {
-      OS::Thread::StopThread(false);
-      m_event.Signal();
-      OS::Thread::StopThread(true);
+      OS::Thread::stop_thread(false);
+      m_event.notify_one();
+      OS::Thread::stop_thread(true);
     }
 
-    virtual bool IsRunning() { return OS::Thread::IsRunning(); }
+    virtual bool IsRunning() { return OS::Thread::is_running(); }
 
     virtual void AskRenewal()
     {
       if (IsRunning())
       {
-        m_timeout.Clear();
-        m_event.Signal();
+        m_timeout.clear();
+        m_event.notify_one();
       }
     }
 
@@ -121,29 +121,29 @@ namespace NSROOT
     OS::Timeout m_timeout;
     OS::Event m_event;
 
-    virtual void* Process();
+    virtual void* process();
     bool Configure();
     bool SubscribeForEvent(bool renew = false);
     bool UnSubscribeForEvent();
   };
 }
 
-void* SubscriptionThreadImpl::Process()
+void* SubscriptionThreadImpl::process()
 {
   bool success = false;
   unsigned retry = TIMEOUT_FIRST_RETRY;
-  while (!IsStopped())
+  while (!is_stopped())
   {
     // Reconfigure: IP may be leased for a time
     if (Configure() && (success = SubscribeForEvent(success)))
     {
-      m_event.Wait(m_timeout.TimeLeft() * SUBSCRIPTION_RENEW_PCT / 100);
+      m_event.wait_for(m_timeout.time_left() * SUBSCRIPTION_RENEW_PCT / 100);
       retry = TIMEOUT_FIRST_RETRY;
     }
     else
     {
       // wait before retry
-      m_event.Wait(retry);
+      m_event.wait_for(retry);
       retry = TIMEOUT_AGAIN_RETRY;
     }
   }
@@ -176,7 +176,7 @@ bool SubscriptionThreadImpl::SubscribeForEvent(bool renew)
   WSRequest request(m_host, m_port);
   request.RequestService(m_url, WS_METHOD_Subscribe);
   // is renewable ?
-  if (renew && m_renewable && m_timeout.TimeLeft() > 0)
+  if (renew && m_renewable && m_timeout.time_left() > 0)
   {
     DBG(DBG_DEBUG, "%s: renew subscription (%s)\n", __FUNCTION__, m_SID.c_str());
     request.SetHeader("SID", m_SID);
@@ -194,11 +194,11 @@ bool SubscriptionThreadImpl::SubscribeForEvent(bool renew)
   WSResponse response(request);
   if (response.IsSuccessful() && response.GetHeaderValue("SID", m_SID))
   {
-    m_timeout.Set(m_ttl * 1000);
+    m_timeout.set(m_ttl * 1000);
     return true;
   }
   m_SID.clear();
-  m_timeout.Clear();
+  m_timeout.clear();
   return false;
 }
 
@@ -213,7 +213,7 @@ bool SubscriptionThreadImpl::UnSubscribeForEvent()
     if (!response.IsSuccessful())
       return false;
     m_SID.clear();
-    m_timeout.Clear();
+    m_timeout.clear();
   }
   return true;
 }

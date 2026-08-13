@@ -23,9 +23,6 @@
 #include "mutex.h"
 #include "condition.h"
 
-// Compatibility with C++98 remains
-#include <cstddef> // for NULL
-
 #ifdef NSROOT
 namespace NSROOT {
 #endif
@@ -61,12 +58,12 @@ namespace OS
       return *this;
     }
 
-    thread_t* NativeHandle()
+    thread_t* native_handle()
     {
       return &(m_handle->nativeHandle);
     }
 
-    bool StartThread(bool wait = true)
+    bool start_thread(bool wait = true)
     {
       LockGuard lock(m_handle->mutex);
       if (!m_handle->running)
@@ -75,65 +72,65 @@ namespace OS
         if (thread_create(&(m_handle->nativeHandle), Thread::ThreadHandler, ((void*)static_cast<Thread*>(this))))
         {
           if (wait)
-            m_handle->condition.Wait(m_handle->mutex, m_handle->running);
+            m_handle->condition.wait(m_handle->mutex, m_handle->running);
           return true;
         }
       }
       return false;
     }
 
-    void StopThread(bool wait = true)
+    void stop_thread(bool wait = true)
     {
       // First signal stop
       {
         LockGuard lock(m_handle->mutex);
         m_handle->notifiedStop = true;
-        m_handle->condition.Broadcast();
+        m_handle->condition.notify_all();
       }
       // Waiting stopped
       if (wait)
       {
         LockGuard lock(m_handle->mutex);
-        m_handle->condition.Wait(m_handle->mutex, m_handle->stopped);
+        m_handle->condition.wait(m_handle->mutex, m_handle->stopped);
       }
     }
 
-    bool WaitThread(unsigned timeout)
+    bool wait_thread(unsigned millisec)
     {
       LockGuard lock(m_handle->mutex);
-      return m_handle->stopped ? true : m_handle->condition.Wait(m_handle->mutex, m_handle->stopped, timeout);
+      return m_handle->stopped ? true : m_handle->condition.wait_for(m_handle->mutex, millisec, m_handle->stopped);
     }
 
-    bool IsRunning()
+    bool is_running()
     {
       LockGuard lock(m_handle->mutex);
       return m_handle->running;
     }
 
-    bool IsStopped()
+    bool is_stopped()
     {
       LockGuard lock(m_handle->mutex);
       return m_handle->notifiedStop || m_handle->stopped;
     }
 
-    void Sleep(unsigned timeout)
+    void pause(unsigned millisec)
     {
-      Timeout _timeout(timeout);
+      Timeout _timeout(millisec);
       LockGuard lock(m_handle->mutex);
-      while (!m_handle->notifiedStop && !m_handle->notifiedWake && m_handle->condition.Wait(m_handle->mutex, _timeout));
+      while (!m_handle->notifiedStop && !m_handle->notifiedWake && m_handle->condition.wait_for(m_handle->mutex, _timeout));
       m_handle->notifiedWake = false; // Reset the wake flag
     }
 
-    void WakeUp()
+    void wake()
     {
       LockGuard lock(m_handle->mutex);
       m_handle->notifiedWake = true;
-      m_handle->condition.Broadcast();
+      m_handle->condition.notify_all();
     }
 
   protected:
-    virtual void* Process(void) = 0;
-    virtual void Finalize(void) { };
+    virtual void* process(void) = 0;
+    virtual void finalize(void) { };
     bool m_finalizeOnStop;
 
   private:
@@ -162,26 +159,26 @@ namespace OS
     static void* ThreadHandler(void* _thread)
     {
       Thread* thread = static_cast<Thread*>(_thread);
-      void* ret = NULL;
+      void* ret = nullptr;
 
       if (thread)
       {
         bool finalize = thread->m_finalizeOnStop;
-        thread->m_handle->mutex.Lock();
+        thread->m_handle->mutex.lock();
         thread->m_handle->running = true;
         thread->m_handle->stopped = false;
-        thread->m_handle->condition.Broadcast();
-        thread->m_handle->mutex.Unlock();
-        ret = thread->Process();
-        thread->m_handle->mutex.Lock();
+        thread->m_handle->condition.notify_all();
+        thread->m_handle->mutex.unlock();
+        ret = thread->process();
+        thread->m_handle->mutex.lock();
         thread->m_handle->running = false;
         thread->m_handle->stopped = true;
-        thread->m_handle->condition.Broadcast();
-        thread->m_handle->mutex.Unlock();
+        thread->m_handle->condition.notify_all();
+        thread->m_handle->mutex.unlock();
 
         // Thread without finalizer could be freed here
         if (finalize)
-          thread->Finalize();
+          thread->finalize();
       }
 
       return ret;

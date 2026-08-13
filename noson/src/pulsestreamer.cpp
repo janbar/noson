@@ -245,7 +245,7 @@ void PulseStreamer::streamSink(handle * handle)
         if (!handle->broker->ReplyData(buf, 5 + WS_CRLF_LEN + r + WS_CRLF_LEN))
           break;
         // disable source mute after delay
-        if (audioSource.muted() && !muted.TimeLeft())
+        if (audioSource.muted() && !muted.time_left())
           audioSource.mute(false);
       }
       delete [] buf;

@@ -43,57 +43,49 @@ namespace OS
       cond_destroy(&m_condition);
     }
 
-    void Broadcast()
+    void notify_all()
     {
       cond_broadcast(&m_condition);
     }
 
-    void Signal()
+    void notify_one()
     {
       cond_signal(&m_condition);
     }
 
-    bool Wait(Mutex& mutex, P& predicate)
+    bool wait(Mutex& lock, P& predicate)
     {
       while(!predicate)
-        cond_wait(&m_condition, mutex.NativeHandle());
+        cond_wait(&m_condition, lock.native_handle());
       return true;
     }
 
-    bool Wait(Mutex& mutex, P& predicate, unsigned timeout)
+    bool wait_for(Mutex& lock, unsigned millisec, P& predicate)
     {
-      Timeout _timeout(timeout);
+      Timeout _timeout(millisec);
       while (!predicate)
       {
         // wait for time left
-        timeout = _timeout.TimeLeft();
-        if (timeout == 0)
+        millisec = _timeout.time_left();
+        if (millisec == 0)
           return false;
-        cond_timedwait(&m_condition, mutex.NativeHandle(), timeout);
+        cond_timedwait(&m_condition, lock.native_handle(), millisec);
       }
       return true;
     }
 
-    bool Wait(Mutex& mutex, Timeout& timeout)
+    bool wait_for(Mutex& lock, Timeout& timeout)
     {
-      cond_timedwait(&m_condition, mutex.NativeHandle(), timeout.TimeLeft());
-      return (timeout.TimeLeft() > 0 ? true : false);
+      cond_timedwait(&m_condition, lock.native_handle(), timeout.time_left());
+      return (timeout.time_left() > 0 ? true : false);
     }
 
-#if __cplusplus >= 201103L
     // Prevent copy
     Condition(const Condition<P>& other) = delete;
     Condition<P>& operator=(const Condition<P>& other) = delete;
-#endif
 
   private:
     condition_t m_condition;
-
-#if __cplusplus < 201103L
-    // Prevent copy
-    Condition(const Condition<P>& other);
-    Condition<P>& operator=(const Condition<P>& other);
-#endif
   };
 
 }

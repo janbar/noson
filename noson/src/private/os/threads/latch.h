@@ -1,6 +1,6 @@
 #pragma once
 /*
- *      Copyright (C) 2024 Jean-Luc Barriere
+ *      Copyright (C) 2026 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -22,9 +22,6 @@
 
 #include "os-threads.h"
 #include "atomic.h"
-
-// Compatibility with C++98 remains
-#include <cstddef> // for NULL
 
 #ifdef NSROOT
 namespace NSROOT {
@@ -61,11 +58,9 @@ namespace OS
      */
     bool try_lock_shared();
 
-#if __cplusplus >= 201103L
     // Prevent copy
     Latch(const Latch& other) = delete;
     Latch& operator=(const Latch& other) = delete;
-#endif
 
   private:
     mutable Atomic s_spin;
@@ -89,12 +84,6 @@ namespace OS
     };
     TNode * s_freed;
     TNode * s_nodes;
-
-#if __cplusplus < 201103L
-    // Prevent copy
-    Latch(const Latch& other);
-    Latch& operator=(const Latch& other);
-#endif
 
     void spin_lock()
     {
@@ -120,16 +109,11 @@ namespace OS
     Latch *p;
     bool owns;
 
-#if __cplusplus < 201103L
-    ReadLock(const ReadLock& other);
-    ReadLock& operator=(const ReadLock& other);
-#endif
-
   public:
 
     static struct adopt_lock_t { } adopt_lock;
 
-    ReadLock() : p(NULL), owns(false) { }
+    ReadLock() : p(nullptr), owns(false) { }
 
     ReadLock(Latch& latch) : p(&latch), owns(true) { latch.lock_shared(); }
 
@@ -161,7 +145,7 @@ namespace OS
 
     void lock()
     {
-      if (!owns && p != NULL)
+      if (!owns && p != nullptr)
       {
         p->lock_shared();
         owns = true;
@@ -179,17 +163,15 @@ namespace OS
 
     bool try_lock()
     {
-      if (!owns && p != NULL)
+      if (!owns && p != nullptr)
       {
         owns = p->try_lock_shared();
       }
       return owns;
     }
 
-#if __cplusplus >= 201103L
     ReadLock(const ReadLock& other) = delete;
     ReadLock& operator=(const ReadLock& other) = delete;
-#endif
   };
 
   class WriteLock
@@ -198,14 +180,9 @@ namespace OS
     Latch *p;
     bool owns;
 
-#if __cplusplus < 201103L
-    WriteLock(const WriteLock& other);
-    WriteLock& operator=(const WriteLock& other);
-#endif
-
   public:
 
-    WriteLock() : p(NULL), owns(false) { }
+    WriteLock() : p(nullptr), owns(false) { }
 
     explicit WriteLock(Latch& latch) : p(&latch), owns(true) { latch.lock(); }
 
@@ -234,7 +211,7 @@ namespace OS
 
     void lock()
     {
-      if (!owns && p != NULL)
+      if (!owns && p != nullptr)
       {
         p->lock();
         owns = true;
@@ -250,10 +227,8 @@ namespace OS
       }
     }
 
-#if __cplusplus >= 201103L
     WriteLock(const WriteLock& other) = delete;
     WriteLock& operator=(const WriteLock& other) = delete;
-#endif
   };
 
 }

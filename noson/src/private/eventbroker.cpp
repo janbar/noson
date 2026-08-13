@@ -36,7 +36,7 @@ EventBroker::~EventBroker()
 {
 }
 
-void EventBroker::Process()
+void EventBroker::process()
 {
   if (!m_handler || !m_sockPtr || !m_sockPtr->IsValid())
     return;

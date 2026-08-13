@@ -39,15 +39,15 @@ public:
   explicit PASourceWorker(PASource * source);
   virtual ~PASourceWorker() override;
 
-  bool isRunning() { return OS::Thread::IsRunning(); }
-  bool isFinished() { return OS::Thread::IsStopped() && !OS::Thread::IsRunning(); }
-  bool isInterruptionRequested() { return OS::Thread::IsStopped() && OS::Thread::IsRunning(); }
-  void start() { OS::Thread::StartThread(true); }
-  void requestInterruption() { OS::Thread::StopThread(false); }
-  bool waitFinished() { return OS::Thread::WaitThread(-1); }
+  bool isRunning() { return OS::Thread::is_running(); }
+  bool isFinished() { return OS::Thread::is_stopped() && !OS::Thread::is_running(); }
+  bool isInterruptionRequested() { return OS::Thread::is_stopped() && OS::Thread::is_running(); }
+  void start() { OS::Thread::start_thread(true); }
+  void requestInterruption() { OS::Thread::stop_thread(false); }
+  bool waitFinished() { return OS::Thread::wait_thread(-1); }
 
 private:
-  void * Process() override;
+  void * process() override;
   PASource * m_source;
 };
 
@@ -179,11 +179,11 @@ PASourceWorker::PASourceWorker(PASource* source)
 
 PASourceWorker::~PASourceWorker()
 {
-  if (IsRunning())
-    StopThread(true);
+  if (is_running())
+    stop_thread(true);
 }
 
-void* PASourceWorker::Process()
+void* PASourceWorker::process()
 {
   if (m_source->initPA())
   {
@@ -192,7 +192,7 @@ void* PASourceWorker::Process()
     assert(bytesPerFrame >= MIN_FRAME_SIZE && bytesPerFrame <= MAX_FRAME_SIZE);
     int bsize = bytesPerFrame * FRAME_BUFFER;
     char * buf = new char[bsize];
-    while (!OS::Thread::IsStopped())
+    while (!OS::Thread::is_stopped())
     {
       // Record some data
       if (pa_simple_read(m_source->m_pa, buf, bsize, &m_source->m_pa_error) < 0)

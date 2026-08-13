@@ -55,7 +55,7 @@ Service::Service(const std::string& serviceHost, unsigned servicePort)
 
 Service::~Service()
 {
-  m_mutex->Lock();
+  m_mutex->lock();
   SAFE_DELETE(m_mutex);
 }
 

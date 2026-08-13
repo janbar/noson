@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2015 Jean-Luc Barriere
+ *      Copyright (C) 2015-2026 Jean-Luc Barriere
  *
  *  This library is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published
@@ -20,8 +20,6 @@
  */
 
 #include "threadpool.h"
-
-// Compatibility with C++98 remains
 
 #include <cassert>
 
@@ -57,7 +55,7 @@ ThreadPool::ThreadPool(unsigned size)
 
 ThreadPool::~ThreadPool()
 {
-  m_mutex.Lock();
+  m_mutex.lock();
   // Reject new runs
   m_stopped = true;
   // Destroy all queued workers
@@ -72,15 +70,15 @@ ThreadPool::~ThreadPool()
     m_empty = false;
     // Signal stop
     for (std::set<WorkerThread*>::iterator it = m_pool.begin(); it != m_pool.end(); ++it)
-      (*it)->StopThread(false);
+      (*it)->stop_thread(false);
     // Wake sleeper
-    m_queueFill.Broadcast();
+    m_queueFill.notify_all();
     // Waiting all finalized
-    m_condition.Wait(m_mutex, m_empty);
+    m_condition.wait(m_mutex, m_empty);
   }
 }
 
-bool ThreadPool::Enqueue(Worker* worker)
+bool ThreadPool::enqueue(Worker* worker)
 {
   assert(worker->m_queued != true);
   LockGuard lock(m_mutex);
@@ -93,7 +91,7 @@ bool ThreadPool::Enqueue(Worker* worker)
       if (m_waitingCount)
       {
         // Wake a thread
-        m_queueFill.Signal();
+        m_queueFill.notify_one();
         return true;
       }
       else
@@ -108,7 +106,7 @@ bool ThreadPool::Enqueue(Worker* worker)
   return false;
 }
 
-void ThreadPool::SetMaxSize(unsigned size)
+void ThreadPool::set_max_size(unsigned size)
 {
   LockGuard lock(m_mutex);
   m_size = size;
@@ -116,60 +114,60 @@ void ThreadPool::SetMaxSize(unsigned size)
     __resize();
 }
 
-void ThreadPool::SetKeepAlive(unsigned millisec)
+void ThreadPool::set_keep_alive(unsigned millisec)
 {
   LockGuard lock(m_mutex);
   m_keepAlive = millisec;
 }
 
-unsigned ThreadPool::Size() const
+unsigned ThreadPool::size() const
 {
   LockGuard lock(m_mutex);
   return m_poolSize;
 }
 
-unsigned ThreadPool::QueueSize() const
+unsigned ThreadPool::queue_size() const
 {
   LockGuard lock(m_mutex);
   return static_cast<unsigned>(m_queue.size());
 }
 
-bool ThreadPool::IsQueueEmpty() const
+bool ThreadPool::is_queue_empty() const
 {
   LockGuard lock(m_mutex);
   return m_queue.empty();
 }
 
-bool ThreadPool::waitEmpty(unsigned millisec)
+bool ThreadPool::wait_empty()
 {
-  return IsQueueEmpty() || m_queueEmpty.Wait(millisec);
+  return is_queue_empty() || m_queueEmpty.wait();
 }
 
-bool ThreadPool::waitEmpty()
+bool ThreadPool::wait_empty_for(unsigned millisec)
 {
-  return IsQueueEmpty() || m_queueEmpty.Wait();
+  return is_queue_empty() || m_queueEmpty.wait_for(millisec);
 }
 
-void ThreadPool::Suspend()
+void ThreadPool::suspend()
 {
   LockGuard lock(m_mutex);
   m_suspended = true;
 }
 
-void ThreadPool::Resume()
+void ThreadPool::resume()
 {
   LockGuard lock(m_mutex);
   m_suspended = false;
   __resize();
 }
 
-bool ThreadPool::IsSuspended() const
+bool ThreadPool::is_suspended() const
 {
   LockGuard lock(m_mutex);
   return m_suspended;
 }
 
-void ThreadPool::Reset()
+void ThreadPool::reset()
 {
   LockGuard lock(m_mutex);
   m_stopped = true;
@@ -181,31 +179,31 @@ void ThreadPool::Reset()
   }
 }
 
-void ThreadPool::Stop()
+void ThreadPool::stop()
 {
   LockGuard lock(m_mutex);
   m_stopped = true;
 }
 
-void ThreadPool::Start()
+void ThreadPool::start()
 {
   LockGuard lock(m_mutex);
   m_stopped = false;
 }
 
-bool ThreadPool::IsStopped() const
+bool ThreadPool::is_stopped() const
 {
   LockGuard lock(m_mutex);
   return m_stopped;
 }
 
-Worker* ThreadPool::PopQueue(WorkerThread* _thread)
+Worker* ThreadPool::pop_queue(WorkerThread* _thread)
 {
   (void)_thread;
   LockGuard lock(m_mutex);
   if (!m_suspended)
   {
-    m_queueEmpty.Signal();
+    m_queueEmpty.notify_one();
     if (!m_queue.empty())
     {
       Worker* worker = m_queue.front();
@@ -213,31 +211,31 @@ Worker* ThreadPool::PopQueue(WorkerThread* _thread)
       return worker;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
-void ThreadPool::WaitQueue(WorkerThread* _thread)
+void ThreadPool::wait_queue(WorkerThread* _thread)
 {
   (void)_thread;
-  m_mutex.Lock();
+  m_mutex.lock();
   ++m_waitingCount;
   unsigned millisec = m_keepAlive;
-  m_mutex.Unlock();
-  m_queueFill.Wait(millisec);
-  m_mutex.Lock();
+  m_mutex.unlock();
+  m_queueFill.wait_for(millisec);
+  m_mutex.lock();
   --m_waitingCount;
-  m_mutex.Unlock();
+  m_mutex.unlock();
 }
 
-void ThreadPool::StartThread(WorkerThread* _thread)
+void ThreadPool::start_thread(WorkerThread* _thread)
 {
   ++m_poolSize;
   m_pool.insert(_thread);
-  if (!_thread->StartThread(false))
-    FinalizeThread(_thread);
+  if (!_thread->start_thread(false))
+    finalize_thread(_thread);
 }
 
-void ThreadPool::FinalizeThread(WorkerThread* _thread)
+void ThreadPool::finalize_thread(WorkerThread* _thread)
 {
   LockGuard lock(m_mutex);
   if (m_pool.erase(_thread))
@@ -248,7 +246,7 @@ void ThreadPool::FinalizeThread(WorkerThread* _thread)
   if (m_pool.empty())
   {
     m_empty = true;
-    m_condition.Broadcast();
+    m_condition.notify_all();
   }
 }
 
@@ -262,7 +260,7 @@ void ThreadPool::__resize()
         break;
       WorkerThread* _thread = new WorkerThread(*this);
       // The new thread will check the queue
-      StartThread(_thread);
+      start_thread(_thread);
     }
   }
   else if (m_poolSize > m_size)
@@ -272,11 +270,11 @@ void ThreadPool::__resize()
     {
       if (it == m_pool.end())
         break;
-      (*it)->StopThread(false);
+      (*it)->stop_thread(false);
       ++it;
     }
     // Wake up the waiting threads to stop
     if (m_waitingCount)
-        m_queueFill.Broadcast();
+        m_queueFill.notify_all();
   }
 }

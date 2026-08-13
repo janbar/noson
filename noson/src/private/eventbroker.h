@@ -36,7 +36,7 @@ namespace NSROOT
   public:
     EventBroker(EventHandlerThread* handler, SHARED_PTR<TcpSocket>& sockPtr);
     virtual ~EventBroker();
-    virtual void Process();
+    virtual void process();
 
   private:
     EventHandlerThread* m_handler;

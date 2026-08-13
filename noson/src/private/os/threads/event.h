@@ -22,8 +22,6 @@
 
 #include "condition.h"
 
-// Compatibility with C++98 remains
-
 #ifdef NSROOT
 namespace NSROOT {
 #endif
@@ -41,55 +39,53 @@ namespace OS
 
     ~Event() {}
 
-    void Broadcast()
+    void notify_all()
     {
       LockGuard lock(m_mutex);
       m_notifyOne = false;
       m_notified  = true;
-      m_condition.Broadcast();
+      m_condition.notify_all();
     }
 
-    void Signal()
+    void notify_one()
     {
       LockGuard lock(m_mutex);
       m_notifyOne = true;
       m_notified  = true;
-      m_condition.Signal();
+      m_condition.notify_one();
     }
 
-    bool Wait()
+    bool wait()
     {
       LockGuard lock(m_mutex);
       ++m_waitingCount;
-      bool notified = m_condition.Wait(m_mutex, m_notified);
+      bool notified = m_condition.wait(m_mutex, m_notified);
       --m_waitingCount;
       if (m_autoReset && notified)
         __reset(m_notifyOne);
       return notified;
     }
 
-    bool Wait(unsigned timeout)
+    bool wait_for(unsigned millisec)
     {
       LockGuard lock(m_mutex);
       ++m_waitingCount;
-      bool notified = m_condition.Wait(m_mutex, m_notified, timeout);
+      bool notified = m_condition.wait_for(m_mutex, millisec, m_notified);
       --m_waitingCount;
       if (m_autoReset && notified)
         __reset(m_notifyOne);
       return notified;
     }
 
-    void Reset()
+    void reset()
     {
       LockGuard lock(m_mutex);
       __reset(true);
     }
 
-#if __cplusplus >= 201103L
     // Prevent copy
     Event(const Event& other) = delete;
     Event& operator=(const Event& other) = delete;
-#endif
 
   private:
     volatile bool             m_notified;
@@ -105,11 +101,6 @@ namespace OS
         m_notified = false;
     }
 
-#if __cplusplus < 201103L
-    // Prevent copy
-    Event(const Event& other);
-    Event& operator=(const Event& other);
-#endif
   };
 }
 #ifdef NSROOT
