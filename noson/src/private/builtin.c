@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2024 Jean-Luc Barriere
+ *      Copyright (C) 2014-2026 Jean-Luc Barriere
  *
  *  This Program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -411,7 +411,7 @@ int string_to_time(const char *str, time_t *time)
     if (((buf[4] != '-') || (buf[7] != '-') || (buf[10] != 'T') ||
             (buf[13] != ':') || (buf[16] != ':') || (buf[19] != 'Z')))
     {
-      fprintf(stderr, "%s: string is badly formed '%s'\n", __FUNCTION__, buf);
+      fprintf(stderr, "%s: string is badly formed '%s'\n", __func__, buf);
       goto err;
     }
     format = 1;
@@ -421,7 +421,7 @@ int string_to_time(const char *str, time_t *time)
     if (((buf[4] != '-') || (buf[7] != '-') || (buf[10] != 'T') ||
             (buf[13] != ':') || (buf[16] != ':')))
     {
-      fprintf(stderr, "%s: string is badly formed '%s'\n", __FUNCTION__, buf);
+      fprintf(stderr, "%s: string is badly formed '%s'\n", __func__, buf);
       goto err;
     }
     format = 2;
@@ -430,14 +430,14 @@ int string_to_time(const char *str, time_t *time)
   case DATESTAMP_LEN:
     if (((buf[4] != '-') || (buf[7] != '-')))
     {
-      fprintf(stderr, "%s: string is badly formed '%s'\n", __FUNCTION__, buf);
+      fprintf(stderr, "%s: string is badly formed '%s'\n", __func__, buf);
       goto err;
     }
     format = 3;
     isutc = 0;
     break;
   default:
-    fprintf(stderr, "%s: string is not a timestamp '%s'\n", __FUNCTION__, buf);
+    fprintf(stderr, "%s: string is not a timestamp '%s'\n", __func__, buf);
     goto err;
     break;
   }
@@ -455,7 +455,7 @@ int string_to_time(const char *str, time_t *time)
   {
     if (buf[i] && !isdigit(buf[i]))
     {
-      fprintf(stderr, "%s: expected numeral at '%s'[%d]\n", __FUNCTION__, str, i);
+      fprintf(stderr, "%s: expected numeral at '%s'[%d]\n", __func__, str, i);
       goto err;
     }
   }
@@ -465,13 +465,13 @@ int string_to_time(const char *str, time_t *time)
   time_tm.tm_mon = atoi(MM) - 1;
   if (time_tm.tm_mon > 11)
   {
-    fprintf(stderr, "%s: month value too big '%s'\n", __FUNCTION__, str);
+    fprintf(stderr, "%s: month value too big '%s'\n", __func__, str);
     goto err;
   }
   time_tm.tm_mday = atoi(dd);
   if (time_tm.tm_mday > 31)
   {
-    fprintf(stderr, "%s: day value too big '%s'\n", __FUNCTION__, str);
+    fprintf(stderr, "%s: day value too big '%s'\n", __func__, str);
     goto err;
 
   }
@@ -486,19 +486,19 @@ int string_to_time(const char *str, time_t *time)
   time_tm.tm_hour = atoi(hh);
   if (time_tm.tm_hour > 23)
   {
-    fprintf(stderr, "%s: hour value too big '%s'\n", __FUNCTION__, str);
+    fprintf(stderr, "%s: hour value too big '%s'\n", __func__, str);
     goto err;
   }
   time_tm.tm_min = atoi(mm);
   if (time_tm.tm_min > 59)
   {
-    fprintf(stderr, "%s: minute value too big '%s'\n", __FUNCTION__, str);
+    fprintf(stderr, "%s: minute value too big '%s'\n", __func__, str);
     goto err;
   }
   time_tm.tm_sec = atoi(ss);
   if (time_tm.tm_sec > 59)
   {
-    fprintf(stderr, "%s: second value too big '%s'\n", __FUNCTION__, str);
+    fprintf(stderr, "%s: second value too big '%s'\n", __func__, str);
     goto err;
   }
 
@@ -610,7 +610,7 @@ tz_t *time_tz(time_t time, tz_t* tz) {
   int minutes = ((loc.tm_hour * 60 + loc.tm_min) - (gmt.tm_hour * 60 + gmt.tm_min)) % 720;
   tz->tz_dir = minutes < 0 ? (-1) : 1;
   tz->tz_hour = tz->tz_dir * minutes / 60;
-  tz->tz_min  = tz->tz_dir * ( minutes - tz->tz_hour * 60 );
+  tz->tz_min  = ( tz->tz_dir * minutes ) - tz->tz_hour * 60;
   sprintf(tz->tz_str, "%+2.2d:%2.2d", tz->tz_dir * tz->tz_hour, (unsigned)(tz->tz_min) % 60);
   return tz;
 }
