@@ -82,18 +82,18 @@ void Alarm::setDays(char mask)
   std::string daystr("");
   switch (mask)
   {
-  case 0b0111110:
+  case 0x3e: //0111110
     daystr.append(DayTable[1]).push_back(',');
     daystr.append(DayTable[2]).push_back(',');
     daystr.append(DayTable[3]).push_back(',');
     daystr.append(DayTable[4]).push_back(',');
     daystr.append(DayTable[5]);
     break;
-  case 0b1000001:
+  case 0x41: //1000001
     daystr.append(DayTable[0]).push_back(',');
     daystr.append(DayTable[6]);
     break;
-  case 0b1111111:
+  case 0x7f: //1111111
     daystr.append(DayTable[0]).push_back(',');
     daystr.append(DayTable[1]).push_back(',');
     daystr.append(DayTable[2]).push_back(',');
@@ -122,30 +122,30 @@ void Alarm::SetRecurrence(const std::string& days)
   for (std::vector<std::string>::const_iterator it = tokens.begin(); it != tokens.end(); ++it)
   {
     if (*it == DayTable[Day_SUNDAY])
-      mask |= 0b0000001;
+      mask |= 0x01;
     else if (*it == DayTable[Day_MONDAY])
-      mask |= 0b0000010;
+      mask |= 0x02;
     else if (*it == DayTable[Day_TUESDAY])
-      mask |= 0b0000100;
+      mask |= 0x04;
     else if (*it == DayTable[Day_WEDNESDAY])
-      mask |= 0b0001000;
+      mask |= 0x08;
     else if (*it == DayTable[Day_THURSDAY])
-      mask |= 0b0010000;
+      mask |= 0x10;
     else if (*it == DayTable[Day_FRIDAY])
-      mask |= 0b0100000;
+      mask |= 0x20;
     else if (*it == DayTable[Day_SATURDAY])
-      mask |= 0b1000000;
+      mask |= 0x40;
   }
   std::string val;
   switch (mask)
   {
-  case 0b1111111:
+  case 0x7f: //1111111
     val.assign(RecurrenceTable[Recurrence_DAILY]);
     break;
-  case 0b1000001:
+  case 0x41: //1000001
     val.assign(RecurrenceTable[Recurrence_WEEKENDS]);
     break;
-  case 0b0111110:
+  case 0x3e: //0111110
     val.assign(RecurrenceTable[Recurrence_WEEKDAYS]);
     break;
   default:
@@ -186,11 +186,11 @@ void Alarm::parse(Element& elem)
         }
       }
       else if (*it == RecurrenceTable[Recurrence_WEEKDAYS])
-        mask = 0b0111110;
+        mask = 0x3e; //0111110
       else if (*it == RecurrenceTable[Recurrence_WEEKENDS])
-        mask = 0b1000001;
+        mask = 0x41; //1000001
       else if (*it == RecurrenceTable[Recurrence_DAILY])
-        mask = 0b1111111;
+        mask = 0x7f; //1111111
       setDays(mask);
       m_recurrence.assign(*it);
     }
