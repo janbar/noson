@@ -56,7 +56,7 @@ void usage(const char* cmd)
         );
 }
 
-static int g_loglevel = 2;
+static int g_loglevel = 1;
 
 int main(int argc, char** argv)
 {

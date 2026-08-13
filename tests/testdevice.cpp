@@ -50,7 +50,7 @@ void usage(const char* cmd)
         );
 }
 
-static int g_loglevel = 2;
+static int g_loglevel = 1;
 
 int main(int argc, char** argv)
 {
@@ -163,6 +163,14 @@ int main(int argc, char** argv)
           s += bdir2.count();
         }
         */
+
+        /*
+         * Household ID
+         */
+        {
+          std::string hhid = sonos.GetHouseholdID();
+          PRINTF("Sonos Household ID = '%s'\n", hhid.c_str());
+        }
 
       }
     }
