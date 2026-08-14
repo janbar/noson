@@ -83,6 +83,9 @@ namespace NSROOT
     // Device properties
     const std::string& GetHouseholdID() const { return m_householdID; }
 
+    // Muse household id (form "Sonos_xxx.yyy") used by the cloud content API
+    std::string GetMuseHouseholdID();
+
     const std::string& GetSerialNumber() const { return m_serialNumber; }
 
     const std::string& GetSoftwareVersion() const { return m_softwareVersion; }
