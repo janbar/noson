@@ -15,20 +15,7 @@ set (NOSON_LIB_VERSION ${noson_VERSION})
 set (NOSON_LIB_SOVERSION ${noson_VERSION_MAJOR})
 
 ###############################################################################
-# add definitions
-if (MSVC)
-  include(MSVCRuntime)
-  configure_msvc_runtime()
-  add_definitions ("/D_CRT_SECURE_NO_WARNINGS")
-  set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /W3 /Od /RTC1")
-  set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /EHsc /nologo")
-  set (CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /O2 /EHsc /nologo")
-  set (CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /O2 /EHsc /nologo")
-  set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /W3 /Od /RTC1 /EHsc /nologo")
-  set (CMAKE_SHARED_LIBRARY_PREFIX "lib")
-  set (CMAKE_STATIC_LIBRARY_PREFIX "lib")
-endif ()
-
+# setup
 if(APPLE)
     # ignore macports
     set(CMAKE_IGNORE_PATH "/opt/local/bin;/opt/local/include;/opt/local/lib")
