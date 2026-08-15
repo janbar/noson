@@ -446,7 +446,7 @@ int WSResponse::_response::SocketStreamReader(void *hdl, void *buf, int sz)
     return 0;
   int s = 0;
   // let read on unknown length
-  if (!resp->m_contentLength)
+  if (resp->m_contentLength == 0 && !resp->m_contentEmpty)
     s = (int)resp->m_socket->ReceiveData(buf, sz);
   else if (resp->m_contentLength > resp->m_consumed)
   {
@@ -489,7 +489,7 @@ int WSResponse::_response::ReadContent(char* buf, size_t buflen)
           m_consumed += s;
         return s;
       }
-      else if (!m_contentEmpty && m_hasContent)
+      else if (m_contentLength == 0 && !m_contentEmpty && m_hasContent)
       {
         // let read on unknown length
         int s = (int)m_socket->ReceiveData(buf, buflen);
