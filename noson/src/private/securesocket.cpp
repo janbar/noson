@@ -217,6 +217,9 @@ SecureSocket* SSLServerContext::NewServerSocket()
 
 TcpServerSocket::AcceptStatus SSLServerContext::SSLHandshake(SecureSocket& socket)
 {
+  if (socket.m_connected)
+    return TcpServerSocket::ACCEPT_SUCCESS;
+
   SSL_set_fd(static_cast<SSL*>(socket.m_ssl), socket.m_socket);
   SSL_set_accept_state(static_cast<SSL*>(socket.m_ssl));
 
@@ -432,7 +435,7 @@ bool SecureSocket::IsCertificateValid(std::string& str)
     char buf[80];
     // X509_get_subject_name() returns the subject name of certificate x.
     // The returned value is an internal pointer which MUST NOT be freed.
-    X509_NAME* name = X509_get_subject_name(static_cast<X509*>(m_cert));
+    const X509_NAME* name = X509_get_subject_name(static_cast<X509*>(m_cert));
     str.assign(X509_NAME_oneline(name, buf, sizeof(buf) - 1));
     return true;
   }
