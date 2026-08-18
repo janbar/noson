@@ -30,7 +30,7 @@
 
 #define SOCKET_HOSTNAME_MAXSIZE       256
 #define SOCKET_RCVBUF_MINSIZE         16384
-#define SOCKET_TIMEOUT_SEC            10
+#define SOCKET_TIMEOUT_SEC            5
 #define SOCKET_TIMEOUT_USEC           0
 #define SOCKET_READ_ATTEMPT           3
 #define SOCKET_BUFFER_SIZE            1472
@@ -93,25 +93,29 @@ namespace NSROOT
 
     /**
      * Send data into the socket.
+     * It fails in case of an error or if the intrinsic timeout expires.
      * @param buf the pointer to data
      * @param size the number of byte to send
      * @return true when succeeded, else false
+     * @see SOCKET_TIMEOUT_SEC
      */
     virtual bool SendData(const char* buf, size_t size);
 
     /**
-     * Read data from the socket.
+     * Read n bytes from the socket or until the soft timeout expires.
      * @param buf the pointer to write received data
      * @param n the number of byte to read
      * @return the number of received byte
+     * @see SetTimeout()
      */
     virtual size_t ReceiveData(void* buf, size_t n);
 
     /**
-     * Read data or block.
+     * Read data or block until the intrinsic timeout expires.
      * @param buf the pointer to write data
      * @param n read at most n bytes
      * @return the number of received byte
+     * @see SOCKET_TIMEOUT_SEC
      */
     virtual size_t BlockingRead(void* buf, size_t n);
 

@@ -150,6 +150,9 @@ static int __connectAddr(struct addrinfo *addr, net_socket_t *s, int rcvbuf)
     opt_timeo.tv_sec = SOCKET_TIMEOUT_SEC;
     opt_timeo.tv_usec = 0;
 #endif
+    if (setsockopt(*s, SOL_SOCKET, SO_RCVTIMEO, (char*)&opt_timeo, sizeof(opt_timeo)))
+      DBG(DBG_WARN, "%s: could not set SO_RCVTIMEO from socket (%d)\n", __FUNCTION__, LASTERROR);
+
     if (setsockopt(*s, SOL_SOCKET, SO_SNDTIMEO, (char*)&opt_timeo, sizeof(opt_timeo)))
       DBG(DBG_WARN, "%s: could not set SO_SNDTIMEO from socket (%d)\n", __FUNCTION__, LASTERROR);
   }
@@ -493,8 +496,8 @@ size_t TcpSocket::BlockingRead(void *buf, size_t n)
       }
     }
 
-    int r = 0;
-    if ((r = recv(m_socket, (char*)buf, n, 0)) > 0)
+    int r = (int) recv(m_socket, (char*)buf, n, 0);
+    if (r > 0)
       return r;
   }
   return 0;
@@ -774,6 +777,9 @@ TcpServerSocket::AcceptStatus TcpServerSocket::AcceptConnection(
   opt_timeo.tv_sec = SOCKET_TIMEOUT_SEC;
   opt_timeo.tv_usec = 0;
 #endif
+  if (setsockopt(socket.m_socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&opt_timeo, sizeof(opt_timeo)))
+    DBG(DBG_WARN, "%s: could not set SO_RCVTIMEO from socket (%d)\n", __FUNCTION__, LASTERROR);
+
   if (setsockopt(socket.m_socket, SOL_SOCKET, SO_SNDTIMEO, (char*)&opt_timeo, sizeof(opt_timeo)))
     DBG(DBG_WARN, "%s: could not set SO_SNDTIMEO from socket (%d)\n", __FUNCTION__, LASTERROR);
 
