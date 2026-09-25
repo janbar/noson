@@ -718,8 +718,6 @@ bool System::FindDeviceDescription(std::string& url)
   "ST: " DISCOVER_ST WS_CRLF
   WS_CRLF;
 
-  static struct timeval socket_timeout = { 0, 500000 };
-
   bool ret = false;
   std::list<std::pair<std::string, unsigned> > laddr;
   laddr.push_back(std::make_pair(IPBC_ADDR, SSDP_NUMP));
@@ -739,7 +737,7 @@ bool System::FindDeviceDescription(std::string& url)
         DBG(DBG_ERROR, "%s: send data failed (%d)(%s:%d)\n", __FUNCTION__, sock.GetErrNo(), addr.first.c_str(), addr.second);
       laddr.push_back(addr);
     }
-    sock.SetTimeout(socket_timeout);
+    sock.SetTimeout(500);
     std::string strread;
     size_t len = 0;
     unsigned _context = 0;

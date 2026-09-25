@@ -42,12 +42,13 @@ namespace NSROOT
   class WSRequestBroker
   {
   public:
-    WSRequestBroker(TcpSocket* socket, bool secure, int timeout);
+    WSRequestBroker(TcpSocket* socket, bool secure, int timeout_ms);
     ~WSRequestBroker();
 
     typedef std::map<std::string, WSHeader> VARS;
 
-    void SetTimeout(int timeout);
+    void SetTimeout(int timeout_ms);
+    int GetTimeout() const;
     bool IsSecure() const { return m_secure; }
     bool IsParsed() const { return m_parsed; }
     std::string GetRemoteAddrInfo() const;
@@ -63,6 +64,7 @@ namespace NSROOT
     const std::string& GetRequestHeader(const std::string& key) const;
     const std::string& GetRequestHeader(WS_HEADER header) const { return GetRequestHeader(ws_header_to_upperstr(header)); }
     const std::string& GetURIParams() const { return m_uriParams; }
+    bool IsKeepAlive() const { return m_keepAlive; }
     bool IsRewritten() const { return m_rewritten; }
     bool IsPathHidden() const { return m_pathIsHidden; }
     bool HasContent() const { return m_hasContent; }
@@ -80,9 +82,10 @@ namespace NSROOT
     bool ReplyData(const char * data, size_t size);
     bool RewritePath(const std::string& newpath);
 
+    void SetKeepAlive(bool enable) { m_keepAlive = enable; }
     void SetAuthUser(const std::string& authUser) { m_authUser = authUser; }
     const std::string& GetAuthUser() const { return m_authUser; }
-    void SetStatus(WS_STATUS status) { m_status = status; }
+    void SetStatus(WS_STATUS status);
     WS_STATUS GetStatus() const { return m_status; }
     size_t GetBytesOut() const { return m_bytesOut; }
     const std::string& GetRequestLine() const { return m_requestLine; }
@@ -102,6 +105,7 @@ namespace NSROOT
     std::string m_host;
     std::string m_serverName;
     std::string m_serverPort;
+    bool m_keepAlive;
     bool m_rewritten;
     bool m_pathIsHidden;
     bool m_hasContent;

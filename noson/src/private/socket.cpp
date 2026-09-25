@@ -34,13 +34,14 @@
 #define ERRNO_INTR WSAEINTR
 typedef int socklen_t;
 typedef IN_ADDR in_addr_t;
-
+typedef unsigned long nfds_t;
+#define poll(fds, nfds, timeout) WSAPoll(fds, nfds, timeout)
 #else
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/select.h>
+#include <poll.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -100,7 +101,6 @@ TcpSocket::TcpSocket()
 , m_socket(INVALID_SOCKET_VALUE)
 , m_rcvbuf(SOCKET_RCVBUF_MINSIZE)
 , m_errno(0)
-, m_attempt(SOCKET_READ_ATTEMPT)
 , m_buffer(nullptr)
 , m_bufptr(nullptr)
 , m_buflen(SOCKET_BUFFER_SIZE)
@@ -166,7 +166,7 @@ static int __connectAddr(struct addrinfo *addr, net_socket_t *s, int rcvbuf)
 #endif
 
   // configure the socket in non-blocking mode temporarily and so the connection
-  // attempt timeout will be handled by the internal select() call
+  // attempt timeout will be handled by the internal poll() call
 #ifdef __WINDOWS__
   {
     u_long nonblock = 1;
@@ -211,14 +211,11 @@ static int __connectAddr(struct addrinfo *addr, net_socket_t *s, int rcvbuf)
 #endif
 
   // wait for socket writable within the timeout
-  fd_set fds;
-  FD_ZERO(&fds);
-  FD_SET(*s, &fds);
-  struct timeval tv;
-  tv.tv_sec = SOCKET_TIMEOUT_SEC;
-  tv.tv_usec = 0;
+  struct pollfd fds[1];
+  fds[0].fd = *s;
+  fds[0].events = POLLOUT;
 
-  int r = select((*s) + 1, nullptr, &fds, nullptr, &tv);
+  int r = poll(fds, 1, SOCKET_TIMEOUT_SEC * 1000);
   if (r > 0)
   {
     // check socket error
@@ -419,25 +416,34 @@ size_t TcpSocket::ReceiveData(void *buf, size_t n)
     m_bufptr = m_buffer;
     m_rcvlen = 0;
 
-    struct timeval tv;
-    fd_set fds;
-    int r = 0, hangcount = 0;
+    struct pollfd fds[1];
+    fds[0].fd = m_socket;
+    fds[0].events = POLLIN;
 
     while (n > 0)
     {
-      tv = m_timeout;
-      FD_ZERO(&fds);
-      FD_SET(m_socket, &fds);
-      r = select(m_socket + 1, &fds, nullptr, nullptr, &tv);
-      if (r > 0)
+      int r = poll(fds, 1, m_timeout);
+      if (r == 0)
+      {
+        DBG(DBG_INFO, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, m_timeout);
+        m_errno = ETIMEDOUT;
+      }
+      else if (r < 0)
+      {
+        m_errno = LASTERROR;
+      }
+      else if ((fds[0].revents & POLLIN))
       {
         // Under threshold use buffering
         if (n < m_buflen)
         {
-          if ((r = recv(m_socket, m_buffer, m_buflen, 0)) > 0)
+          int rr = (int) recv(m_socket, m_buffer, m_buflen, 0);
+          if (rr < 0)
+            m_errno = LASTERROR;
+          else if (rr > 0)
           {
-            m_rcvlen = r;
-            size_t s = r;
+            m_rcvlen = rr;
+            size_t s = rr;
             if (s > n)
               s = n;
             memcpy(p, m_buffer, s);
@@ -445,32 +451,29 @@ size_t TcpSocket::ReceiveData(void *buf, size_t n)
             p += s;
             n -= s;
             rcvlen += s;
+            continue;
           }
         }
         // No buffering
         else
         {
-          if ((r = recv(m_socket, p, n, 0)) > 0)
+          int rr = (int) recv(m_socket, p, n, 0);
+          if (rr < 0)
+            m_errno = LASTERROR;
+          else if (rr > 0)
           {
-            p += r;
-            n -= r;
-            rcvlen += r;
+            p += rr;
+            n -= rr;
+            rcvlen += rr;
+            continue;
           }
         }
       }
-      if (r == 0)
+      else if ((fds[0].revents & (POLLHUP | POLLERR | POLLNVAL)))
       {
-        DBG(DBG_INFO, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, hangcount);
-        m_errno = ETIMEDOUT;
-        if (++hangcount >= m_attempt)
-          break;
+        m_errno = ENOTCONN;
       }
-      if (r < 0)
-      {
-        m_errno = LASTERROR;
-        if (m_errno != ERRNO_INTR)
-          break;
-      }
+      break;
     }
     return rcvlen;
   }
@@ -497,7 +500,9 @@ size_t TcpSocket::BlockingRead(void *buf, size_t n)
     }
 
     int r = (int) recv(m_socket, (char*)buf, n, 0);
-    if (r > 0)
+    if (r < 0)
+      m_errno = LASTERROR;
+    else if (r > 0)
       return r;
   }
   return 0;
@@ -509,24 +514,18 @@ void TcpSocket::Disconnect()
   {
     if (shutdown(m_socket, SHUT_RDWR) == 0)
     {
-      struct timeval tv;
-      fd_set fds;
-      tv.tv_sec = 1;
-      tv.tv_usec = 0;
       char buf[256];
-      for (;;)
+      struct pollfd fds[1];
+      fds[0].fd = m_socket;
+      fds[0].events = POLLIN;
+      int tv = 1000;
+
+      while (poll(fds, 1, tv) > 0)
       {
-        FD_ZERO(&fds);
-        FD_SET(m_socket, &fds);
-        if (select(m_socket + 1, &fds, nullptr, nullptr, &tv) > 0 &&
-            recv(m_socket, buf, sizeof(buf), 0) > 0)
-        {
-          // polling
-          tv.tv_sec = 0;
-          tv.tv_usec = 0;
-          continue;
-        }
-        break;
+        if ((fds[0].revents & POLLIN) && recv(m_socket, buf, sizeof(buf), 0) > 0)
+          tv = 0;
+        else
+          break;
       }
     }
 
@@ -541,19 +540,34 @@ bool TcpSocket::IsValid() const
   return (m_socket == INVALID_SOCKET_VALUE ? false : true);
 }
 
-int TcpSocket::Listen(timeval *timeout)
+int TcpSocket::Listen(int timeout_ms)
 {
   if (IsValid())
   {
-    fd_set fds;
     int r;
+    struct pollfd fds[1];
+    fds[0].fd = m_socket;
+    fds[0].events = POLLIN;
 
-    FD_ZERO(&fds);
-    FD_SET(m_socket, &fds);
-    r = select(m_socket + 1, &fds, nullptr, nullptr, timeout);
-    if (r < 0)
+    r = poll(fds, 1, timeout_ms);
+    if (r == 0)
+      return 0;
+    else if (r < 0)
+    {
       m_errno = LASTERROR;
-    return r;
+      return -1;
+    }
+    else if ((fds[0].revents & POLLIN))
+    {
+      return 1;
+    }
+    else if ((fds[0].revents & (POLLHUP | POLLERR | POLLNVAL)))
+    {
+      m_errno = ENOTCONN;
+      return -1;
+    }
+    else
+      return 0;
   }
   m_errno = ENOTCONN;
   return -1;
@@ -723,26 +737,30 @@ bool TcpServerSocket::ListenConnection(int queueSize /*= SOCKET_LISTEN_QUEUE_SIZ
 
 TcpServerSocket::AcceptStatus TcpServerSocket::AcceptConnection(
         TcpSocket& socket,
-        int timeout)
+        int timeout_ms)
 {
-  struct timeval tv = { timeout, 0 };
-  fd_set fds;
   int r = 0;
-  FD_ZERO(&fds);
-  FD_SET(m_socket, &fds);
-  r = select(m_socket + 1, &fds, nullptr, nullptr, &tv);
+  struct pollfd fds[1];
+  fds[0].fd = m_socket;
+  fds[0].events = POLLIN;
+
+  r = poll(fds, 1, timeout_ms);
   // on timed out, it should try again
   if (r == 0)
     return ACCEPT_TIMEOUT;
-  if (r < 0)
+  else if (r < 0)
   {
     m_errno = LASTERROR;
-    // on interruption, it should try again
+    // on interruption, it could try again
     if (m_errno == ERRNO_INTR)
       return ACCEPT_TIMEOUT;
     // on unrecoverable error, it should break
     return ACCEPT_ERROR;
   }
+  else if ((fds[0].revents & (POLLHUP | POLLERR | POLLNVAL)))
+    return ACCEPT_ERROR;
+  else if ((fds[0].revents & POLLIN) == 0)
+    return ACCEPT_TIMEOUT;
 
   m_addr->sa_len = sizeof(m_addr->data);
   socket.m_socket = accept(m_socket, m_addr->sa(), &m_addr->sa_len);
@@ -783,7 +801,6 @@ TcpServerSocket::AcceptStatus TcpServerSocket::AcceptConnection(
   if (setsockopt(socket.m_socket, SOL_SOCKET, SO_SNDTIMEO, (char*)&opt_timeo, sizeof(opt_timeo)))
     DBG(DBG_WARN, "%s: could not set SO_SNDTIMEO from socket (%d)\n", __FUNCTION__, LASTERROR);
 
-  socket.SetReadAttempt(0);
   return ACCEPT_SUCCESS;
 }
 
@@ -810,7 +827,8 @@ void TcpServerSocket::Close()
 ////
 
 UdpSocket::UdpSocket()
-: m_socket(INVALID_SOCKET_VALUE)
+: NetSocket()
+, m_socket(INVALID_SOCKET_VALUE)
 , m_errno(0)
 , m_buffer(nullptr)
 , m_bufptr(nullptr)
@@ -822,7 +840,8 @@ UdpSocket::UdpSocket()
 }
 
 UdpSocket::UdpSocket(size_t bufferSize)
-: m_socket(INVALID_SOCKET_VALUE)
+: NetSocket()
+, m_socket(INVALID_SOCKET_VALUE)
 , m_errno(0)
 , m_buffer(nullptr)
 , m_bufptr(nullptr)
@@ -1023,36 +1042,42 @@ size_t UdpSocket::ReceiveData(void* buf, size_t n)
     m_bufptr = m_buffer;
     m_rcvlen = 0;
 
-    struct timeval tv;
-    fd_set fds;
     int r = 0;
+    struct pollfd fds[1];
+    fds[0].fd = m_socket;
+    fds[0].events = POLLIN;
 
-    tv = m_timeout;
-    FD_ZERO(&fds);
-    FD_SET(m_socket, &fds);
-    r = select(m_socket + 1, &fds, nullptr, nullptr, &tv);
-    if (r > 0)
+    r = poll(fds, 1, m_timeout);
+    if (r == 0)
     {
-      if ((r = recvfrom(m_socket, m_buffer, m_buflen, 0, m_from->sa(), &m_from->sa_len)) > 0)
+      m_errno = ETIMEDOUT;
+      DBG(DBG_DEBUG, "%s: socket(%p) timed out\n", __FUNCTION__, &m_socket);
+    }
+    else if (r < 0)
+    {
+      m_errno = LASTERROR;
+      DBG(DBG_ERROR, "%s: socket(%p) error (%d)\n", __FUNCTION__, &m_socket, m_errno);
+    }
+    else if ((fds[0].revents & POLLIN))
+    {
+      int rr = (int) recvfrom(m_socket, m_buffer, m_buflen, 0, m_from->sa(), &m_from->sa_len);
+      if (rr < 0)
+        m_errno = LASTERROR;
+      else if (rr > 0)
       {
-        m_rcvlen = len = r;
+        m_rcvlen = len = rr;
         if (m_rcvlen == m_buflen)
-          DBG(DBG_WARN, "%s: datagram have been truncated (%d)\n", __FUNCTION__, r);
+          DBG(DBG_WARN, "%s: datagram have been truncated (%d)\n", __FUNCTION__, rr);
         if (len > n)
           len = n;
         memcpy(buf, m_buffer, len);
         m_bufptr += len;
       }
     }
-    if (r == 0)
+    else if ((fds[0].revents & (POLLHUP | POLLERR | POLLNVAL)))
     {
-      m_errno = ETIMEDOUT;
-      DBG(DBG_DEBUG, "%s: socket(%p) timed out\n", __FUNCTION__, &m_socket);
-    }
-    if (r < 0)
-    {
-      m_errno = LASTERROR;
-      DBG(DBG_ERROR, "%s: socket(%p) read error (%d)\n", __FUNCTION__, &m_socket, m_errno);
+      m_errno = ENOTSOCK;
+      DBG(DBG_ERROR, "%s: socket(%p) poll error (%d)\n", __FUNCTION__, &m_socket, fds[0].revents);
     }
     return len;
   }
@@ -1079,7 +1104,8 @@ std::string UdpSocket::GetRemoteAddrInfo() const
 ////
 
 UdpServerSocket::UdpServerSocket()
-: m_socket(INVALID_SOCKET_VALUE)
+: NetSocket()
+, m_socket(INVALID_SOCKET_VALUE)
 , m_errno(0)
 , m_buffer(nullptr)
 , m_bufptr(nullptr)
@@ -1088,13 +1114,11 @@ UdpServerSocket::UdpServerSocket()
 {
   m_addr = new SocketAddress;
   m_from = new SocketAddress;
-  m_timeout.tv_sec = SOCKET_TIMEOUT_SEC;
-  m_timeout.tv_usec = SOCKET_TIMEOUT_USEC;
-
 }
 
 UdpServerSocket::UdpServerSocket(size_t bufferSize)
-: m_socket(INVALID_SOCKET_VALUE)
+: NetSocket()
+, m_socket(INVALID_SOCKET_VALUE)
 , m_errno(0)
 , m_buffer(nullptr)
 , m_bufptr(nullptr)
@@ -1103,8 +1127,6 @@ UdpServerSocket::UdpServerSocket(size_t bufferSize)
 {
   m_addr = new SocketAddress;
   m_from = new SocketAddress;
-  m_timeout.tv_sec = SOCKET_TIMEOUT_SEC;
-  m_timeout.tv_usec = SOCKET_TIMEOUT_USEC;
 }
 
 UdpServerSocket::~UdpServerSocket()
@@ -1405,30 +1427,38 @@ size_t UdpServerSocket::AwaitIncoming()
     m_bufptr = m_buffer;
     m_rcvlen = 0;
 
-    fd_set fds;
     int r = 0;
+    struct pollfd fds[1];
+    fds[0].fd = m_socket;
+    fds[0].events = POLLIN;
 
-    FD_ZERO(&fds);
-    FD_SET(m_socket, &fds);
-    r = select(m_socket + 1, &fds, nullptr, nullptr, &m_timeout);
-    if (r > 0)
-    {
-      if ((r = recvfrom(m_socket, m_buffer, m_buflen, 0, m_from->sa(), &m_from->sa_len)) > 0)
-      {
-        m_rcvlen = r;
-        if (m_rcvlen == m_buflen)
-          DBG(DBG_WARN, "%s: datagram have been truncated (%d)\n", __FUNCTION__, r);
-      }
-    }
+    r = poll(fds, 1, m_timeout);
     if (r == 0)
     {
       m_errno = ETIMEDOUT;
       DBG(DBG_DEBUG, "%s: socket(%p) timed out\n", __FUNCTION__, &m_socket);
     }
-    if (r < 0)
+    else if (r < 0)
     {
       m_errno = LASTERROR;
-      DBG(DBG_ERROR, "%s: socket(%p) read error (%d)\n", __FUNCTION__, &m_socket, m_errno);
+      DBG(DBG_ERROR, "%s: socket(%p) error (%d)\n", __FUNCTION__, &m_socket, m_errno);
+    }
+    else if ((fds[0].revents & POLLIN))
+    {
+      int rr = (int) recvfrom(m_socket, m_buffer, m_buflen, 0, m_from->sa(), &m_from->sa_len);
+      if (rr < 0)
+        m_errno = LASTERROR;
+      else if (rr > 0)
+      {
+        m_rcvlen = rr;
+        if (m_rcvlen == m_buflen)
+          DBG(DBG_WARN, "%s: datagram have been truncated (%d)\n", __FUNCTION__, rr);
+      }
+    }
+    else if ((fds[0].revents & (POLLHUP | POLLERR | POLLNVAL)))
+    {
+      m_errno = ENOTSOCK;
+      DBG(DBG_ERROR, "%s: socket(%p) poll error (%d)\n", __FUNCTION__, &m_socket, fds[0].revents);
     }
     return m_rcvlen;
   }

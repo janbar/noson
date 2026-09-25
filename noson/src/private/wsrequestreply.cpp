@@ -119,8 +119,20 @@ bool WSRequestReply::ResetReply()
   }
   m_headers.clear();
   SetHeader(WS_HEADER_Server, SERVER_SOFTWARE);
-  SetHeader(WS_HEADER_Connection, SERVER_CONNECTION);
   return true;
+}
+
+bool WSRequestReply::CloseReply(WS_STATUS status)
+{
+  if (m_broker.GetRequestMethod() != WS_METHOD_Head &&
+          status != WS_STATUS_204_No_Content &&
+          status != WS_STATUS_304_Not_modified)
+  {
+    // persistent connection (keep-alive) requires that the body length be
+    // explicitly specified
+    SetHeader(WS_HEADER_Content_Length, "0");
+  }
+  return PostReply(status);
 }
 
 bool WSRequestReply::PostReply(WS_STATUS status)
@@ -135,8 +147,32 @@ bool WSRequestReply::PostReply(WS_STATUS status)
     DBG(DBG_ERROR, "%s: invalid status\n", __FUNCTION__);
     return false;
   }
+
   m_stage = STAGE_CLOSE;
+  // setting the status will update the keep-alive state
   m_broker.SetStatus(status);
+
+  // do not change the connection header already configured for a specific
+  // purpose (upgrade), otherwise, add the configuration based on the current
+  // keep-alive status
+  if (m_headers.find(ws_header_to_upperstr(WS_HEADER_Connection)) == m_headers.end())
+  {
+    // set the connection headers according to the status of keep-alive
+    if (m_broker.IsKeepAlive())
+    {
+      SetHeader(WS_HEADER_Connection, ws_header_to_str(WS_HEADER_Keep_ALive));
+      std::string tmp;
+      tmp.reserve(15);
+      unsigned tm = (((unsigned)m_broker.GetTimeout() >> 3) * 8389U) >> 20;
+      tmp.append("timeout=").append(std::to_string(tm));
+      SetHeader(WS_HEADER_Keep_ALive, tmp);
+    }
+    else
+    {
+      SetHeader(WS_HEADER_Connection, "close");
+    }
+  }
+
   std::string data;
   data.reserve(127);
   data.append(SERVER_PROTOCOL " ")
@@ -144,8 +180,10 @@ bool WSRequestReply::PostReply(WS_STATUS status)
       .append(" ")
       .append(ws_status_to_msgstr(status))
       .append(WS_CRLF);
+
   if (!m_broker.ReplyData(data.c_str(), data.size()))
     return false;
+
   for (auto& e : m_headers)
   {
     for (auto it = e.second.cbegin(); it != e.second.cend(); ++it)

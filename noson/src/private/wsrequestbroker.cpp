@@ -27,6 +27,7 @@
 #include "builtin.h"
 #include "tokenizer.h"
 
+#define HTTP_PROTOCOL_1_1     "HTTP/1.1"
 #define HTTP_TOKEN_MAXLEN     79
 #define HTTP_HEADER_MAXLEN    0x4000    // maximum header length (16k)
 #define QUERY_BUFFER_SIZE     0x400     // size of read buffer for headers
@@ -194,11 +195,12 @@ bool WSRequestBroker::ExplodeHost(const std::string& host, std::string& nameStr,
   return true;
 }
 
-WSRequestBroker::WSRequestBroker(TcpSocket* socket, bool secure, int timeout)
+WSRequestBroker::WSRequestBroker(TcpSocket* socket, bool secure, int timeout_ms)
 : m_socket(socket)
 , m_secure(secure)
 , m_parsed(false)
 , m_method(WS_METHOD_UNKNOWN)
+, m_keepAlive(false)
 , m_rewritten(false)
 , m_pathIsHidden(false)
 , m_hasContent(false)
@@ -213,7 +215,7 @@ WSRequestBroker::WSRequestBroker(TcpSocket* socket, bool secure, int timeout)
 , m_status(WS_STATUS_UNKNOWN)
 , m_bytesOut(0)
 {
-  SetTimeout(timeout);
+  m_socket->SetTimeout(timeout_ms);
   m_parsed = ParseQuery();
 }
 
@@ -224,12 +226,14 @@ WSRequestBroker::~WSRequestBroker()
   m_chunkBuffer = m_chunkPtr = m_chunkEOR = m_chunkEnd = nullptr;
 }
 
-void WSRequestBroker::SetTimeout(int timeout)
+void WSRequestBroker::SetTimeout(int timeout_ms)
 {
-  struct timeval tv = { timeout, 0 };
-  if (timeout == 0)
-    tv.tv_usec = 999999;
-  m_socket->SetTimeout(tv);
+  m_socket->SetTimeout(timeout_ms);
+}
+
+int WSRequestBroker::GetTimeout() const
+{
+  return m_socket->GetTimeout();
 }
 
 std::string WSRequestBroker::GetRemoteAddrInfo() const
@@ -352,6 +356,13 @@ bool WSRequestBroker::ParseQuery()
       std::string& newval = m_requestHeaders[token].Back().append(val);
       switch (ws_header_from_upperstr(token))
       {
+      case WS_HEADER_Connection:
+      {
+        std::string tmp = newval;
+        std::transform(tmp.cbegin(), tmp.cend(), tmp.begin(), ::toupper);
+        m_keepAlive = (tmp == "KEEP-ALIVE");
+        break;
+      }
       case WS_HEADER_Content_Length:
       {
         int64_t num;
@@ -492,4 +503,24 @@ bool WSRequestBroker::RewritePath(const std::string& newpath)
     return true;
   }
   return false;
+}
+
+void WSRequestBroker::SetStatus(WS_STATUS status)
+{
+  m_status = status;
+  // reset keep-alive according to the returned status
+  if (m_keepAlive)
+  {
+    WS_CLOSE c = ws_status_to_close(status);
+    switch (c)
+    {
+    case WS_CLOSE_NO:
+      if (m_hasContent && (m_chunkNext || m_contentLength > m_consumed))
+        m_keepAlive = false;
+      break;
+    case WS_CLOSE_YES:
+      m_keepAlive = false;
+      break;
+    }
+  }
 }

@@ -33,6 +33,7 @@ using namespace NSROOT;
 WSRequest::WSRequest(const std::string& server, unsigned port)
 : m_server(server)
 , m_port(port)
+, m_timeout(REQUEST_TIMEOUT)
 , m_secure_uri(false)
 , m_service_url()
 , m_service_method(WS_METHOD_Get)
@@ -51,6 +52,7 @@ WSRequest::WSRequest(const std::string& server, unsigned port)
 WSRequest::WSRequest(const std::string& server, unsigned port, bool secureURI)
 : m_server(server)
 , m_port(port)
+, m_timeout(REQUEST_TIMEOUT)
 , m_secure_uri(secureURI)
 , m_service_url()
 , m_service_method(WS_METHOD_Get)
@@ -66,6 +68,7 @@ WSRequest::WSRequest(const std::string& server, unsigned port, bool secureURI)
 
 WSRequest::WSRequest(const URIParser& uri, WS_METHOD method)
 : m_port(0)
+, m_timeout(REQUEST_TIMEOUT)
 , m_secure_uri(false)
 , m_service_method(method)
 , m_charset(REQUEST_STD_CHARSET)
@@ -105,6 +108,7 @@ WSRequest::~WSRequest()
 WSRequest::WSRequest(const WSRequest& o, const URIParser& redirection)
 : m_server(o.m_server)
 , m_port(o.m_port)
+, m_timeout(o.m_timeout)
 , m_secure_uri(o.m_secure_uri)
 , m_service_method(o.m_service_method)
 , m_charset(o.m_charset)
@@ -184,6 +188,11 @@ void WSRequest::RequestAcceptEncoding(bool yesno)
 void WSRequest::SetUserAgent(const std::string& value)
 {
   m_userAgent = value;
+}
+
+void WSRequest::SetTimeout(int timeout_ms)
+{
+  m_timeout = timeout_ms;
 }
 
 void WSRequest::SetHeader(const std::string& field, const std::string& value)

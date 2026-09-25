@@ -31,8 +31,6 @@
 #define SOCKET_HOSTNAME_MAXSIZE       256
 #define SOCKET_RCVBUF_MINSIZE         16384
 #define SOCKET_TIMEOUT_SEC            5
-#define SOCKET_TIMEOUT_USEC           0
-#define SOCKET_READ_ATTEMPT           3
 #define SOCKET_BUFFER_SIZE            1472
 #define SOCKET_LISTEN_QUEUE_SIZE      50
 
@@ -51,16 +49,16 @@ namespace NSROOT
   public:
     NetSocket()
     {
-      m_timeout.tv_sec = SOCKET_TIMEOUT_SEC;
-      m_timeout.tv_usec = SOCKET_TIMEOUT_USEC;
+      m_timeout = SOCKET_TIMEOUT_SEC * 1000;
     }
     virtual ~NetSocket() { }
     virtual bool SendData(const char* buf, size_t size) = 0;
     virtual size_t ReceiveData(void* buf, size_t n) = 0;
-    void SetTimeout(timeval timeout) { m_timeout = timeout; }
+    void SetTimeout(int timeout_ms) { m_timeout = timeout_ms; }
+    int GetTimeout() const { return m_timeout; }
 
   protected:
-    struct timeval m_timeout;
+    int m_timeout;
   };
 
   class TcpSocket : public NetSocket
@@ -74,13 +72,6 @@ namespace NSROOT
      * @return the last error occuring on call
      */
     int GetErrNo() const { return m_errno; }
-
-    /**
-     * Configure the number of timed out attempt reading the socket before
-     * returning.
-     * @param n the number of attempt
-     */
-    void SetReadAttempt(int n) { m_attempt = n; }
 
     /**
      * Try to connect the socket to an address name, port.
@@ -132,10 +123,10 @@ namespace NSROOT
     /**
      * Check for read readiness. It returns -1 for errors, 0 for occurred
      * timeout, and >0 when incoming data are ready to read.
-     * @param timeout
+     * @param timeout_ms in millisec
      * @return an int for status
      */
-    int Listen(timeval *timeout);
+    int Listen(int timeout_ms);
 
     /**
      * @return the socket handle
@@ -161,7 +152,6 @@ namespace NSROOT
     net_socket_t m_socket;
     int m_rcvbuf;
     int m_errno;
-    int m_attempt;
 
   private:
     char* m_buffer;
@@ -220,10 +210,10 @@ namespace NSROOT
     /**
      * Await a connection.
      * @param socket the tcp socket to connect on new request
-     * @param timeout in seconds
+     * @param timeout_ms in millisec
      * @return AcceptStatus
      */
-    AcceptStatus AcceptConnection(TcpSocket& socket, int timeout);
+    AcceptStatus AcceptConnection(TcpSocket& socket, int timeout_ms);
 
     /**
      * @return the address string of the accepted remote

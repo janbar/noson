@@ -24,7 +24,6 @@
 #include "event.h"
 
 #include <queue>
-#include <set>
 
 #ifdef NSROOT
 namespace NSROOT {
@@ -34,11 +33,10 @@ namespace OS
 
   class Worker;
 
-  class WorkerThread;
-
   class ThreadPool
   {
-    friend class WorkerThread;
+    class PooledThread;
+    friend class PooledThread;
   public:
     ThreadPool();
     ThreadPool(unsigned size);
@@ -46,7 +44,7 @@ namespace OS
 
     bool enqueue(Worker* worker);
 
-    unsigned max_size() const { return m_size; }
+    unsigned max_size() const { return m_maxSize; }
 
     void set_max_size(unsigned size);
 
@@ -69,7 +67,7 @@ namespace OS
     bool is_stopped() const;
 
   private:
-    unsigned      m_size;
+    unsigned      m_maxSize;
     unsigned      m_keepAlive;
     unsigned      m_poolSize;
     unsigned      m_waitingCount;
@@ -77,17 +75,15 @@ namespace OS
     volatile bool m_suspended;
     volatile bool m_empty;
 
+    PooledThread*             m_pool;
     std::queue<Worker*>       m_queue;
-    std::set<WorkerThread*>   m_pool;
     mutable Mutex             m_mutex;
     Condition<volatile bool>  m_condition;
     Event                     m_queueFill;
     Event                     m_queueEmpty;
 
-    Worker* pop_queue(WorkerThread* _thread);
-    void wait_queue(WorkerThread* _thread);
-    void start_thread(WorkerThread* _thread);
-    void finalize_thread(WorkerThread* _thread);
+    Worker* pop_queue(PooledThread* pt);
+    void wait_queue(PooledThread* pt);
     void __resize();
   };
 
@@ -101,47 +97,6 @@ namespace OS
 
   private:
     bool m_queued;
-  };
-
-  class WorkerThread : public Thread
-  {
-  public:
-    WorkerThread(ThreadPool& pool)
-    : Thread()
-    , m_threadPool(pool) { m_finalizeOnStop = true; }
-
-    void* process(void)
-    {
-      bool waiting = false;
-
-      while (!is_stopped())
-      {
-        Worker* worker = m_threadPool.pop_queue(this);
-        if (worker != nullptr)
-        {
-          worker->process();
-          delete worker;
-          waiting = false;
-        }
-        else if (!waiting)
-        {
-          m_threadPool.wait_queue(this);
-          waiting = true;
-        }
-        else
-          break;
-      }
-
-      return nullptr;
-    }
-
-    void finalize(void)
-    {
-      m_threadPool.finalize_thread(this);
-    }
-
-  private:
-    ThreadPool& m_threadPool;
   };
 
 }

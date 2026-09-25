@@ -190,11 +190,18 @@ typedef enum
   WS_STATUS_UNKNOWN,
 } WS_STATUS;
 
+typedef enum
+{
+  WS_CLOSE_NO             = 0,
+  WS_CLOSE_YES            = 1,
+} WS_CLOSE;
+
 extern WS_STATUS ws_status_from_num(int num);
 extern WS_STATUS ws_status_from_numstr(const char* numstr);
 extern int ws_status_to_num(WS_STATUS s);
 extern const char* ws_status_to_numstr(WS_STATUS s);
 extern const char* ws_status_to_msgstr(WS_STATUS s);
+extern WS_CLOSE ws_status_to_close(WS_STATUS s);
 
 #ifdef __cplusplus
 }

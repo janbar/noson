@@ -66,7 +66,17 @@ namespace NSROOT
     bool ResetReply();
 
     /**
-     * Post the header with the given status, and close reply.
+     * Post the header with the given status, and close the response.
+     * Note: The content length is set to zero when required.
+     * Note: Only valid at stage HEADER.
+     * @param status The reply status
+     * @return true on success, else false
+     */
+    bool CloseReply(WS_STATUS status);
+
+    /**
+     * Post the header with the given status, without explicitly closing the
+     * response. The body should be sent by a third party.
      * Note: Only valid at stage HEADER.
      * @param status The reply status
      * @return true on success, else false

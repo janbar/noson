@@ -53,21 +53,21 @@ namespace OS
       store(val);
       return val;
     }
-    int add_fetch(int amount)
+    int fetch_add(int amount)
     {
-      return m_val.fetch_add(amount, std::memory_order_acq_rel) + amount;
+      return m_val.fetch_add(amount, std::memory_order_acq_rel);
     }
     int increment()
     {
-      return add_fetch(1);
+      return fetch_add(1) + 1;
     }
-    int sub_fetch(int amount)
+    int fetch_sub(int amount)
     {
-      return m_val.fetch_sub(amount, std::memory_order_acq_rel) - amount;
+      return m_val.fetch_sub(amount, std::memory_order_acq_rel);
     }
     int decrement()
     {
-      return sub_fetch(1);
+      return fetch_sub(1) - 1;
     }
   };
 }

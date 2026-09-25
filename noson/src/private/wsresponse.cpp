@@ -164,7 +164,8 @@ WSResponse::_response::_response(const WSRequest &request)
     DBG(DBG_ERROR, "%s: create socket failed\n", __FUNCTION__);
   else if (m_socket->Connect(request.GetServer().c_str(), request.GetPort(), SOCKET_RCVBUF_MINSIZE))
   {
-    m_socket->SetReadAttempt(6); // 60 sec to hang up
+    // set the timeout to hang up
+    m_socket->SetTimeout(request.GetTimeout());
     if (!request.WriteMessage(*this))
       DBG(DBG_WARN, "%s: broken request\n", __FUNCTION__);
     if (ReadResponse())

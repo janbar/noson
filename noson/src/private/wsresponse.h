@@ -44,9 +44,13 @@ namespace NSROOT
     typedef std::map<std::string, WSHeader> VARS;
 
     WSResponse(const WSRequest& request)
-    { init(request, 1, true, false); }
+    {
+      init(request, 1, true, false);
+    }
     WSResponse(const WSRequest &request, int maxRedirs, bool trustedLocation, bool followAny)
-    { init(request, maxRedirs, trustedLocation, followAny); }
+    {
+      init(request, maxRedirs, trustedLocation, followAny);
+    }
     ~WSResponse();
 
     bool IsSuccessful() const { return p->IsSuccessful(); }

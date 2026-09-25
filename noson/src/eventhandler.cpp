@@ -401,7 +401,7 @@ void *BasicEventHandler::process()
     while (!OS::Thread::is_stopped())
     {
       SHARED_PTR<TcpSocket> sockPtr(new TcpSocket);
-      TcpServerSocket::AcceptStatus r = m_socket->AcceptConnection(*sockPtr, 1);
+      TcpServerSocket::AcceptStatus r = m_socket->AcceptConnection(*sockPtr, 1000);
       if (r == TcpServerSocket::ACCEPT_SUCCESS)
       {
         DBG(DBG_DEBUG, "%s: accepting new connection\n", __FUNCTION__);
@@ -411,13 +411,14 @@ void *BasicEventHandler::process()
       }
       if (r == TcpServerSocket::ACCEPT_FAILURE)
       {
-        DBG(DBG_WARN, "%s: accept failed (%d)\n", __FUNCTION__, m_socket->GetErrNo());
+        DBG(DBG_WARN, "%s: accept failed (%d)\n", __FUNCTION__, sockPtr->GetErrNo());
         continue;
       }
       if (r == TcpServerSocket::ACCEPT_TIMEOUT)
       {
         continue;
       }
+      DBG(DBG_ERROR, "%s: socket error (%d)\n", __FUNCTION__, m_socket->GetErrNo());
       AnnounceStatus(EVENTHANDLER_FAILED);
       break;
     }

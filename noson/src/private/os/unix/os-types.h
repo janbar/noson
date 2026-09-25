@@ -22,9 +22,7 @@
 #if defined(__APPLE__)
 #include <sys/cdefs.h>
 #include <sys/syslimits.h>
-#elif defined(__FreeBSD__)
-#include <limits.h>
-#elif defined(__GNU__) || defined(__linux__) || defined(__sun)
+#else
 #include <limits.h>
 #endif
 

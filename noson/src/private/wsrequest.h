@@ -33,6 +33,7 @@
 #define REQUEST_USER_AGENT    LIBTAG "/" LIBVERSION
 #define REQUEST_CONNECTION    "close"
 #define REQUEST_STD_CHARSET   "utf-8"
+#define REQUEST_TIMEOUT       60000 // 60 seconds
 
 namespace NSROOT
 {
@@ -59,6 +60,7 @@ namespace NSROOT
     void RequestAccept(const std::string& contentType);
     void RequestAcceptEncoding(bool yesno);
     void SetUserAgent(const std::string& value);
+    void SetTimeout(int timeout_ms);
 
     void SetHeader(const std::string& field, const std::string& value);
     void ClearHeader(const std::string& field);
@@ -73,12 +75,14 @@ namespace NSROOT
     bool IsSecureURI() const { return m_secure_uri; }
     WS_METHOD GetMethod() const { return m_service_method; }
     const std::string& GetService() const { return m_service_url; }
+    int GetTimeout() const { return m_timeout; }
 
     bool WriteMessage(WSRequestStreamSink& sink) const;
 
   private:
     std::string m_server;
     unsigned m_port;
+    int m_timeout;
     bool m_secure_uri;
     std::string m_service_url;
     WS_METHOD m_service_method;
