@@ -66,8 +66,8 @@ SMAccountList SMAccount::CreateAccounts(const std::string& type)
 {
   SMAccountList list;
   // hold keyring lock until return
-  Locked<SMOAKeyring::keyring>::pointer p = SMOAKeyring::g_keyring.Get();
-  for (SMOAKeyring::keyring::iterator it = p->begin(); it != p->end(); ++it)
+  Locked<SMOAKeyring::keyring>::const_pointer p = SMOAKeyring::g_keyring.GetShared();
+  for (SMOAKeyring::keyring::const_iterator it = p->cbegin(); it != p->cend(); ++it)
   {
     if (it->type == type)
     {
@@ -89,7 +89,7 @@ Locked<SMOAKeyring::keyring> SMOAKeyring::g_keyring(empty_keyring);
 void SMOAKeyring::Store(const std::string& type, const std::string& serialNum, const std::string& key, const std::string& token, const std::string& username)
 {
   // hold keyring lock until return
-  Locked<SMOAKeyring::keyring>::pointer p = g_keyring.Get();
+  Locked<SMOAKeyring::keyring>::pointer p = g_keyring.GetExclusive();
   for (keyring::iterator it = p->begin(); it != p->end(); ++it)
   {
     if (it->type == type && it->serialNum == serialNum)
@@ -106,7 +106,7 @@ void SMOAKeyring::Store(const std::string& type, const std::string& serialNum, c
 void SMOAKeyring::Purge(const std::string& type, const std::string& serialNum)
 {
   // hold keyring lock until return
-  Locked<SMOAKeyring::keyring>::pointer p = g_keyring.Get();
+  Locked<SMOAKeyring::keyring>::pointer p = g_keyring.GetExclusive();
   for (keyring::iterator it = p->begin(); it != p->end(); ++it)
   {
     if (it->type == type && it->serialNum == serialNum)

@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Jean-Luc Barriere
+ *      Copyright (C) 2014-2026 Jean-Luc Barriere
  *
  *  This file is part of Noson
  *
@@ -25,136 +25,172 @@
 
 namespace NSROOT
 {
-  /**
-   * This implements a "guard" pattern
-   */
-  class LockGuard
+  namespace OS { class Latch; }
+
+  class Lockable
   {
+    OS::Latch* m_latch;
+
   public:
-    struct Lockable;
+    Lockable();
+    virtual ~Lockable();
 
-    LockGuard() : m_lock(0) { }
-    /**
-     * Initialize a guard which hold the lock. The lock will be released by the
-     * destructor.
-     * @param lock The pointer to lockable object
-     */
-    LockGuard(Lockable* lock);
-    ~LockGuard();
+    void Lock();
+    void Unlock();
 
-    LockGuard(const LockGuard& other);
-    LockGuard& operator=(const LockGuard& other);
+    void LockShared();
+    void UnlockShared();
+    bool TryLockShared();
+    
+    class WriteLock
+    {
+      Lockable& m;
+    public:
+      WriteLock(Lockable& lock) : m(lock) { m.Lock(); }
+      ~WriteLock() { m.Unlock(); }
+    };
 
-    /**
-     * Create a new lockable object. The allocated resource must be freed by
-     * calling DestroyLock.
-     * @return The pointer to the new lockable object
-     */
-    static Lockable* CreateLock();
-    /**
-     * Destroy lockable object previously allocated with CreateLock.
-     * @param lock The pointer to lockable object
-     */
-    static void DestroyLock(Lockable* lock);
-    /**
-     * Return once the lock is held and recursive count has been incremented.
-     * @param lock The pointer to lockable object
-     */
-    static void Lock(Lockable* lock);
-    /**
-     * Return once the lock is released or recursive count has been decremented.
-     * @param lock The pointer to lockable object
-     */
-    static void Unlock(Lockable* lock);
-    /**
-     * Return once recursive count has been cleared and the lock is released.
-     * @param lock
-     */
-    static void ClearLock(Lockable* lock);
+    class ReadLock
+    {
+      Lockable& m;
+    public:
+      ReadLock(Lockable& lock) : m(lock) { m.LockShared(); }
+      ~ReadLock() { m.UnlockShared(); }
+    };
 
-  private:
-    Lockable* m_lock;
+    // Prevent copy
+    Lockable(const Lockable& other) = delete;
+    Lockable& operator=(const Lockable& other) = delete;
   };
 
   template<typename T>
-  class Locked
+  class Locked : private Lockable
   {
   public:
-    Locked(const T& val)
-    : m_val(val)
-    , m_lock(LockGuard::CreateLock()) {}
-
-    ~Locked()
-    {
-      LockGuard::DestroyLock(m_lock);
-    }
+    Locked(const T& val) : Lockable(), m_val(val) { }
+    ~Locked() override { }
 
     T Load()
     {
-      LockGuard g(m_lock);
+      ReadLock g(*this);
       return m_val; // return copy
     }
 
     const T& Store(const T& newval)
     {
-      LockGuard g(m_lock);
+      WriteLock g(*this);
       m_val = newval;
       return newval; // return input
     }
 
     class pointer
     {
+      friend class Locked;
     public:
-      pointer(T& val, LockGuard::Lockable*& lock) : m_val(val), m_g(lock) {}
-      T& operator* () const { return m_val; }
-      T *operator->() const { return &m_val; }
+      T& operator* () const { return *m_val; }
+      T *operator->() const { return m_val; }
+
+      pointer() : m_val(nullptr), m_x(nullptr) { }
+      ~pointer() { if (m_x) m_x->Unlock(); }
+
+      pointer(const pointer& other)
+      : m_val(other.m_val), m_x(other.m_x) { if (m_x) m_x->Lock(); }
+
+      pointer& operator=(const pointer& other)
+      {
+        if (m_x) m_x->Unlock();
+        m_val = other.m_val;
+        m_x = other.m_x;
+        if (m_x) m_x->Lock();
+        return *this;
+      }
+
+      pointer(pointer&& other) noexcept
+      : m_val(other.m_val), m_x(other.m_x)
+      {
+        other.m_val = nullptr;
+        other.m_x = nullptr;
+      }
+
+      pointer& operator=(pointer&& other) noexcept
+      {
+        if (m_x) m_x->Unlock();
+        m_val = other.m_val;
+        m_x = other.m_x;
+        other.m_val = nullptr;
+        other.m_x = nullptr;
+        return *this;
+      }
+
     private:
-      T& m_val;
-      LockGuard m_g;
+      pointer(T* val, Lockable* lock)
+      : m_val(val), m_x(lock) { m_x->Lock(); }
+      T* m_val;
+      Lockable* m_x;
     };
 
-    pointer Get()
+    pointer GetExclusive()
     {
-      return pointer(m_val, m_lock);
+      return pointer(&m_val, this);
     }
+
+    class const_pointer
+    {
+      friend class Locked;
+    public:
+      const T& operator* () const { return *m_val; }
+      const T *operator->() const { return m_val; }
+
+      const_pointer() : m_val(nullptr), m_s(nullptr) { }
+      ~const_pointer() { if (m_s) m_s->UnlockShared(); }
+
+      const_pointer(const const_pointer& other)
+      : m_val(other.m_val), m_s(other.m_s) { if (m_s) m_s->LockShared(); }
+
+      const_pointer& operator=(const const_pointer& other)
+      {
+        if (m_s) m_s->UnlockShared();
+        m_val = other.m_val;
+        m_s = other.m_s;
+        if (m_s) m_s->LockShared();
+        return *this;
+      }
+
+      const_pointer(const_pointer&& other) noexcept
+      : m_val(other.m_val), m_s(other.m_s)
+      {
+        other.m_val = nullptr;
+        other.m_s = nullptr;
+      }
+
+      const_pointer& operator=(const_pointer&& other) noexcept
+      {
+        if (m_s) m_s->UnlockShared();
+        m_val = other.m_val;
+        m_s = other.m_s;
+        other.m_val = nullptr;
+        other.m_s = nullptr;
+        return *this;
+      }
+
+    private:
+      const_pointer(const T* val, Lockable* lock)
+      : m_val(val), m_s(lock) { m_s->LockShared(); }
+      const T* m_val;
+      Lockable* m_s;
+    };
+
+    const_pointer GetShared()
+    {
+      return const_pointer(&m_val, this);
+    }
+
+    // Prevent copy
+    Locked(const Locked<T>& other) = delete;
+    Locked<T>& operator=(const Locked<T>& other) = delete;
 
   protected:
     T m_val;
-    LockGuard::Lockable* m_lock;
-
-    // Prevent copy
-    Locked(const Locked<T>& other);
-    Locked<T>& operator=(const Locked<T>& other);
-  };
-
-  template <typename T>
-  class LockedNumber : public Locked<T>
-  {
-  public:
-    LockedNumber(T val)
-    : Locked<T>(val) {}
-
-    T Add(T amount)
-    {
-      LockGuard g(Locked<T>::m_lock);
-      return Locked<T>::m_val += amount;
-    }
-
-    T operator+=(T amount)
-    {
-      return Add(amount);
-    }
-
-    T Sub(T amount)
-    {
-      LockGuard g(Locked<T>::m_lock);
-      return Locked<T>::m_val -= amount;
-    }
-
-    T operator-=(T amount)
-    {
-      return Sub(amount);
-    }
   };
 
 }

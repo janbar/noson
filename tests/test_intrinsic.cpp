@@ -58,7 +58,7 @@ class WorkerLockInc : public SONOS::OS::Worker
   {
     for (int i = 0; i < 500100; i++)
     {
-      SONOS::Locked<int>::pointer p = g_locked->Get();
+      SONOS::Locked<int>::pointer p = g_locked->GetExclusive();
       *p += 1;
     }
   }
@@ -70,7 +70,7 @@ class WorkerLockDec : public SONOS::OS::Worker
   {
     for (int i = 0; i < 500000; i++)
     {
-      SONOS::Locked<int>::pointer p = g_locked->Get();
+      SONOS::Locked<int>::pointer p = g_locked->GetExclusive();
       *p -= 1;
     }
   }

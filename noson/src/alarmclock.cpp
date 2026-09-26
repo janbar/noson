@@ -136,7 +136,7 @@ void AlarmClock::HandleEventMessage(EventMessagePtr msg)
     {
       {
         // BEGIN CRITICAL SECTION
-        Locked<ACProperty>::pointer prop = m_property.Get();
+        Locked<ACProperty>::pointer prop = m_property.GetExclusive();
 
         DBG(DBG_DEBUG, "%s: %s SEQ=%s %s\n", __FUNCTION__, msg->subject[0].c_str(), msg->subject[1].c_str(), msg->subject[2].c_str());
 

@@ -384,7 +384,7 @@ void FileStreamer::streamFile(handle * handle, const std::string& filePath, cons
   }
   DBG(DBG_DEBUG, "%s: open %p (%s)\n", __FUNCTION__, this, filePath.c_str());
 
-  m_playbackCount.Add(1);
+  *m_playbackCount.GetExclusive() += 1;
   TraceResponseStatus(200);
   reply.AddHeader(WS_HEADER_Content_Type, contentType);
   if (reply.BeginContent(WS_STATUS_200_OK, FILESTREAMER_CHUNK))
@@ -404,7 +404,7 @@ void FileStreamer::streamFile(handle * handle, const std::string& filePath, cons
   }
   DBG(DBG_DEBUG, "%s: close %p (%" PRIu64 ")\n", __FUNCTION__, this, tb);
   fclose(file);
-  m_playbackCount.Sub(1);
+  *m_playbackCount.GetExclusive() -= 1;
 }
 
 static inline std::string makeETag(const char * path, time_t time)
@@ -451,7 +451,7 @@ void FileStreamer::streamFileRange(handle * handle, const std::string& filePath,
     return;
   }
 
-  m_playbackCount.Add(1);
+  *m_playbackCount.GetExclusive() += 1;
 
   if (ranges.size() == 1)
   {
@@ -569,7 +569,7 @@ void FileStreamer::streamFileRange(handle * handle, const std::string& filePath,
     }
   }
 
-  m_playbackCount.Sub(1);
+  *m_playbackCount.GetExclusive() -= 1;
 
   DBG(DBG_DEBUG, "%s: close %p\n", __FUNCTION__, this);
   fclose(file);

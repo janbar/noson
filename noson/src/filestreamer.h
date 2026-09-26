@@ -71,7 +71,7 @@ private:
   ResourceList m_resources;
 
   // count current running playback
-  LockedNumber<int> m_playbackCount;
+  Locked<int> m_playbackCount;
 
   static codec_type codecTypeTab[];
   static int codecTypeTabSize;

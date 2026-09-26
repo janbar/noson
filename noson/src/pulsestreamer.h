@@ -49,9 +49,9 @@ private:
   ResourceList m_resources;
 
   // store current index of the pa sink
-  LockedNumber<unsigned> m_sinkIndex;
+  Locked<unsigned> m_sinkIndex;
   // count current running playback
-  LockedNumber<int> m_playbackCount;
+  Locked<int> m_playbackCount;
 
   std::string GetPASink();
   void FreePASink();

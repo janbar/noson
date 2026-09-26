@@ -112,7 +112,7 @@ void Player::SubordinateRC::FillSRProperty(SRProperty& srp) const
   srp.uuid = uuid;
   srp.subordinateName = name;
   if (renderingControl)
-    srp.property = *(renderingControl->GetRenderingProperty().Get());
+    srp.property = *(renderingControl->GetRenderingProperty().GetShared());
 }
 
 bool Player::Init(System* system)
@@ -177,7 +177,7 @@ void Player::CB_AVTransport(void* handle)
   assert(_handle);
   {
     // BEGIN CRITICAL SECTION
-    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
+    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.GetExclusive();
     *_mask |= SVCEvent_TransportChanged;
     // END CRITICAL SECTION
   }
@@ -191,7 +191,7 @@ void Player::CB_RenderingControl(void* handle)
   assert(_handle);
   {
     // BEGIN CRITICAL SECTION
-    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
+    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.GetExclusive();
     *_mask |= SVCEvent_RenderingControlChanged;
     // END CRITICAL SECTION
   }
@@ -205,7 +205,7 @@ void Player::CB_ContentDirectory(void* handle)
   assert(_handle);
   {
     // BEGIN CRITICAL SECTION
-    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
+    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.GetExclusive();
     *_mask |= SVCEvent_ContentDirectoryChanged;
     // END CRITICAL SECTION
   }
@@ -215,13 +215,10 @@ void Player::CB_ContentDirectory(void* handle)
 
 unsigned char Player::LastEvents()
 {
-  unsigned char mask;
-  Locked<bool>::pointer _signaled = m_eventSignaled.Get();
-  {
-    Locked<unsigned char>::pointer _mask = m_eventMask.Get();
-    mask = *_mask;
-    *_mask = 0;
-  }
+  Locked<bool>::pointer _signaled = m_eventSignaled.GetExclusive();
+  Locked<unsigned char>::pointer _mask = m_eventMask.GetExclusive();
+  unsigned char mask = *_mask;
+  *_mask = 0;
   *_signaled = false;
   return mask;
 }
@@ -254,7 +251,7 @@ bool Player::TransportPropertyEmpty()
 
 AVTProperty Player::GetTransportProperty()
 {
-  return *(m_AVTransport->GetAVTProperty().Get());
+  return *(m_AVTransport->GetAVTProperty().GetShared());
 }
 
 bool Player::GetZoneInfo(ElementList& vars)
@@ -878,7 +875,7 @@ DigitalItemPtr Player::MakeFileStreamItem(const std::string& filePath, const std
 
 ContentProperty Player::GetContentProperty()
 {
-  return *(m_contentDirectory->GetContentProperty().Get());
+  return *(m_contentDirectory->GetContentProperty().GetShared());
 }
 
 bool Player::SetAutoplay(bool enabled)

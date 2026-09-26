@@ -584,7 +584,7 @@ bool MusicServices::GetSessionId(const std::string& serviceId, const std::string
 SMServiceList MusicServices::GetAvailableServices()
 {
   // hold version's lock until return
-  Locked<std::string>::pointer versionPtr = m_version.Get();
+  Locked<std::string>::pointer versionPtr = m_version.GetExclusive();
   SMServiceList list;
   // load services
   ElementList vars;

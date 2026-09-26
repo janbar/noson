@@ -267,13 +267,13 @@ void BasicEventHandler::RegisterRequestBroker(RequestBrokerPtr rb)
   if (!rb)
     return;
   DBG(DBG_DEBUG, "%s: register (%s)\n", __FUNCTION__, rb->CommonName());
-  m_RBList.Get()->insert(std::make_pair(rb->CommonName(), rb));
+  m_RBList.GetExclusive()->insert(std::make_pair(rb->CommonName(), rb));
 }
 
 void BasicEventHandler::UnregisterRequestBroker(const std::string &name)
 {
   DBG(DBG_DEBUG, "%s: unregister (%s)\n", __FUNCTION__, name.c_str());
-  Locked<RBList>::pointer p = m_RBList.Get();
+  Locked<RBList>::pointer p = m_RBList.GetExclusive();
   RBList::const_iterator it = p->find(name);
   if (it != p->end())
   {
@@ -284,7 +284,7 @@ void BasicEventHandler::UnregisterRequestBroker(const std::string &name)
 
 void BasicEventHandler::UnregisterAllRequestBroker()
 {
-  Locked<RBList>::pointer p = m_RBList.Get();
+  Locked<RBList>::pointer p = m_RBList.GetExclusive();
   for (RBList::iterator it = p->begin(); it != p->end(); ++it)
   {
     DBG(DBG_DEBUG, "%s: unregister (%s)\n", __FUNCTION__, it->second->CommonName());
@@ -295,7 +295,7 @@ void BasicEventHandler::UnregisterAllRequestBroker()
 
 RequestBrokerPtr BasicEventHandler::GetRequestBroker(const std::string &name)
 {
-  Locked<RBList>::pointer p = m_RBList.Get();
+  Locked<RBList>::const_pointer p = m_RBList.GetShared();
   RBList::const_iterator it = p->find(name);
   if (it != p->end())
     return it->second;
@@ -305,9 +305,9 @@ RequestBrokerPtr BasicEventHandler::GetRequestBroker(const std::string &name)
 std::vector<RequestBrokerPtr> BasicEventHandler::AllRequestBroker()
 {
   std::vector<RequestBrokerPtr> vect;
-  Locked<RBList>::pointer p = m_RBList.Get();
+  Locked<RBList>::const_pointer p = m_RBList.GetShared();
   vect.reserve(p->size());
-  for (RBList::iterator it = p->begin(); it != p->end(); ++it)
+  for (RBList::const_iterator it = p->cbegin(); it != p->cend(); ++it)
     vect.push_back(it->second);
   return vect;
 }

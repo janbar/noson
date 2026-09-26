@@ -185,7 +185,7 @@ void PulseStreamer::FreePASink()
 {
   // Lock count
   // and check if an other playback is running before delete the sink
-  LockedNumber<int>::pointer p = m_playbackCount.Get();
+  Locked<int>::pointer p = m_playbackCount.GetExclusive();
   if (*p == 1 && m_sinkIndex.Load())
   {
     PAControl pacontrol(PA_CLIENT_NAME);
@@ -217,7 +217,7 @@ void PulseStreamer::streamSink(handle * handle)
   }
   else
   {
-    m_playbackCount.Add(1);
+    *m_playbackCount.GetExclusive() += 1;
     PASource audioSource(PA_CLIENT_NAME, deviceName);
     FLACEncoder audioEncoder;
     BufferedStream stream(64);
@@ -253,7 +253,7 @@ void PulseStreamer::streamSink(handle * handle)
         handle->broker->ReplyData("0" WS_CRLF WS_CRLF, 1 + WS_CRLF_LEN + WS_CRLF_LEN);
     }
 
-    m_playbackCount.Sub(1);
+    *m_playbackCount.GetExclusive() -= 1;
     audioSource.stop();
     audioEncoder.close();
   }

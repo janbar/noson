@@ -182,13 +182,10 @@ bool System::Discover(const std::string& url)
 
 unsigned char System::LastEvents()
 {
-  unsigned char mask;
-  Locked<bool>::pointer _signaled = m_eventSignaled.Get();
-  {
-    Locked<unsigned char>::pointer _mask = m_eventMask.Get();
-    mask = *_mask;
-    *_mask = 0;
-  }
+  Locked<bool>::pointer _signaled = m_eventSignaled.GetExclusive();
+  Locked<unsigned char>::pointer _mask = m_eventMask.GetExclusive();
+  unsigned char mask = *_mask;
+  *_mask = 0;
   *_signaled = false;
   return mask;
 }
@@ -216,8 +213,8 @@ ZoneList System::GetZoneList() const
   ZoneList list;
   if (m_groupTopology)
   {
-    Locked<ZoneList>::pointer zones = m_groupTopology->GetZoneList().Get();
-    for (ZoneList::const_iterator it = zones->begin(); it != zones->end(); ++it)
+    Locked<ZoneList>::const_pointer zones = m_groupTopology->GetZoneList().GetShared();
+    for (ZoneList::const_iterator it = zones->cbegin(); it != zones->cend(); ++it)
       if (it->second->GetCoordinator())
         list.insert(std::make_pair(it->first, it->second));
   }
@@ -228,14 +225,14 @@ ZonePlayerList System::GetZonePlayerList() const
 {
   OS::LockGuard lock(*m_mutex);
   if (m_groupTopology)
-    return *(m_groupTopology->GetZonePlayerList().Get());
+    return *(m_groupTopology->GetZonePlayerList().GetShared());
   return ZonePlayerList();
 }
 
 PlayerPtr System::GetPlayer(const ZonePtr& zone, void* CBHandle, EventCB eventCB)
 {
   DBG(DBG_DEBUG, "%s: %s\n", __FUNCTION__, zone->GetZoneName().c_str());
-  Locked<PlayerMap>::pointer players = m_players.Get();
+  Locked<PlayerMap>::pointer players = m_players.GetExclusive();
   PlayerMap::iterator pit = players->find(zone->GetGroup());
   // The group ID is that of its coordinator. Therefore it is necessary to
   // compare the names to avoid confusion.
@@ -267,8 +264,8 @@ PlayerPtr System::GetPlayer(const ZonePlayerPtr& zonePlayer, void* CBHandle, Eve
     OS::LockGuard lock(*m_mutex);
     if (!m_groupTopology || !zonePlayer)
       return PlayerPtr();
-    Locked<ZoneList>::pointer zones = m_groupTopology->GetZoneList().Get();
-    ZoneList::iterator zit = zones->find(zonePlayer->GetAttribut("group"));
+    Locked<ZoneList>::const_pointer zones = m_groupTopology->GetZoneList().GetShared();
+    ZoneList::const_iterator zit = zones->find(zonePlayer->GetAttribut("group"));
     if (zit != zones->end())
       zone = zit->second;
   }
@@ -323,7 +320,7 @@ bool System::DestroyAlarm(const std::string& id)
 
 ContentProperty System::GetContentProperty()
 {
-  return *(m_contentDirectory->GetContentProperty().Get());
+  return *(m_contentDirectory->GetContentProperty().GetShared());
 }
 
 bool System::RefreshShareIndex()
@@ -624,7 +621,7 @@ std::string System::GetLogoForService(const SMServicePtr& service, const std::st
   static ElementList logos; ///< cached container for logos
 
   // hold count until return
-  Locked<unsigned>::pointer ccPtr = cc.Get();
+  Locked<unsigned>::pointer ccPtr = cc.GetExclusive();
 
   // on first call we fill the container requesting sonos service
   if ((*ccPtr)++ == 0 && !LoadMSLogo(logos))
@@ -827,7 +824,7 @@ bool System::FindDeviceDescription(std::string& url)
 void System::RevokePlayers()
 {
   ZoneList zones = GetZoneList();
-  Locked<PlayerMap>::pointer players = m_players.Get();
+  Locked<PlayerMap>::pointer players = m_players.GetExclusive();
   std::list<PlayerMap::iterator> revoked;
   for (PlayerMap::iterator it = players->begin(); it != players->end(); ++it)
   {
@@ -853,7 +850,7 @@ void System::CB_ZGTopology(void* handle)
 
   {
     // BEGIN CRITICAL SECTION
-    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
+    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.GetExclusive();
     *_mask |= SVCEvent_ZGTopologyChanged;
     // END CRITICAL SECTION
   }
@@ -868,7 +865,7 @@ void System::CB_AlarmClock(void* handle)
   assert(_handle);
   {
     // BEGIN CRITICAL SECTION
-    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
+    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.GetExclusive();
     *_mask |= SVCEvent_AlarmClockChanged;
     // END CRITICAL SECTION
   }
@@ -882,7 +879,7 @@ void System::CB_ContentDirectory(void* handle)
   assert(_handle);
   {
     // BEGIN CRITICAL SECTION
-    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.Get();
+    Locked<unsigned char>::pointer _mask = _handle->m_eventMask.GetExclusive();
     *_mask |= SVCEvent_ContentDirectoryChanged;
     // END CRITICAL SECTION
   }

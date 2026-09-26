@@ -84,7 +84,7 @@ bool RenderingControl::GetVolume(uint8_t* value, const char* channel)
 
 bool RenderingControl::SetVolume(uint8_t value, const char* channel)
 {
-  if (m_property.Get()->OutputFixed)
+  if (m_property.GetShared()->OutputFixed)
     return false;
   ElementList args;
   args.push_back(ElementPtr(new Element("InstanceID", "0")));
@@ -113,7 +113,7 @@ bool RenderingControl::GetVolumeDecibel(int16_t *value, const char *channel)
 
 bool RenderingControl::SetVolumeDecibel(int16_t value, const char *channel)
 {
-  if (m_property.Get()->OutputFixed)
+  if (m_property.GetShared()->OutputFixed)
     return false;
   ElementList args;
   args.push_back(ElementPtr(new Element("InstanceID", "0")));
@@ -358,7 +358,7 @@ void RenderingControl::HandleEventMessage(EventMessagePtr msg)
     {
       {
         // BEGIN CRITICAL SECTION
-        Locked<RCSProperty>::pointer prop = m_property.Get();
+        Locked<RCSProperty>::pointer prop = m_property.GetExclusive();
 
         DBG(DBG_DEBUG, "%s: %s SEQ=%s %s\n", __FUNCTION__, msg->subject[0].c_str(), msg->subject[1].c_str(), msg->subject[2].c_str());
 

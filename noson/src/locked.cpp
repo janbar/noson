@@ -1,5 +1,5 @@
 /*
- *      Copyright (C) 2014-2016 Jean-Luc Barriere
+ *      Copyright (C) 2014-2026 Jean-Luc Barriere
  *
  *  This file is part of Noson
  *
@@ -19,69 +19,41 @@
  */
 
 #include "locked.h"
-#include "private/os/threads/mutex.h"
+#include "private/os/threads/latch.h"
 
 using namespace NSROOT;
 
-namespace NSROOT
+Lockable::Lockable()
+: m_latch(new OS::Latch())
 {
-  struct LockGuard::Lockable
-  {
-    OS::Mutex mutex;
-  };
 }
 
-LockGuard::LockGuard(Lockable* lock)
-: m_lock(lock)
+Lockable::~Lockable()
 {
-  if (m_lock)
-    m_lock->mutex.lock();
+  delete m_latch;
 }
 
-LockGuard::~LockGuard()
+void Lockable::Lock()
 {
-  if (m_lock)
-    m_lock->mutex.unlock();
+  m_latch->lock();
 }
 
-LockGuard::LockGuard(const LockGuard& other)
-: m_lock(other.m_lock)
+void Lockable::Unlock()
 {
-  if (m_lock)
-    m_lock->mutex.lock();
+  m_latch->unlock();
 }
 
-LockGuard& LockGuard::operator=(const LockGuard& other)
+void Lockable::LockShared()
 {
-  if (m_lock)
-    m_lock->mutex.unlock();
-  if (other.m_lock)
-    other.m_lock->mutex.lock();
-  m_lock = other.m_lock;
-  return *this;
+  m_latch->lock_shared();
 }
 
-LockGuard::Lockable* LockGuard::CreateLock()
+void Lockable::UnlockShared()
 {
-  return new Lockable();
+  m_latch->unlock_shared();
 }
 
-void LockGuard::DestroyLock(Lockable* lock)
+bool Lockable::TryLockShared()
 {
-  delete lock;
-}
-
-void LockGuard::Lock(Lockable* lock)
-{
-  lock->mutex.lock();
-}
-
-void LockGuard::Unlock(Lockable* lock)
-{
-  lock->mutex.unlock();
-}
-
-void LockGuard::ClearLock(Lockable* lock)
-{
-  lock->mutex.clear();
+  return m_latch->try_lock_shared();
 }

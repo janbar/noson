@@ -32,7 +32,7 @@ SubscriptionPool::SubscriptionPool(EventHandler& eventHandler)
 
 SubscriptionPool::~SubscriptionPool()
 {
-  Locked<SubscriptionMap>::pointer sm = m_subscriptions.Get();
+  Locked<SubscriptionMap>::pointer sm = m_subscriptions.GetExclusive();
   for (SubscriptionMap::iterator it = sm->begin(); it != sm->end(); ++it)
   {
     DBG(DBG_DEBUG, "%s: (%p)(%s)\n", __FUNCTION__, this, it->first.c_str());
@@ -46,7 +46,7 @@ Subscription SubscriptionPool::SubscribeEvent(const std::string& host, unsigned 
 {
   std::string url;
   MakeSubscriptionUrl(url, host, port, eventURL, m_eventHandler.GetPort());
-  Locked<SubscriptionMap>::pointer sm = m_subscriptions.Get();
+  Locked<SubscriptionMap>::pointer sm = m_subscriptions.GetExclusive();
   SubscriptionMap::iterator it = sm->find(url);
   if (it != sm->end())
   {
@@ -69,7 +69,7 @@ void SubscriptionPool::UnsubscribeEvent(Subscription& subscription)
 {
   std::string url;
   MakeSubscriptionUrl(url, subscription.GetHost(), subscription.GetPort(), subscription.GetUrl(), subscription.GetBindingPort());
-  Locked<SubscriptionMap>::pointer sm = m_subscriptions.Get();
+  Locked<SubscriptionMap>::pointer sm = m_subscriptions.GetExclusive();
   SubscriptionMap::iterator it = sm->find(url);
   if (it != sm->end())
   {
@@ -89,7 +89,7 @@ void SubscriptionPool::UnsubscribeEvent(Subscription& subscription)
 void SubscriptionPool::RenewSubscriptions()
 {
   DBG(DBG_DEBUG, "%s\n", __FUNCTION__);
-  Locked<SubscriptionMap>::pointer sm = m_subscriptions.Get();
+  Locked<SubscriptionMap>::pointer sm = m_subscriptions.GetExclusive();
   for (SubscriptionMap::iterator it = sm->begin(); it != sm->end(); ++it)
     it->second->subscription.AskRenewal();
 }

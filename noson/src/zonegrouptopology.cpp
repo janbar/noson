@@ -180,8 +180,8 @@ bool ZoneGroupTopology::ParseZoneGroupState(const std::string& xml)
     return false;
   }
 
-  Locked<ZoneList>::pointer zones = m_zones.Get();
-  Locked<ZonePlayerList>::pointer zonePlayers = m_zonePlayers.Get();
+  Locked<ZoneList>::pointer zones = m_zones.GetExclusive();
+  Locked<ZonePlayerList>::pointer zonePlayers = m_zonePlayers.GetExclusive();
   zones->clear();
   zonePlayers->clear();
 
