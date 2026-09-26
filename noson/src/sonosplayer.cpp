@@ -49,7 +49,6 @@ Player::Player(const ZonePtr& zone, System* system, void* CBHandle, EventCB even
 , m_devicePort(0)
 , m_CBHandle(CBHandle)
 , m_eventCB(eventCB)
-, m_eventSignaled(false)
 , m_eventMask(0)
 , m_deviceProperties(nullptr)
 , m_AVTransport(nullptr)
@@ -68,7 +67,6 @@ Player::Player(const ZonePlayerPtr& zonePlayer)
 , m_devicePort(0)
 , m_CBHandle(nullptr)
 , m_eventCB(nullptr)
-, m_eventSignaled(false)
 , m_eventMask(0)
 , m_deviceProperties(nullptr)
 , m_AVTransport(nullptr)
@@ -181,7 +179,7 @@ void Player::CB_AVTransport(void* handle)
     *_mask |= SVCEvent_TransportChanged;
     // END CRITICAL SECTION
   }
-  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
+  if (_handle->m_eventCB)
     _handle->m_eventCB(_handle->m_CBHandle);
 }
 
@@ -195,7 +193,7 @@ void Player::CB_RenderingControl(void* handle)
     *_mask |= SVCEvent_RenderingControlChanged;
     // END CRITICAL SECTION
   }
-  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
+  if (_handle->m_eventCB)
     _handle->m_eventCB(_handle->m_CBHandle);
 }
 
@@ -209,17 +207,15 @@ void Player::CB_ContentDirectory(void* handle)
     *_mask |= SVCEvent_ContentDirectoryChanged;
     // END CRITICAL SECTION
   }
-  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
+  if (_handle->m_eventCB)
     _handle->m_eventCB(_handle->m_CBHandle);
 }
 
 unsigned char Player::LastEvents()
 {
-  Locked<bool>::pointer _signaled = m_eventSignaled.GetExclusive();
   Locked<unsigned char>::pointer _mask = m_eventMask.GetExclusive();
   unsigned char mask = *_mask;
   *_mask = 0;
-  *_signaled = false;
   return mask;
 }
 

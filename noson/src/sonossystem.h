@@ -177,7 +177,6 @@ namespace NSROOT
     unsigned m_devicePort;
     void* m_CBHandle;                       // callback handle
     EventCB m_eventCB;                      // callback on event
-    Locked<bool> m_eventSignaled;           // cleared by calling LastEvents()
     Locked<unsigned char> m_eventMask;      // cleared by calling LastEvents()
     // Services API
     ZoneGroupTopology*  m_groupTopology;

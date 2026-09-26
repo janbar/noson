@@ -61,7 +61,6 @@ System::System(void* CBHandle, EventCB eventCB)
 , m_devicePort(0)
 , m_CBHandle(CBHandle)
 , m_eventCB(eventCB)
-, m_eventSignaled(false)
 , m_eventMask(0)
 , m_groupTopology(nullptr)
 , m_deviceProperties(nullptr)
@@ -182,11 +181,9 @@ bool System::Discover(const std::string& url)
 
 unsigned char System::LastEvents()
 {
-  Locked<bool>::pointer _signaled = m_eventSignaled.GetExclusive();
   Locked<unsigned char>::pointer _mask = m_eventMask.GetExclusive();
   unsigned char mask = *_mask;
   *_mask = 0;
-  *_signaled = false;
   return mask;
 }
 
@@ -855,7 +852,7 @@ void System::CB_ZGTopology(void* handle)
     // END CRITICAL SECTION
   }
   _handle->m_cbzgt->notify_all();
-  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
+  if (_handle->m_eventCB)
     _handle->m_eventCB(_handle->m_CBHandle);
 }
 
@@ -869,7 +866,7 @@ void System::CB_AlarmClock(void* handle)
     *_mask |= SVCEvent_AlarmClockChanged;
     // END CRITICAL SECTION
   }
-  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
+  if (_handle->m_eventCB)
     _handle->m_eventCB(_handle->m_CBHandle);
 }
 
@@ -883,7 +880,7 @@ void System::CB_ContentDirectory(void* handle)
     *_mask |= SVCEvent_ContentDirectoryChanged;
     // END CRITICAL SECTION
   }
-  if (_handle->m_eventCB && !_handle->m_eventSignaled.Load())
+  if (_handle->m_eventCB)
     _handle->m_eventCB(_handle->m_CBHandle);
 }
 
