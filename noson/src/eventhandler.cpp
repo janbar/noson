@@ -399,24 +399,27 @@ void *BasicEventHandler::process()
     AnnounceStatus(EVENTHANDLER_STARTED);
     while (!OS::Thread::is_stopped())
     {
-      SHARED_PTR<TcpSocket> sockPtr(new TcpSocket);
-      TcpServerSocket::AcceptStatus r = m_socket->AcceptConnection(*sockPtr, 1000);
+      TcpSocket* sock = new TcpSocket();
+      TcpServerSocket::AcceptStatus r = m_socket->AcceptConnection(*sock, 1000);
       if (r == TcpServerSocket::ACCEPT_SUCCESS)
       {
         DBG(DBG_DEBUG, "%s: accepting new connection\n", __FUNCTION__);
-        EventBroker* eb = new EventBroker(this, sockPtr);
+        EventBroker* eb = new EventBroker(this, sock);
         m_threadpool.enqueue(eb);
         continue;
       }
       if (r == TcpServerSocket::ACCEPT_FAILURE)
       {
-        DBG(DBG_WARN, "%s: accept failed (%d)\n", __FUNCTION__, sockPtr->GetErrNo());
+        DBG(DBG_WARN, "%s: accept failed (%d)\n", __FUNCTION__, sock->GetErrNo());
+        delete sock;
         continue;
       }
       if (r == TcpServerSocket::ACCEPT_TIMEOUT)
       {
+        delete sock;
         continue;
       }
+      delete sock;
       DBG(DBG_ERROR, "%s: socket error (%d)\n", __FUNCTION__, m_socket->GetErrNo());
       AnnounceStatus(EVENTHANDLER_FAILED);
       break;

@@ -19,6 +19,7 @@
  */
 
 #include "eventbroker.h"
+#include "private/wsrequestbroker.h"
 #include "private/wsstatic.h"
 #include "private/debug.h"
 
@@ -26,22 +27,24 @@ using namespace NSROOT;
 
 #define CONNECTION_TIMEOUT  5 // default timeout in seconds
 
-EventBroker::EventBroker(EventHandlerThread* handler, SHARED_PTR<TcpSocket>& sockPtr)
+EventBroker::EventBroker(EventHandlerThread* handler, TcpSocket* sock)
 : m_handler(handler)
-, m_sockPtr(sockPtr)
+, m_sock(sock)
 {
 }
 
 EventBroker::~EventBroker()
 {
+  if (m_sock)
+    delete m_sock;
 }
 
 void EventBroker::process()
 {
-  if (!m_handler || !m_sockPtr || !m_sockPtr->IsValid())
+  if (!m_handler || !m_sock || !m_sock->IsValid())
     return;
 
-  WSRequestBroker rb(m_sockPtr.get(), false, CONNECTION_TIMEOUT);
+  WSRequestBroker rb(m_sock, false, CONNECTION_TIMEOUT);
   std::string resp;
 
   if (!rb.IsParsed())
@@ -51,8 +54,8 @@ void EventBroker::process()
     resp.append("Server: ").append(SERVER_SOFTWARE).append(WS_CRLF);
     resp.append("Connection: " SERVER_CONNECTION WS_CRLF);
     resp.append(WS_CRLF);
-    m_sockPtr->SendData(resp.c_str(), resp.size());
-    m_sockPtr->Disconnect();
+    m_sock->SendData(resp.c_str(), resp.size());
+    m_sock->Disconnect();
     return;
   }
 
@@ -63,12 +66,12 @@ void EventBroker::process()
     // loop until the request is processed
     if ((*itrb)->HandleRequest(&handle))
     {
-      m_sockPtr->Disconnect();
+      m_sock->Disconnect();
       return;
     }
   }
 
-  // default response for "HEAD /"
+  // processing "HEAD /", otherwise it is a bad request
   if (rb.GetRequestMethod() == WS_METHOD_Head && rb.GetRequestPath().compare("/") == 0)
   {
     WS_STATUS status(WS_STATUS_200_OK);
@@ -76,17 +79,17 @@ void EventBroker::process()
     resp.append("Server: ").append(SERVER_SOFTWARE).append(WS_CRLF);
     resp.append("Connection: " SERVER_CONNECTION WS_CRLF);
     resp.append(WS_CRLF);
-    m_sockPtr->SendData(resp.c_str(), resp.size());
-    m_sockPtr->Disconnect();
-    return;
+    m_sock->SendData(resp.c_str(), resp.size());
+    m_sock->Disconnect();
   }
-
-  // bad request!!!
-  WS_STATUS status(WS_STATUS_400_Bad_Request);
-  resp.append(SERVER_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
-  resp.append("Server: ").append(SERVER_SOFTWARE).append(WS_CRLF);
-  resp.append("Connection: " SERVER_CONNECTION WS_CRLF);
-  resp.append(WS_CRLF);
-  m_sockPtr->SendData(resp.c_str(), resp.size());
-  m_sockPtr->Disconnect();
+  else
+  {
+    WS_STATUS status(WS_STATUS_400_Bad_Request);
+    resp.append(SERVER_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
+    resp.append("Server: ").append(SERVER_SOFTWARE).append(WS_CRLF);
+    resp.append("Connection: " SERVER_CONNECTION WS_CRLF);
+    resp.append(WS_CRLF);
+    m_sock->SendData(resp.c_str(), resp.size());
+    m_sock->Disconnect();
+  }
 }

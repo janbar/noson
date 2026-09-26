@@ -23,10 +23,8 @@
 
 #include "local_config.h"
 #include "private/os/threads/threadpool.h"
-#include "private/wsrequestbroker.h"
 #include "private/socket.h"
 #include "eventhandler.h"
-#include "sharedptr.h"
 
 namespace NSROOT
 {
@@ -34,13 +32,13 @@ namespace NSROOT
   class EventBroker : public OS::Worker
   {
   public:
-    EventBroker(EventHandlerThread* handler, SHARED_PTR<TcpSocket>& sockPtr);
+    EventBroker(EventHandlerThread* handler, TcpSocket* sock);
     virtual ~EventBroker();
     virtual void process();
 
   private:
     EventHandlerThread* m_handler;
-    SHARED_PTR<TcpSocket> m_sockPtr;
+    TcpSocket* m_sock;
   };
 }
 
