@@ -157,6 +157,6 @@ void MainPageBroker::ProcessHEAD(handle * handle)
   WSRequestReply reply(*handle->broker);
   reply.AddHeader(WS_HEADER_Content_Type, "text/html");
   TraceResponseStatus(200);
-  reply.PostReply(WS_STATUS_200_OK);
+  reply.CloseReply(WS_STATUS_200_OK);
   return;
 }

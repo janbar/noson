@@ -19,7 +19,7 @@
  */
 
 #include "eventbroker.h"
-#include "private/wsrequestbroker.h"
+#include "private/wsrequestreply.h"
 #include "private/wsstatic.h"
 #include "private/debug.h"
 
@@ -27,8 +27,9 @@ using namespace NSROOT;
 
 #define CONNECTION_TIMEOUT  5 // default timeout in seconds
 
-EventBroker::EventBroker(EventHandlerThread* handler, TcpSocket* sock)
+EventBroker::EventBroker(EventHandlerThread* handler, TcpSocket* sock, const std::string& rhost)
 : m_handler(handler)
+, m_rhost(rhost)
 , m_sock(sock)
 {
 }
@@ -41,55 +42,64 @@ EventBroker::~EventBroker()
 
 void EventBroker::process()
 {
-  if (!m_handler || !m_sock || !m_sock->IsValid())
-    return;
+  m_sock = processEvent(m_handler, m_sock, m_rhost);
+}
 
-  WSRequestBroker rb(m_sock, false, CONNECTION_TIMEOUT);
-  std::string resp;
+TcpSocket* EventBroker::processEvent(
+        EventHandlerThread* handler,
+        TcpSocket* sock,
+        const std::string& rhost)
+{
+  if (!handler || !sock || !sock->IsValid())
+    return sock;
+
+  WSRequestBroker rb(sock, false, handler->GetClientTimeout());
 
   if (!rb.IsParsed())
   {
-    WS_STATUS status(WS_STATUS_400_Bad_Request);
-    resp.append(SERVER_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
-    resp.append("Server: ").append(SERVER_SOFTWARE).append(WS_CRLF);
-    resp.append("Connection: " SERVER_CONNECTION WS_CRLF);
-    resp.append(WS_CRLF);
-    m_sock->SendData(resp.c_str(), resp.size());
-    m_sock->Disconnect();
-    return;
+    if (rb.GetRequestMethod() != WS_METHOD_UNKNOWN)
+    {
+      WSRequestReply rr(rb);
+      rr.CloseReply(WS_STATUS_400_Bad_Request);
+    }
+    sock->Disconnect();
+    return sock;
   }
 
-  RequestBroker::handle handle { m_handler, &rb };
-  std::vector<RequestBrokerPtr> vect = m_handler->AllRequestBroker();
+  // override keep-alive flag with the handler configuration
+  if (!handler->GetClientKeepAlive())
+    rb.SetKeepAlive(false);
+
+  RequestBroker::handle handle { handler, &rb };
+  std::vector<RequestBrokerPtr> vect = handler->AllRequestBroker();
   for (std::vector<RequestBrokerPtr>::iterator itrb = vect.begin(); itrb != vect.end(); ++itrb)
   {
     // loop until the request is processed
     if ((*itrb)->HandleRequest(&handle))
     {
-      m_sock->Disconnect();
-      return;
+      // handling persistant connection (keep-alive)
+      if (rb.IsKeepAlive())
+      {
+        handler->EnqueueRequest(new EventBroker(handler, sock, rhost));
+        // the socket ownership has been transferred
+        return nullptr;
+      }
+
+      sock->Disconnect();
+      return sock;
     }
   }
 
-  // processing "HEAD /", otherwise it is a bad request
+  // processing method HEAD, otherwise it is a bad request
   if (rb.GetRequestMethod() == WS_METHOD_Head && rb.GetRequestPath().compare("/") == 0)
   {
-    WS_STATUS status(WS_STATUS_200_OK);
-    resp.append(SERVER_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
-    resp.append("Server: ").append(SERVER_SOFTWARE).append(WS_CRLF);
-    resp.append("Connection: " SERVER_CONNECTION WS_CRLF);
-    resp.append(WS_CRLF);
-    m_sock->SendData(resp.c_str(), resp.size());
-    m_sock->Disconnect();
+    WSRequestReply rr(rb);
+    rr.CloseReply(WS_STATUS_200_OK);
   }
   else
   {
-    WS_STATUS status(WS_STATUS_400_Bad_Request);
-    resp.append(SERVER_PROTOCOL " ").append(ws_status_to_numstr(status)).append(" ").append(ws_status_to_msgstr(status)).append(WS_CRLF);
-    resp.append("Server: ").append(SERVER_SOFTWARE).append(WS_CRLF);
-    resp.append("Connection: " SERVER_CONNECTION WS_CRLF);
-    resp.append(WS_CRLF);
-    m_sock->SendData(resp.c_str(), resp.size());
-    m_sock->Disconnect();
+    WSRequestReply::ReturnStatus(rb, WS_STATUS_400_Bad_Request);
   }
+  sock->Disconnect();
+  return sock;
 }

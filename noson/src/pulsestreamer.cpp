@@ -92,7 +92,7 @@ bool PulseStreamer::HandleRequest(handle * handle)
         TraceResponseStatus(200);
         WSRequestReply reply(*handle->broker);
         reply.AddHeader(WS_HEADER_Content_Type, "audio/flac");
-        reply.PostReply(WS_STATUS_200_OK);
+        reply.CloseReply(WS_STATUS_200_OK);
         return true;
       }
       default:
@@ -208,12 +208,12 @@ void PulseStreamer::streamSink(handle * handle)
   {
     DBG(DBG_WARN, "%s: no sink available\n", __FUNCTION__);
     TraceResponseStatus(503);
-    reply.PostReply(WS_STATUS_503_Service_Unavailable);
+    reply.CloseReply(WS_STATUS_503_Service_Unavailable);
   }
   else if (m_playbackCount.Load() >= PULSESTREAMER_MAX_PB)
   {
     TraceResponseStatus(429);
-    reply.PostReply(WS_STATUS_429_Too_Many_Requests);
+    reply.CloseReply(WS_STATUS_429_Too_Many_Requests);
   }
   else
   {

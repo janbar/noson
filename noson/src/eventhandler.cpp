@@ -23,7 +23,6 @@
 #include "requestbroker.h"
 #include "private/os/threads/threadpool.h"
 #include "private/socket.h"
-#include "private/cppdef.h"
 #include "private/builtin.h"
 #include "private/debug.h"
 #include "private/wsresponse.h"
@@ -33,7 +32,6 @@
 #include <list>
 
 #define EVENTHANDLER_LOOP_ADDRESS     "127.0.0.1"   // IPv4 localhost
-#define EVENTHANDLER_THREAD_KEEPALIVE 60000         // 60 sec
 
 using namespace NSROOT;
 
@@ -42,8 +40,8 @@ using namespace NSROOT;
 //// EventHandlerThread
 ////
 
-EventHandlerThread::EventHandlerThread(unsigned bindingPort)
-: m_port(bindingPort)
+EventHandlerThread::EventHandlerThread(const EventHandlerConf& conf)
+: m_conf(conf)
 {
 }
 
@@ -76,7 +74,7 @@ namespace NSROOT
 
     bool Start();
     void Stop();
-    void *process();
+    void *process() override;
   };
 }
 
@@ -97,7 +95,7 @@ SubscriptionHandlerThread::SubscriptionHandlerThread(EventSubscriber *handle, un
 SubscriptionHandlerThread::~SubscriptionHandlerThread()
 {
   Stop();
-  m_handle = NULL;
+  m_handle = nullptr;
 }
 
 bool SubscriptionHandlerThread::Start()
@@ -146,7 +144,7 @@ void *SubscriptionHandlerThread::process()
     // The tread is woken up by m_queueContent.Signal();
     m_queueContent.wait();
   }
-  return NULL;
+  return nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -159,22 +157,25 @@ namespace NSROOT
   class BasicEventHandler : public EventHandlerThread, private OS::Thread
   {
   public:
-    BasicEventHandler(unsigned bindingPort);
-    virtual ~BasicEventHandler();
+    BasicEventHandler(const EventHandlerConf& conf);
+    ~BasicEventHandler() override;
     // Implements EventHandlerThread
-    virtual bool Start();
-    virtual void Stop();
-    virtual bool HasStarted();
-    virtual void RegisterRequestBroker(RequestBrokerPtr rb);
-    virtual void UnregisterRequestBroker(const std::string& name);
-    virtual void UnregisterAllRequestBroker();
-    virtual RequestBrokerPtr GetRequestBroker(const std::string& name);
-    virtual std::vector<RequestBrokerPtr> AllRequestBroker();
-    virtual unsigned CreateSubscription(EventSubscriber *sub);
-    virtual bool SubscribeForEvent(unsigned subid, EVENT_t event);
-    virtual void RevokeSubscription(unsigned subid);
-    virtual void RevokeAllSubscriptions(EventSubscriber *sub);
-    virtual void DispatchEvent(const EventMessagePtr& msg);
+    bool Start() override;
+    void Stop() override;
+    bool HasStarted() override;
+    unsigned GetCapacity() override;
+    unsigned PendingRequest() override;
+    void EnqueueRequest(EventBroker *eb) override;
+    void RegisterRequestBroker(RequestBrokerPtr rb) override;
+    void UnregisterRequestBroker(const std::string& name) override;
+    void UnregisterAllRequestBroker() override;
+    RequestBrokerPtr GetRequestBroker(const std::string& name) override;
+    std::vector<RequestBrokerPtr> AllRequestBroker() override;
+    unsigned CreateSubscription(EventSubscriber *sub) override;
+    bool SubscribeForEvent(unsigned subid, EVENT_t event) override;
+    void RevokeSubscription(unsigned subid) override;
+    void RevokeAllSubscriptions(EventSubscriber *sub) override;
+    void DispatchEvent(const EventMessagePtr& msg) override;
 
   private:
     OS::Mutex m_mutex;
@@ -187,7 +188,7 @@ namespace NSROOT
     typedef std::map<unsigned, SubscriptionHandlerThread*> subscriptions_t;
     subscriptions_t m_subscriptions;
 
-    virtual void* process(void);
+    void* process(void) override;
     void AnnounceStatus(const char *status);
 
     typedef std::map<std::string, RequestBrokerPtr> RBList;
@@ -195,21 +196,22 @@ namespace NSROOT
   };
 }
 
-BasicEventHandler::BasicEventHandler(unsigned bindingPort)
-: EventHandlerThread(bindingPort), OS::Thread()
+BasicEventHandler::BasicEventHandler(const EventHandlerConf& conf)
+: EventHandlerThread(conf), OS::Thread()
 , m_socket(new TcpServerSocket)
 , m_RBList(RBList())
 {
   m_listenerAddress = EVENTHANDLER_LOOP_ADDRESS;
-  m_threadpool.set_max_size(EVENTHANDLER_THREADS);
-  m_threadpool.set_keep_alive(EVENTHANDLER_THREAD_KEEPALIVE);
+  m_threadpool.set_max_size(conf.threadPoolSize);
+  m_threadpool.set_keep_alive(conf.threadKeepAliveMs);
+
   m_threadpool.start();
 }
 
 BasicEventHandler::~BasicEventHandler()
 {
-  Stop();
-  UnregisterAllRequestBroker();
+  BasicEventHandler::Stop();
+  BasicEventHandler::UnregisterAllRequestBroker();
   m_threadpool.suspend();
   {
     OS::LockGuard lock(m_mutex);
@@ -218,7 +220,9 @@ BasicEventHandler::~BasicEventHandler()
     m_subscriptions.clear();
     m_subscriptionsByEvent.clear();
   }
-  SAFE_DELETE(m_socket);
+  if (m_socket)
+    delete m_socket;
+  m_socket = nullptr;
 }
 
 bool BasicEventHandler::Start()
@@ -241,6 +245,21 @@ void BasicEventHandler::Stop()
 bool BasicEventHandler::HasStarted()
 {
   return OS::Thread::is_running();
+}
+
+unsigned BasicEventHandler::GetCapacity()
+{
+  return m_threadpool.max_size();
+}
+
+unsigned BasicEventHandler::PendingRequest()
+{
+  return m_threadpool.queue_size();
+}
+
+void BasicEventHandler::EnqueueRequest(EventBroker* eb)
+{
+  m_threadpool.enqueue(eb);
 }
 
 void BasicEventHandler::RegisterRequestBroker(RequestBrokerPtr rb)
@@ -361,15 +380,17 @@ void BasicEventHandler::DispatchEvent(const EventMessagePtr& msg)
 {
   OS::LockGuard lock(m_mutex);
   std::vector<std::list<unsigned>::iterator> revoked;
-  std::list<unsigned>::iterator it1 = m_subscriptionsByEvent[msg->event].begin();
-  while (it1 != m_subscriptionsByEvent[msg->event].end())
+  std::list<unsigned>& sevt = m_subscriptionsByEvent[msg->event];
+  std::list<unsigned>::iterator itsevt = sevt.begin();
+  std::list<unsigned>::iterator itsend = sevt.end();
+  while (itsevt != itsend)
   {
-    subscriptions_t::const_iterator it2 = m_subscriptions.find(*it1);
-    if (it2 != m_subscriptions.end())
-      it2->second->PostMessage(msg);
+    subscriptions_t::const_iterator itsub = m_subscriptions.find(*itsevt);
+    if (itsub != m_subscriptions.end())
+      itsub->second->PostMessage(msg);
     else
-      revoked.push_back(it1);
-    ++it1;
+      revoked.push_back(itsevt);
+    ++itsevt;
   }
   std::vector<std::list<unsigned>::iterator>::const_iterator itr;
   for (itr = revoked.begin(); itr != revoked.end(); ++itr)
@@ -379,47 +400,63 @@ void BasicEventHandler::DispatchEvent(const EventMessagePtr& msg)
 void *BasicEventHandler::process()
 {
   bool bound = false;
+
   if (m_socket->Create(SOCKET_AF_INET4))
   {
     for (int retry = 0; retry < 10; ++retry)
     {
-      DBG(DBG_INFO, "%s: bind port %u\n", __FUNCTION__, m_port);
-      if ((bound = m_socket->Bind(m_port)))
+      DBG(DBG_INFO, "%s: bind port %u\n", __FUNCTION__, m_conf.bindingPort);
+      if ((bound = m_socket->Bind(m_conf.bindingPort)))
         break;
-      ++m_port;
+      m_conf.bindingPort += 1;
     }
   }
+
   if (bound)
   {
     DBG(DBG_INFO, "%s: start listening\n", __FUNCTION__);
-    bound = m_socket->ListenConnection();
+    bound = m_socket->ListenConnection(m_conf.listenerQueueSize);
   }
+
   if (bound)
   {
     AnnounceStatus(EVENTHANDLER_STARTED);
     while (!OS::Thread::is_stopped())
     {
-      TcpSocket* sock = new TcpSocket();
-      TcpServerSocket::AcceptStatus r = m_socket->AcceptConnection(*sock, 1000);
-      if (r == TcpServerSocket::ACCEPT_SUCCESS)
+      // do not accept incoming requests when the queue is full
+      if (m_threadpool.queue_size() >= m_conf.requestQueueSize)
       {
-        DBG(DBG_DEBUG, "%s: accepting new connection\n", __FUNCTION__);
-        EventBroker* eb = new EventBroker(this, sock);
-        m_threadpool.enqueue(eb);
+        DBG(DBG_WARN, "%s: exceeding limit on the number of pending requests (%u)\n",
+            __FUNCTION__, m_conf.requestQueueSize);
+        pause(EVENTHANDLER_LIMIT_HOLD_MS);
         continue;
       }
+
+      int error = (-1);
+      TcpServerSocket::AcceptStatus r = TcpServerSocket::ACCEPT_ERROR;
+      {
+        TcpSocket* sock = new TcpSocket();
+        r = m_socket->AcceptConnection(*sock, 1000);
+        if (r == TcpServerSocket::ACCEPT_SUCCESS)
+        {
+          DBG(DBG_DEBUG, "%s: accepting new connection\n", __FUNCTION__);
+          EventBroker* eb = new EventBroker(this, sock, m_socket->GetRemoteAddrInfo());
+          m_threadpool.enqueue(eb);
+          continue;
+        }
+        error = sock->GetErrNo();
+        delete sock;
+      }
+
       if (r == TcpServerSocket::ACCEPT_FAILURE)
       {
-        DBG(DBG_WARN, "%s: accept failed (%d)\n", __FUNCTION__, sock->GetErrNo());
-        delete sock;
+        DBG(DBG_WARN, "%s: accept failed (%d)\n", __FUNCTION__, error);
         continue;
       }
       if (r == TcpServerSocket::ACCEPT_TIMEOUT)
       {
-        delete sock;
         continue;
       }
-      delete sock;
       DBG(DBG_ERROR, "%s: socket error (%d)\n", __FUNCTION__, m_socket->GetErrNo());
       AnnounceStatus(EVENTHANDLER_FAILED);
       break;
@@ -443,7 +480,7 @@ void BasicEventHandler::AnnounceStatus(const char *status)
   msg->event = EVENT_HANDLER_STATUS;
   msg->subject.push_back(status);
   msg->subject.push_back(m_listenerAddress);
-  msg->subject.push_back(std::to_string((uint16_t)m_port));
+  msg->subject.push_back(std::to_string((uint16_t)m_conf.bindingPort));
   DispatchEvent(EventMessagePtr(msg));
 }
 
@@ -460,6 +497,8 @@ EventHandler::EventHandler()
 EventHandler::EventHandler(unsigned bindingPort)
 : m_imp()
 {
+  EventHandlerConf conf;
+  conf.bindingPort = bindingPort;
   // Choose implementation
-  m_imp = EventHandlerThreadPtr(new BasicEventHandler(bindingPort));
+  m_imp = EventHandlerThreadPtr(new BasicEventHandler(conf));
 }

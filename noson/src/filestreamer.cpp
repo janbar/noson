@@ -110,7 +110,7 @@ bool FileStreamer::HandleRequest(handle * handle)
           reply.AddHeader(WS_HEADER_Content_Type, (*it)->contentType);
           reply.AddHeader(WS_HEADER_Accept_Ranges, "bytes");
           reply.AddHeader(WS_HEADER_Content_Length, std::to_string(getFileLength(filePath)));
-          reply.PostReply(WS_STATUS_200_OK);
+          reply.CloseReply(WS_STATUS_200_OK);
           return true;
         }
         default:
@@ -122,7 +122,7 @@ bool FileStreamer::HandleRequest(handle * handle)
         DBG(DBG_WARN, "%s: probing file failed (%s)\n", __FUNCTION__, filePath.c_str());
         TraceResponseStatus(500);
         WSRequestReply reply(*handle->broker);
-        reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+        reply.CloseReply(WS_STATUS_500_Internal_Server_Error);
       }
       return true;
     }
@@ -372,14 +372,14 @@ void FileStreamer::streamFile(handle * handle, const std::string& filePath, cons
   if (m_playbackCount.Load() >= FILESTREAMER_MAX_PB)
   {
     TraceResponseStatus(429);
-    reply.PostReply(WS_STATUS_429_Too_Many_Requests);
+    reply.CloseReply(WS_STATUS_429_Too_Many_Requests);
     return;
   }
   if (!(file = fopen(filePath.c_str(), "rb")))
   {
     DBG(DBG_ERROR, "%s: opening file failed (%s)\n", __FUNCTION__, filePath.c_str());
     TraceResponseStatus(500);
-    reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+    reply.CloseReply(WS_STATUS_500_Internal_Server_Error);
     return;
   }
   DBG(DBG_DEBUG, "%s: open %p (%s)\n", __FUNCTION__, this, filePath.c_str());
@@ -429,14 +429,14 @@ void FileStreamer::streamFileRange(handle * handle, const std::string& filePath,
   if (m_playbackCount.Load() >= FILESTREAMER_MAX_PB)
   {
     TraceResponseStatus(429);
-    reply.PostReply(WS_STATUS_429_Too_Many_Requests);
+    reply.CloseReply(WS_STATUS_429_Too_Many_Requests);
     return;
   }
   if (!(file = fopen(filePath.c_str(), "rb")))
   {
     DBG(DBG_WARN, "%s: opening file failed (%s)\n", __FUNCTION__, filePath.c_str());
     TraceResponseStatus(500);
-    reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+    reply.CloseReply(WS_STATUS_500_Internal_Server_Error);
     return;
   }
   DBG(DBG_DEBUG, "%s: open %p (%s) range (%s)\n", __FUNCTION__, this, filePath.c_str(), rangeValue.c_str());
@@ -447,7 +447,7 @@ void FileStreamer::streamFileRange(handle * handle, const std::string& filePath,
     fclose(file);
     DBG(DBG_WARN, "%s: bad seek %p (%s)\n", __FUNCTION__, this, rangeValue.c_str());
     TraceResponseStatus(416);
-    reply.PostReply(WS_STATUS_416_Range_Not_Satisfiable);
+    reply.CloseReply(WS_STATUS_416_Range_Not_Satisfiable);
     return;
   }
 

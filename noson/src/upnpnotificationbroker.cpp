@@ -123,7 +123,7 @@ void UPNPNotificationBroker::Process(handle * handle)
   {
     DBG(DBG_ERROR, "%s: parse xml failed\n", __FUNCTION__);
     TraceResponseStatus(500);
-    reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+    reply.CloseReply(WS_STATUS_500_Internal_Server_Error);
     return;
   }
 
@@ -152,7 +152,7 @@ void UPNPNotificationBroker::Process(handle * handle)
           DBG(DBG_ERROR, "%s: invalid or not supported content\n", __FUNCTION__);
           DBG(DBG_ERROR, "%s: dump => %s\n", __FUNCTION__, data.c_str());
           TraceResponseStatus(500);
-          reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+          reply.CloseReply(WS_STATUS_500_Internal_Server_Error);
           delete msg;
           return;
         }
@@ -233,12 +233,12 @@ void UPNPNotificationBroker::Process(handle * handle)
     DBG(DBG_ERROR, "%s: dump => %s\n", __FUNCTION__, data.c_str());
     delete msg;
     TraceResponseStatus(500);
-    reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+    reply.CloseReply(WS_STATUS_500_Internal_Server_Error);
     return;
   }
 
   handle->handler->DispatchEvent(EventMessagePtr(msg));
   TraceResponseStatus(200);
-  reply.PostReply(WS_STATUS_200_OK);
+  reply.CloseReply(WS_STATUS_200_OK);
   return;
 }

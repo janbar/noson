@@ -32,13 +32,19 @@ namespace NSROOT
   class EventBroker : public OS::Worker
   {
   public:
-    EventBroker(EventHandlerThread* handler, TcpSocket* sock);
+    EventBroker(EventHandlerThread* handler, TcpSocket* sock, const std::string& rhost);
     virtual ~EventBroker();
     virtual void process();
 
   private:
     EventHandlerThread* m_handler;
+    std::string m_rhost;
     TcpSocket* m_sock;
+    
+    static TcpSocket* processEvent(
+            EventHandlerThread* handler,
+            TcpSocket* sock,
+            const std::string& rhost);
   };
 }
 

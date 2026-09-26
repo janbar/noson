@@ -32,16 +32,18 @@
 #define EVENTHANDLER_STARTED        "STARTED"   // Message on started
 #define EVENTHANDLER_STOPPED        "STOPPED"   // Message on stopped
 #define EVENTHANDLER_FAILED         "FAILED"    // Message on failed
-#define EVENTHANDLER_THREADS        16          // Max worker threads
+#define EVENTHANDLER_LIMIT_HOLD_MS  500         // Offload duration (ms)
 
 namespace NSROOT
 {
 
   typedef enum
   {
-    EVENT_HANDLER_STATUS = 0,     // Internal event: Backend status change
+    EVENT_UNKNOWN = 0,
+    EVENT_HANDLER_STATUS,         // On backend status change
+    EVENT_HANDSHAKE_FAILURE,      // On accept connection failure
+    EVENT_ACCESS_LOG,             // On reply completed with status
     EVENT_UPNP_PROPCHANGE,        // upnp:propchange
-    EVENT_UNKNOWN,
   } EVENT_t;
 
   struct EventMessage
@@ -63,14 +65,33 @@ namespace NSROOT
     virtual void HandleEventMessage(EventMessagePtr msg) = 0;
   };
 
+  struct EventHandlerConf
+  {
+    unsigned    bindingPort         = 8080;
+    unsigned    listenerQueueSize   = 50;
+    unsigned    threadPoolSize      = 16;
+    unsigned    threadKeepAliveMs   = 60000;  // 60 seconds
+    unsigned    requestQueueSize    = 250;
+
+    unsigned    clientTimeout       = 5000;   // 5 seconds
+    bool        clientKeepAlive     = true;
+  };
+
+  class EventBroker;
+
   class EventHandlerThread
   {
     friend class EventHandler;
   public:
-    EventHandlerThread(unsigned bindingPort);
+    EventHandlerThread(const EventHandlerConf& conf);
     virtual ~EventHandlerThread();
     std::string GetAddress() const { return m_listenerAddress; }
-    unsigned GetPort() const { return m_port; }
+    unsigned GetPort() const { return m_conf.bindingPort; }
+    unsigned GetClientTimeout() const { return m_conf.clientTimeout; }
+    bool GetClientKeepAlive() const { return m_conf.clientKeepAlive; }
+    virtual unsigned GetCapacity() = 0;
+    virtual unsigned PendingRequest() = 0;
+    virtual void EnqueueRequest(EventBroker *eb) = 0;
     virtual bool Start() = 0;
     virtual void Stop() = 0;
     virtual bool HasStarted() = 0;
@@ -86,12 +107,13 @@ namespace NSROOT
      */
     virtual void RegisterRequestBroker(RequestBrokerPtr rb) = 0;
     virtual void UnregisterRequestBroker(const std::string& name) = 0;
+    virtual void UnregisterAllRequestBroker() = 0;
     virtual RequestBrokerPtr GetRequestBroker(const std::string& name) = 0;
     virtual std::vector<RequestBrokerPtr> AllRequestBroker() = 0;
 
   protected:
+    EventHandlerConf m_conf;
     std::string m_listenerAddress;
-    unsigned m_port;
   };
 
   typedef SHARED_PTR<EventHandlerThread> EventHandlerThreadPtr;
@@ -104,9 +126,15 @@ namespace NSROOT
 
     bool Start() { return m_imp ? m_imp->Start(): false; }
     void Stop() { if (m_imp) m_imp->Stop(); }
+    bool IsRunning() { return m_imp ? m_imp->HasStarted() : false; }
+
     std::string GetAddress() const { return m_imp ? m_imp->GetAddress() : ""; }
     unsigned GetPort() const { return m_imp ? m_imp->GetPort(): 0; }
-    bool IsRunning() { return m_imp ? m_imp->HasStarted() : false; }
+    unsigned GetClientTimeout() const { return m_imp ? m_imp->GetClientTimeout() : 0; }
+    bool GetClientKeepAlive() const { return m_imp ? m_imp->GetClientKeepAlive() : false; }
+    unsigned GetCapacity() const { return m_imp ? m_imp->GetCapacity() : 0; }
+    unsigned PendingRequest() { return m_imp ? m_imp->PendingRequest() : 0; }
+    void EnqueueRequest(EventBroker* eb) { if (m_imp) m_imp->EnqueueRequest(eb); }
 
     void RegisterRequestBroker(RequestBrokerPtr rb) { if (m_imp) m_imp->RegisterRequestBroker(rb); }
     void UnregisterRequestBroker(const std::string& name) { if (m_imp) m_imp->UnregisterRequestBroker(name); }

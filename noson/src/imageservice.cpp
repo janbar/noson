@@ -140,12 +140,12 @@ void ImageService::ProcessGET(handle * handle)
   if (it == m_resources.end())
   {
     TraceResponseStatus(400);
-    reply.PostReply(WS_STATUS_400_Bad_Request);
+    reply.CloseReply(WS_STATUS_400_Bad_Request);
   }
   else if (!it->second || !it->second->delegate)
   {
     TraceResponseStatus(500);
-    reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+    reply.CloseReply(WS_STATUS_500_Internal_Server_Error);
   }
   else
   {
@@ -178,12 +178,12 @@ void ImageService::ProcessGET(handle * handle)
     {
       res->delegate->CloseStream(stream);
       TraceResponseStatus(404);
-      reply.PostReply(WS_STATUS_404_Not_Found);
+      reply.CloseReply(WS_STATUS_404_Not_Found);
     }
     else
     {
       TraceResponseStatus(500);
-      reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+      reply.CloseReply(WS_STATUS_500_Internal_Server_Error);
     }
   }
 }
@@ -195,12 +195,12 @@ void ImageService::ProcessHEAD(handle * handle)
   if (it == m_resources.end())
   {
     TraceResponseStatus(400);
-    reply.PostReply(WS_STATUS_400_Bad_Request);
+    reply.CloseReply(WS_STATUS_400_Bad_Request);
   }
   else if (!it->second || !it->second->delegate)
   {
     TraceResponseStatus(500);
-    reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+    reply.CloseReply(WS_STATUS_500_Internal_Server_Error);
   }
   else
   {
@@ -215,19 +215,19 @@ void ImageService::ProcessHEAD(handle * handle)
       TraceResponseStatus(200);
       reply.AddHeader(WS_HEADER_Content_Type, contentType);
       reply.AddHeader(WS_HEADER_Content_Length, stream->contentLength);
-      reply.PostReply(WS_STATUS_200_OK);
+      reply.CloseReply(WS_STATUS_200_OK);
       res->delegate->CloseStream(stream);
     }
     else if (stream)
     {
       res->delegate->CloseStream(stream);
       TraceResponseStatus(404);
-      reply.PostReply(WS_STATUS_404_Not_Found);
+      reply.CloseReply(WS_STATUS_404_Not_Found);
     }
     else
     {
       TraceResponseStatus(500);
-      reply.PostReply(WS_STATUS_500_Internal_Server_Error);
+      reply.CloseReply(WS_STATUS_500_Internal_Server_Error);
     }
   }
 }
