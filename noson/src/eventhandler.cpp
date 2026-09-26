@@ -28,7 +28,6 @@
 #include "private/wsresponse.h"
 
 #include <vector>
-#include <map>
 #include <list>
 
 #define EVENTHANDLER_LOOP_ADDRESS     "127.0.0.1"   // IPv4 localhost
@@ -191,7 +190,7 @@ namespace NSROOT
     void* process(void) override;
     void AnnounceStatus(const char *status);
 
-    typedef std::map<std::string, RequestBrokerPtr> RBList;
+    typedef std::vector<RequestBrokerPtr> RBList;
     Locked<RBList> m_RBList;
   };
 }
@@ -267,19 +266,26 @@ void BasicEventHandler::RegisterRequestBroker(RequestBrokerPtr rb)
   if (!rb)
     return;
   DBG(DBG_DEBUG, "%s: register (%s)\n", __FUNCTION__, rb->CommonName());
-  m_RBList.GetExclusive()->insert(std::make_pair(rb->CommonName(), rb));
+  Locked<RBList>::pointer p = m_RBList.GetExclusive();
+  for (RBList::iterator it = p->begin(); it != p->end(); ++it)
+    if (strcmp(rb->CommonName(), (*it)->CommonName()) == 0)
+      return;
+  p->push_back(rb);
 }
 
 void BasicEventHandler::UnregisterRequestBroker(const std::string &name)
 {
   DBG(DBG_DEBUG, "%s: unregister (%s)\n", __FUNCTION__, name.c_str());
   Locked<RBList>::pointer p = m_RBList.GetExclusive();
-  RBList::const_iterator it = p->find(name);
-  if (it != p->end())
+  RBList keep;
+  for (RBList::iterator it = p->begin(); it != p->end(); ++it)
   {
-    it->second->Abort();
-    p->erase(it);
+    if (name == (*it)->CommonName())
+      (*it)->Abort();
+    else
+      keep.push_back(*it);
   }
+  *p = keep;
 }
 
 void BasicEventHandler::UnregisterAllRequestBroker()
@@ -287,8 +293,8 @@ void BasicEventHandler::UnregisterAllRequestBroker()
   Locked<RBList>::pointer p = m_RBList.GetExclusive();
   for (RBList::iterator it = p->begin(); it != p->end(); ++it)
   {
-    DBG(DBG_DEBUG, "%s: unregister (%s)\n", __FUNCTION__, it->second->CommonName());
-    it->second->Abort();
+    DBG(DBG_DEBUG, "%s: unregister (%s)\n", __FUNCTION__, (*it)->CommonName());
+    (*it)->Abort();
   }
   p->clear();
 }
@@ -296,20 +302,18 @@ void BasicEventHandler::UnregisterAllRequestBroker()
 RequestBrokerPtr BasicEventHandler::GetRequestBroker(const std::string &name)
 {
   Locked<RBList>::const_pointer p = m_RBList.GetShared();
-  RBList::const_iterator it = p->find(name);
-  if (it != p->end())
-    return it->second;
+  for (RBList::const_iterator it = p->cbegin(); it != p->cend(); ++it)
+  {
+    if (name == (*it)->CommonName())
+      return *it;
+  }
   return RequestBrokerPtr();
 }
 
 std::vector<RequestBrokerPtr> BasicEventHandler::AllRequestBroker()
 {
-  std::vector<RequestBrokerPtr> vect;
   Locked<RBList>::const_pointer p = m_RBList.GetShared();
-  vect.reserve(p->size());
-  for (RBList::const_iterator it = p->cbegin(); it != p->cend(); ++it)
-    vect.push_back(it->second);
-  return vect;
+  return *p;
 }
 
 unsigned BasicEventHandler::CreateSubscription(EventSubscriber* sub)
