@@ -127,7 +127,7 @@ set (noson_PUBLIC_DIR "${CMAKE_CURRENT_BINARY_DIR}/public/noson")
 configure_file (${CMAKE_CURRENT_SOURCE_DIR}/src/local_config.h.in
   ${noson_PUBLIC_DIR}/local_config.h)
 
-# Copy the header files to the public folder
+# Copy the public header files to the public folder
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/locked.h
   DESTINATION ${noson_PUBLIC_DIR})
 file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/src/intrinsic.h
@@ -235,6 +235,7 @@ list (APPEND SRC_FILES
   src/deviceproperties.cpp
   src/didlparser.cpp
   src/digitalitem.cpp
+  src/eventbroker.cpp
   src/eventhandler.cpp
   src/filepicreader.cpp
   src/filestreamer.cpp
@@ -242,6 +243,7 @@ list (APPEND SRC_FILES
   src/intrinsic.cpp
   src/iostream.cpp
   src/locked.cpp
+  src/mainpagebroker.cpp
   src/musicservices.cpp
   src/renderingcontrol.cpp
   src/requestbroker.cpp
@@ -256,6 +258,7 @@ list (APPEND SRC_FILES
   src/sonoszone.cpp
   src/subscription.cpp
   src/subscriptionpool.cpp
+  src/upnpnotificationbroker.cpp
   src/zonegrouptopology.cpp
 )
 
@@ -272,6 +275,7 @@ list (APPEND HDR_FILES
   src/didlparser.h
   src/digitalitem.h
   src/element.h
+  src/eventbroker.h
   src/eventhandler.h
   src/filepicreader.h
   src/filestreamer.h
@@ -279,6 +283,7 @@ list (APPEND HDR_FILES
   src/intrinsic.h
   src/iostream.h
   src/locked.h
+  src/mainpagebroker.h
   src/musicservices.h
   src/renderingcontrol.h
   src/requestbroker.h
@@ -294,6 +299,7 @@ list (APPEND HDR_FILES
   src/streamreader.h
   src/subscription.h
   src/subscriptionpool.h
+  src/upnpnotificationbroker.h
   src/zonegrouptopology.h
 )
 

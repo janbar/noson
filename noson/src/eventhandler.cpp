@@ -19,14 +19,13 @@
  */
 
 #include "eventhandler.h"
-#include "private/upnpnotificationbroker.h"
-#include "private/mainpagebroker.h"
+#include "eventbroker.h"
+#include "requestbroker.h"
 #include "private/os/threads/threadpool.h"
 #include "private/socket.h"
 #include "private/cppdef.h"
 #include "private/builtin.h"
 #include "private/debug.h"
-#include "private/eventbroker.h"
 #include "private/wsresponse.h"
 
 #include <vector>
@@ -460,8 +459,4 @@ EventHandler::EventHandler(unsigned bindingPort)
 {
   // Choose implementation
   m_imp = EventHandlerThreadPtr(new BasicEventHandler(bindingPort));
-  // Enable the main page
-  RegisterRequestBroker(RequestBrokerPtr(new MainPageBroker()));
-  // Load the request broker to process UPNP notifications
-  RegisterRequestBroker(RequestBrokerPtr(new UPNPNotificationBroker()));
 }

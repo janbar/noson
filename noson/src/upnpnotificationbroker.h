@@ -16,25 +16,25 @@
  *
  */
 
-#ifndef MAINPAGEBROKER_H
-#define MAINPAGEBROKER_H
+#ifndef UPNPNOTIFICATIONBROKER_H
+#define UPNPNOTIFICATIONBROKER_H
 
-#include "../requestbroker.h"
+#include "requestbroker.h"
 
-#define MAINPAGEBROKER_CNAME    "[main-page]"
-#define MAINPAGE_URI            "/"
+#define UPNPNOTIFICATIONBROKER_CNAME    "[upnp-notification-broker]"
+#define UPNPNOTIFICATIONBROKER_URI      "/"
 
 namespace NSROOT
 {
 
-class MainPageBroker : public RequestBroker
+class UPNPNotificationBroker : public RequestBroker
 {
 public:
-  MainPageBroker();
-  ~MainPageBroker() override { }
+  UPNPNotificationBroker();
+  ~UPNPNotificationBroker() override { }
   virtual bool HandleRequest(handle * handle) override;
 
-  const char * CommonName() override { return MAINPAGEBROKER_CNAME; }
+  const char * CommonName() override { return UPNPNOTIFICATIONBROKER_CNAME; }
   RequestBroker::ResourcePtr GetResource(const std::string& title) override;
   RequestBroker::ResourceList GetResourceList() override;
   RequestBroker::ResourcePtr RegisterResource(const std::string& title,
@@ -45,11 +45,10 @@ public:
 
 private:
 
-  void ProcessGET(handle * handle);
-  void ProcessHEAD(handle * handle);
+  void Process(handle * handle);
 };
 
 }
 
-#endif /* MAINPAGEBROKER_H */
+#endif /* UPNPNOTIFICATIONBROKER_H */
 

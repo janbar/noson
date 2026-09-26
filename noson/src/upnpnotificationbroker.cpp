@@ -17,13 +17,13 @@
  */
 
 #include "upnpnotificationbroker.h"
-#include "../eventhandler.h"
-#include "debug.h"
-#include "wsstatic.h"
-#include "wsrequestbroker.h"
-#include "wsrequestreply.h"
-#include "tinyxml2.h"
-#include "xmldict.h"
+#include "eventhandler.h"
+#include "private/debug.h"
+#include "private/wsstatic.h"
+#include "private/wsrequestbroker.h"
+#include "private/wsrequestreply.h"
+#include "private/tinyxml2.h"
+#include "private/xmldict.h"
 
 using namespace NSROOT;
 

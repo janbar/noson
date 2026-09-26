@@ -19,8 +19,8 @@
  */
 
 #include "eventbroker.h"
-#include "wsstatic.h"
-#include "debug.h"
+#include "private/wsstatic.h"
+#include "private/debug.h"
 
 using namespace NSROOT;
 

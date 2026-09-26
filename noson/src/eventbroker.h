@@ -22,11 +22,11 @@
 #define	EVENTBROKER_H
 
 #include "local_config.h"
-#include "os/threads/threadpool.h"
-#include "wsrequestbroker.h"
-#include "socket.h"
-#include "../eventhandler.h"
-#include "../sharedptr.h"
+#include "private/os/threads/threadpool.h"
+#include "private/wsrequestbroker.h"
+#include "private/socket.h"
+#include "eventhandler.h"
+#include "sharedptr.h"
 
 namespace NSROOT
 {

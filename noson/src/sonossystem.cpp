@@ -26,6 +26,8 @@
 #include "digitalitem.h"
 #include "didlparser.h"
 #include "smapimetadata.h"
+#include "mainpagebroker.h"
+#include "upnpnotificationbroker.h"
 #include "private/socket.h"
 #include "private/wsresponse.h"
 #include "private/os/threads/timeout.h"
@@ -70,6 +72,11 @@ System::System(void* CBHandle, EventCB eventCB)
 , m_subscriptionPool()
 , m_port(0)
 {
+  // Enable the main page
+  m_eventHandler.RegisterRequestBroker(RequestBrokerPtr(new MainPageBroker()));
+  // Load the request broker to process UPNP notifications
+  m_eventHandler.RegisterRequestBroker(RequestBrokerPtr(new UPNPNotificationBroker()));
+
   m_subId = m_eventHandler.CreateSubscription(this);
   m_eventHandler.SubscribeForEvent(m_subId, EVENT_HANDLER_STATUS);
   if (!m_eventHandler.Start())
