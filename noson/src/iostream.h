@@ -27,16 +27,12 @@ namespace NSROOT
 class OutputStream
 {
 public:
-  OutputStream() { }
-  virtual ~OutputStream() { }
   virtual int Write(const char * data, int len) = 0;
 };
 
 class InputStream
 {
 public:
-  InputStream() { }
-  virtual ~InputStream() { }
   virtual int Read(char * data, int maxlen) = 0;
 };
 
@@ -59,8 +55,7 @@ public:
 protected:
   void SignalReadyRead();
 
-    virtual int BytesAvailable() const  = 0;
-    //virtual int read(char * data, int maxlen) = 0;
+  virtual int BytesAvailable() const  = 0;
 
 private:
   mutable OS::Mutex * m_lock;
@@ -80,7 +75,6 @@ public:
   bool Overflow() const;
 
   int Write(const char * data, int len) override;
-  //int readAsync(char * data, int maxlen, unsigned timeout);
 
 protected:
   int Read(char * data, int maxlen) override;
