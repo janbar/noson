@@ -46,7 +46,7 @@ using namespace NSROOT;
 PulseStreamer::PulseStreamer(RequestBroker * imageService /*= nullptr*/)
 : RequestBroker()
 , m_resources()
-, m_sinkIndex(0)
+, m_sinkIndex(PA_INVALID_INDEX)
 , m_playbackCount(0)
 {
   // delegate image download to imageService
@@ -92,6 +92,7 @@ bool PulseStreamer::HandleRequest(handle * handle)
         TraceResponseStatus(200);
         WSRequestReply reply(*handle->broker);
         reply.AddHeader(WS_HEADER_Content_Type, "audio/flac");
+        reply.AddHeader(WS_HEADER_Accept_Ranges, "none");
         reply.CloseReply(WS_STATUS_200_OK);
         return true;
       }
@@ -159,7 +160,7 @@ std::string PulseStreamer::GetPASink()
     {
       if (ad.name == PA_SINK_NAME)
       {
-        DBG(DBG_DEBUG, "%s: Found device %d: %s\n", __FUNCTION__, ad.index, ad.monitorSourceName.c_str());
+        DBG(DBG_DEBUG, "%s: found device %u: %s (%u)\n", __FUNCTION__, ad.index, ad.monitorSourceName.c_str(), ad.ownerModule);
         deviceName = ad.monitorSourceName;
         m_sinkIndex.Store(ad.ownerModule); // own the module
         break;
@@ -183,25 +184,27 @@ std::string PulseStreamer::GetPASink()
 
 void PulseStreamer::FreePASink()
 {
-  // Lock count
-  // and check if an other playback is running before delete the sink
-  Locked<int>::pointer p = m_playbackCount.GetExclusive();
-  if (*p == 1 && m_sinkIndex.Load())
+  PAControl pacontrol(PA_CLIENT_NAME);
+  if (pacontrol.connect())
   {
-    PAControl pacontrol(PA_CLIENT_NAME);
-    if (pacontrol.connect())
-    {
-      DBG(DBG_DEBUG, "%s: delete sink (%s)\n", __FUNCTION__, PA_SINK_NAME);
-      pacontrol.deleteSink(m_sinkIndex.Load());
-      pacontrol.disconnect();
-    }
-    m_sinkIndex.Store(0);
+    DBG(DBG_DEBUG, "%s: delete sink (%s)\n", __FUNCTION__, PA_SINK_NAME);
+    pacontrol.deleteSink(m_sinkIndex.Load());
+    pacontrol.disconnect();
   }
 }
 
 void PulseStreamer::streamSink(handle * handle)
 {
   WSRequestReply reply(*handle->broker);
+  if (!handle->broker->GetRequestHeader(WS_HEADER_Range).empty())
+  {
+    DBG(DBG_WARN, "%s: cannot seek in stream\n", __FUNCTION__);
+    TraceResponseStatus(400);
+    reply.CloseReply(WS_STATUS_400_Bad_Request);
+    return;
+  }
+
+  *m_playbackCount.GetExclusive() += 1;
   std::string deviceName = GetPASink();
 
   if (deviceName.empty())
@@ -210,14 +213,13 @@ void PulseStreamer::streamSink(handle * handle)
     TraceResponseStatus(503);
     reply.CloseReply(WS_STATUS_503_Service_Unavailable);
   }
-  else if (m_playbackCount.Load() >= PULSESTREAMER_MAX_PB)
+  else if (m_playbackCount.Load() > PULSESTREAMER_MAX_PB)
   {
     TraceResponseStatus(429);
     reply.CloseReply(WS_STATUS_429_Too_Many_Requests);
   }
   else
   {
-    *m_playbackCount.GetExclusive() += 1;
     PASource audioSource(PA_CLIENT_NAME, deviceName);
     FLACEncoder audioEncoder;
     BufferedStream stream(64);
@@ -231,6 +233,7 @@ void PulseStreamer::streamSink(handle * handle)
 
     TraceResponseStatus(200);
     reply.AddHeader(WS_HEADER_Content_Type, "audio/flac");
+    reply.AddHeader(WS_HEADER_Accept_Ranges, "none");
     reply.AddHeader(WS_HEADER_Transfer_Encoding, "chunked");
     if (reply.PostReply(WS_STATUS_200_OK))
     {
@@ -253,10 +256,13 @@ void PulseStreamer::streamSink(handle * handle)
         handle->broker->ReplyData("0" WS_CRLF WS_CRLF, 1 + WS_CRLF_LEN + WS_CRLF_LEN);
     }
 
-    *m_playbackCount.GetExclusive() -= 1;
     audioSource.stop();
     audioEncoder.close();
   }
 
-  FreePASink();
+  *m_playbackCount.GetExclusive() -= 1;
+  // Check an other playback is running before delete the sink
+  Locked<int>::pointer p = m_playbackCount.GetExclusive();
+  if (*p == 0)
+    FreePASink();
 }
