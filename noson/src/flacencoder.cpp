@@ -63,6 +63,10 @@ bool FLACEncoder::open(const AudioFormat& inputFormat, OutputStream * out)
     DBG(DBG_WARN, "ERROR: Invalid format\n");
   else if (!(m_ok = m_encoder->set_verify(true)))
     DBG(DBG_WARN, "ERROR: Set verify failed\n");
+  else if (!(m_ok = m_encoder->set_streamable_subset(true)))
+    DBG(DBG_WARN, "ERROR: Set streamable subset failed\n");
+  else if (!(m_ok = m_encoder->set_total_samples_estimate(0)))
+    DBG(DBG_WARN, "ERROR: Set total samples estimate failed\n");
   else if (!(m_ok = m_encoder->set_compression_level(5)))
     DBG(DBG_WARN, "ERROR: Set compression level failed\n");
   else if (!(m_ok = m_encoder->set_channels(m_inputFormat.channelCount)))
