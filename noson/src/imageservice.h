@@ -25,7 +25,7 @@
 #include <map>
 
 #define IMAGESERVICE_CNAME    "images"
-#define IMAGESERVICE_URI      "/images/"
+#define IMAGESERVICE_URI      "/images"
 
 namespace NSROOT
 {

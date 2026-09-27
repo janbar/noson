@@ -58,20 +58,6 @@ void RequestBroker::TraceResponseStatus(int status)
   }
 }
 
-std::string RequestBroker::buildDelegateUrl(const RequestBroker::Resource& res, const std::string& params)
-{
-  if (params.empty())
-    return res.sourcePath;
-  return res.sourcePath + "?" + params;
-}
-
-std::string RequestBroker::buildUri(const std::string &rootUri, const std::string &path)
-{
-  unsigned rpath = 0;
-  while (rpath < path.length() && path.at(rpath) == '/') ++rpath;
-  return std::string(rootUri).append(path.substr(rpath));
-}
-
 RequestBroker::Resource::Resource()
 : uri()
 , title()

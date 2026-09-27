@@ -31,7 +31,7 @@
 #include <cstring>
 
 /* Important: It MUST match with the static declaration from datareader.cpp */
-#define PULSESTREAMER_ICON      "/pulseaudio.png"
+#define PULSESTREAMER_ICON      "pulseaudio.png"
 #define PULSESTREAMER_CONTENT   "audio/flac"
 #define PULSESTREAMER_DESC      "Audio stream from %s"
 #define PULSESTREAMER_TIMEOUT   10000

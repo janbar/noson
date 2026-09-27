@@ -29,7 +29,7 @@
 #include <cstring>
 
 /* Important: It MUST match with the static declaration from datareader.cpp */
-#define IMAGESERVICE_FAVICON  "/favicon.ico"
+#define IMAGESERVICE_FAVICON  "favicon.ico"
 #define RESOURCE_FILEPICTURE  "filePicture"
 #define IMAGESERVICE_CHUNK    16384
 
@@ -42,15 +42,14 @@ ImageService::ImageService()
   // initialize the static resource for favicon
   {
     ResourcePtr ptr(new Resource());
-    ptr->uri = IMAGESERVICE_FAVICON;
+    ptr->uri = "/" IMAGESERVICE_FAVICON;
     ptr->title = "favicon";
     ptr->sourcePath = IMAGESERVICE_FAVICON;
     ptr->delegate = DataReader::Instance();
     m_resources.insert(std::make_pair(ptr->uri, ptr));
   }
-
   // register the picture extractor for local media file
-  RegisterResource(RESOURCE_FILEPICTURE, "The cover art extractor", "/track", FilePicReader::Instance());
+  RegisterResource(RESOURCE_FILEPICTURE, "The cover art extractor", "track", FilePicReader::Instance());
 }
 
 bool ImageService::HandleRequest(handle * handle)
@@ -59,7 +58,7 @@ bool ImageService::HandleRequest(handle * handle)
   {
     const std::string& requrl = handle->broker->GetRequestPath();
     if (requrl.compare(0, strlen(IMAGESERVICE_URI), IMAGESERVICE_URI) == 0 ||
-            requrl.compare(0, strlen(IMAGESERVICE_FAVICON), IMAGESERVICE_FAVICON) == 0)
+            requrl == "/" IMAGESERVICE_FAVICON)
     {
       switch (handle->broker->GetRequestMethod())
       {
@@ -105,7 +104,11 @@ RequestBroker::ResourcePtr ImageService::RegisterResource(const std::string& tit
   ptr->description = description;
   ptr->sourcePath = path;
   ptr->delegate = delegate;
-  ptr->uri = RequestBroker::buildUri(IMAGESERVICE_URI, path);
+  ptr->uri = std::string(IMAGESERVICE_URI);
+  if (path.empty() || path.front() != '/')
+    ptr->uri.append("/").append(path);
+  else
+    ptr->uri.append(path);
   m_resources.insert(std::make_pair(ptr->uri, ptr));
   return ptr;
 }
@@ -150,9 +153,12 @@ void ImageService::ProcessGET(handle * handle)
   else
   {
     const RequestBroker::ResourcePtr& res = it->second;
-    StreamReader::STREAM * stream = res->delegate->OpenStream(
-        RequestBroker::buildDelegateUrl(*res, handle->broker->GetURIParams())
-        );
+    // build the delegate url: source path + params
+    std::string dlurl(res->sourcePath);
+    if (!handle->broker->GetURIParams().empty())
+      dlurl.append("?").append(handle->broker->GetURIParams());
+    StreamReader::STREAM * stream = res->delegate->OpenStream(dlurl);
+
     if (stream && stream->contentLength)
     {
       // override content type with stream type
@@ -205,9 +211,12 @@ void ImageService::ProcessHEAD(handle * handle)
   else
   {
     const RequestBroker::ResourcePtr& res = it->second;
-    StreamReader::STREAM * stream = res->delegate->OpenStream(
-        RequestBroker::buildDelegateUrl(*res, handle->broker->GetURIParams())
-        );
+    // build the delegate url: source path + params
+    std::string dlurl(res->sourcePath);
+    if (!handle->broker->GetURIParams().empty())
+      dlurl.append("?").append(handle->broker->GetURIParams());
+    StreamReader::STREAM * stream = res->delegate->OpenStream(dlurl);
+
     if (stream && stream->contentLength)
     {
       // override content type with stream type

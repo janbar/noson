@@ -106,22 +106,6 @@ namespace NSROOT
 
     void TraceResponseStatus(int status);
 
-    /**
-     * @brief Helper to build the delegate url from a call uri
-     * @param res the delegated resource
-     * @param params the uri params
-     * @return the valid url to pass to the delegate
-     */
-    static std::string buildDelegateUrl(const Resource& res, const std::string& params);
-
-    /**
-     * @brief Helper to build uri from the given root and path
-     * @param rootUri the root uri
-     * @param path the path to add
-     * @return the uri
-     */
-    static std::string buildUri(const std::string& rootUri, const std::string& path);
-
   private:
     bool m_aborted;
     IntrinsicCounter m_200;

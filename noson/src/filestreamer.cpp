@@ -194,11 +194,11 @@ std::string FileStreamer::MakeFileStreamURI(const std::string& filePath, const s
 
 std::string FileStreamer::getParamValue(const std::vector<std::string>& params, const std::string& name)
 {
-  size_t lval = name.length() + 1;
-  for (const std::string& str : params)
+  for (const std::string& param : params)
   {
-    if (str.length() > lval && str.at(name.length()) == '=' && str.compare(0, name.length(), name) == 0)
-      return urldecode(str.substr(lval));
+    if (param.length() > name.length() && param.at(name.length()) == '=' &&
+        param.compare(0, name.length(), name) == 0)
+      return urldecode(param.substr(name.length() + 1));
   }
   return std::string();
 }

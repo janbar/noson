@@ -27,9 +27,9 @@
 using namespace NSROOT;
 
 DataReader::Resource DataReader::_uris[] = {
-  { "/favicon.ico", "image/x-icon", favicon_ico, favicon_ico_len },
+  { "favicon.ico", "image/x-icon", favicon_ico, favicon_ico_len },
 #ifdef HAVE_PULSEAUDIO
-  { "/pulseaudio.png", "image/png", pulseaudio_png, pulseaudio_png_len },
+  { "pulseaudio.png", "image/png", pulseaudio_png, pulseaudio_png_len },
 #endif
 };
 
