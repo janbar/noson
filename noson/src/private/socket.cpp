@@ -425,7 +425,7 @@ size_t TcpSocket::ReceiveData(void *buf, size_t n)
       int r = poll(fds, 1, m_timeout);
       if (r == 0)
       {
-        DBG(DBG_INFO, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, m_timeout);
+        DBG(DBG_DEBUG, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, m_timeout);
         m_errno = ETIMEDOUT;
       }
       else if (r < 0)
@@ -1051,7 +1051,7 @@ size_t UdpSocket::ReceiveData(void* buf, size_t n)
     if (r == 0)
     {
       m_errno = ETIMEDOUT;
-      DBG(DBG_DEBUG, "%s: socket(%p) timed out\n", __FUNCTION__, &m_socket);
+      DBG(DBG_DEBUG, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, m_timeout);
     }
     else if (r < 0)
     {
@@ -1436,7 +1436,7 @@ size_t UdpServerSocket::AwaitIncoming()
     if (r == 0)
     {
       m_errno = ETIMEDOUT;
-      DBG(DBG_DEBUG, "%s: socket(%p) timed out\n", __FUNCTION__, &m_socket);
+      DBG(DBG_DEBUG, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, m_timeout);
     }
     else if (r < 0)
     {
