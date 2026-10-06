@@ -316,7 +316,7 @@ size_t SecureSocket::ReceiveData(void* buf, size_t n)
             break;
           else if (s == 0)
           {
-            DBG(DBG_INFO, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, m_timeout);
+            DBG(DBG_DEBUG, "%s: socket(%p) timed out (%d)\n", __FUNCTION__, &m_socket, m_timeout);
             m_errno = ETIMEDOUT;
             return 0;
           }
