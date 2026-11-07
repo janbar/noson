@@ -64,21 +64,22 @@ namespace NSROOT
   };
 
   template<typename T>
-  class Locked : private Lockable
+  class Locked
   {
   public:
-    Locked(const T& val) : Lockable(), m_val(val) { }
-    ~Locked() override { }
+    Locked() : m_val(), m_lock() {}
+    Locked(const T& val) : m_val(val), m_lock() { }
+    ~Locked() { }
 
     T Load()
     {
-      ReadLock g(*this);
+      Lockable::ReadLock g(m_lock);
       return m_val; // return copy
     }
 
     const T& Store(const T& newval)
     {
-      WriteLock g(*this);
+      Lockable::WriteLock g(m_lock);
       m_val = newval;
       return newval; // return input
     }
@@ -131,7 +132,7 @@ namespace NSROOT
 
     pointer GetExclusive()
     {
-      return pointer(&m_val, this);
+      return pointer(&m_val, &m_lock);
     }
 
     class const_pointer
@@ -180,9 +181,9 @@ namespace NSROOT
       Lockable* m_s;
     };
 
-    const_pointer GetShared()
+    const_pointer GetShared() const
     {
-      return const_pointer(&m_val, this);
+      return const_pointer(&m_val, &m_lock);
     }
 
     // Prevent copy
@@ -191,6 +192,7 @@ namespace NSROOT
 
   protected:
     T m_val;
+    mutable Lockable m_lock;
   };
 
 }
