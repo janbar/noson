@@ -32,10 +32,11 @@
  *   sub-delims    = ! $ & ' ( ) * + , ; =
  *   gen-delims    = % @ : [ | ]
  * They won't be encoded or decoded.
+ * 0x00 won't be decoded to prevent NUL injection.
  */
 static const char uri_pchar_table[128] = {
 //0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 1
   0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 2
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, // 3
@@ -81,7 +82,7 @@ std::string pathdecode(const std::string& str)
       char buf[3];
       strncpy(buf, cstr + 1, 3);
       buf[2] = '\0';
-      if (hex_to_num(buf, &v) == 0)
+      if (buf[1] && hex_to_num(buf, &v) == 0)
       {
         // do not decode valid pchar
         if (v < 0 || v > 127 || uri_pchar_table[v] == 0)
@@ -91,6 +92,9 @@ std::string pathdecode(const std::string& str)
         }
       }
     }
+    /* convert backslash to slash */
+    if (c == 0x5c)
+      c = 0x2f;
     out.push_back(c);
     ++cstr;
   }
@@ -146,10 +150,14 @@ std::string urldecode(const std::string& str)
       char buf[3];
       strncpy(buf, cstr + 1, 3);
       buf[2] = '\0';
-      if (hex_to_num(buf, &v) == 0)
+      if (buf[1] && hex_to_num(buf, &v) == 0)
       {
-        c = static_cast<char>(v);
-        cstr += 2;
+        // prevent NUL injection
+        if (v != 0)
+        {
+          c = static_cast<char>(v);
+          cstr += 2;
+        }
       }
     }
     out.push_back(c);

@@ -143,8 +143,65 @@ SSLServerContext::~SSLServerContext()
   {
     DBG(DBG_DEBUG, "%s: Free SSL server context (%p)\n", __FUNCTION__, m_server_ctx);
     SSL_CTX_free(static_cast<SSL_CTX*>(m_server_ctx));
+    for (auto& sni : m_sni_ctx)
+      SSL_CTX_free(static_cast<SSL_CTX*>(sni.second));
   }
 }
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+namespace
+{
+int SSLClientHelloCallback(SSL* ssl, int* al, void* arg)
+{
+  const unsigned char *p;
+  size_t remaining, len;
+
+  /* extract SNI extention from client hello */
+  if (!SSL_client_hello_get0_ext(ssl, TLSEXT_TYPE_server_name, &p, &remaining))
+    return SSL_CLIENT_HELLO_SUCCESS;
+
+  /*
+   * The SNI is encapsulated in a structure:
+   * 2 bytes of total length,
+   * 1 byte of type (TLSEXT_NAMETYPE_host_name),
+   * 2 bytes of name length
+   */
+  if (remaining < 5)
+    return SSL_CLIENT_HELLO_ERROR;
+
+  if (p[2] != TLSEXT_NAMETYPE_host_name)
+    return SSL_CLIENT_HELLO_ERROR;
+
+  len = (p[3] << 8) | p[4];
+
+  if (len > remaining - 5)
+    return SSL_CLIENT_HELLO_ERROR;
+
+  char name[256];
+  if (len >= sizeof(name))
+    len = sizeof(name) - 1;
+  memcpy(name, p + 5, len);
+  name[len] = '\0';
+
+  void* ctx = static_cast<SSLServerContext*>(arg)->FindSNIContext(name);
+  if (ctx)
+  {
+    DBG(DBG_DEBUG, "%s: Set context for SNI=%s\n", __FUNCTION__, name);
+    SSL_set_SSL_CTX(ssl, static_cast<SSL_CTX*>(ctx));
+  }
+  else
+  {
+    DBG(DBG_DEBUG, "%s: No context for SNI=%s\n", __FUNCTION__, name);
+    (void)al;
+    /*
+    *al = SSL_AD_UNRECOGNIZED_NAME;
+    return SSL_CLIENT_HELLO_ERROR;
+    */
+  }
+  return SSL_CLIENT_HELLO_SUCCESS;
+}
+}
+#endif
 
 bool SSLServerContext::InitContext(const std::string& certfile, const std::string& pkeyfile)
 {
@@ -195,9 +252,82 @@ bool SSLServerContext::InitContext(const std::string& certfile, const std::strin
     SSL_CTX_free(ctx);
     return false;
   }
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+  DBG(DBG_INFO, "%s: Enable SNI callback\n", __FUNCTION__);
+  SSL_CTX_set_client_hello_cb(ctx, SSLClientHelloCallback, this);
+#endif
+
   DBG(DBG_INFO, "%s: Server certificate was successfully loaded\n", __FUNCTION__);
   m_server_ctx = ctx;
   return true;
+}
+
+bool SSLServerContext::InitSNIContext(const std::string& sni, const std::string& certfile, const std::string& pkeyfile)
+{
+  if (!SSLSessionFactory::Instance().IsEnabled())
+    return false;
+
+  if (m_sni_ctx.find(sni) != m_sni_ctx.end())
+  {
+    DBG(DBG_ERROR, "%s: Duplicated SNI (%s)\n", __FUNCTION__, sni.c_str());
+    return false;
+  }
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+  /* Setup SNI context */
+  SSL_CTX* ctx = SSL_CTX_new(TLS_server_method());
+  if (!ctx)
+  {
+    DBG(DBG_ERROR, "%s: Could not create the SSL server context\n", __FUNCTION__);
+    return false;
+  }
+
+  SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, 0);
+
+  /* Remove the most egregious */
+  const long flags = SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
+  (void)SSL_CTX_set_options(ctx, flags);
+
+  if (SSL_CTX_set_cipher_list(ctx, "ALL:!EXPORT:!LOW:!aNULL:!eNULL:!SSLv2") != 1)
+    DBG(DBG_ERROR, "%s: Set cipher list failed\n", __FUNCTION__);
+
+  /* The SSL trace callback is only used for verbose logging */
+  /* SSL_CTX_set_msg_callback(ctx, ssl_trace); */
+
+  /* Set the certificate to be used */
+  if (SSL_CTX_use_certificate_chain_file(ctx, certfile.c_str()) != 1)
+  {
+    DBG(DBG_ERROR, "%s: Certificate file is invalid\n", __FUNCTION__);
+    SSL_CTX_free(ctx);
+    return false;
+  }
+  /* Set the private key to be used */
+  if (SSL_CTX_use_PrivateKey_file(ctx, pkeyfile.c_str(), SSL_FILETYPE_PEM) != 1)
+  {
+    DBG(DBG_ERROR, "%s: Private key file is invalid\n", __FUNCTION__);
+    SSL_CTX_free(ctx);
+    return false;
+  }
+  /* Make sure the key and certificate file match */
+  if (SSL_CTX_check_private_key(ctx) != 1) {
+    DBG(DBG_ERROR, "%s: Private key does not match the certificate public key\n", __FUNCTION__);
+    SSL_CTX_free(ctx);
+    return false;
+  }
+
+  DBG(DBG_INFO, "%s: Server certificate was successfully loaded (%s)\n", __FUNCTION__, sni.c_str());
+  m_sni_ctx[sni] = ctx;
+#endif
+  return true;
+}
+
+void* SSLServerContext::FindSNIContext(const char* sni)
+{
+  const auto it = m_sni_ctx.find(sni);
+  if (it == m_sni_ctx.end())
+    return nullptr;
+  return it->second;
 }
 
 SecureSocket* SSLServerContext::NewServerSocket()
@@ -474,6 +604,16 @@ SSLServerContext::~SSLServerContext()
 
 bool SSLServerContext::InitContext(const std::string& certfile, const std::string& pkeyfile)
 {
+  (void)certfile;
+  (void)pkeyfile;
+  return false;
+}
+
+bool SSLServerContext::InitSNIContext(const std::string& sni, const std::string& certfile, const std::string& pkeyfile)
+{
+  (void)sni;
+  (void)certfile;
+  (void)pkeyfile;
   return false;
 }
 
@@ -484,6 +624,7 @@ SecureSocket* SSLServerContext::NewServerSocket()
 
 TcpServerSocket::AcceptStatus SSLServerContext::SSLHandshake(SecureSocket& socket)
 {
+  (void)socket;
   return TcpServerSocket::ACCEPT_ERROR;
 }
 

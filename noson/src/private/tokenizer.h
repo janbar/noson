@@ -31,7 +31,8 @@ inline bool __tokenize(
         const std::string& separator,
         const std::string& encapsulator,
         std::vector<std::string>& tokens,
-        bool trimnull = false)
+        bool trimnull = false,
+        bool noescape = false)
 {
   tokens.clear();
   size_t pos = 0;
@@ -80,7 +81,7 @@ inline bool __tokenize(
     else
     {
       // escape next char
-      if (str[pos] == '\\' && (++pos) == end)
+      if (!noescape && str[pos] == '\\' && (++pos) == end)
         continue;
       token.push_back(str[pos]);
       ++pos;

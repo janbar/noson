@@ -89,8 +89,8 @@ int WSReplyChunked::WriteFileStream(FILE * file)
     m_tail = m_chunkSize;
   }
 
-  int r = 0;
-  if ((r = (int)fread(m_buffer + m_head, 1, m_tail, file)) > 0)
+  int r = (int)fread(m_buffer + m_head, 1, m_tail, file);
+  if (r > 0)
   {
     m_head += r;
     m_tail -= r;
@@ -110,8 +110,8 @@ int WSReplyChunked::WriteFileStream(FILE * file, unsigned maxlen)
 
   if (maxlen > (unsigned)m_tail)
     maxlen = m_tail;
-  int r = 0;
-  if ((r = (int)fread(m_buffer + m_head, 1, maxlen, file)) > 0)
+  int r = (int)fread(m_buffer + m_head, 1, maxlen, file);
+  if (r > 0)
   {
     m_head += r;
     m_tail -= r;
@@ -129,8 +129,8 @@ int WSReplyChunked::WriteInputStream(InputStream& in)
     m_tail = m_chunkSize;
   }
 
-  int r = 0;
-  if ((r = in.Read(m_buffer + m_head, m_tail)) > 0)
+  int r = in.Read(m_buffer + m_head, m_tail);
+  if (r > 0)
   {
     m_head += r;
     m_tail -= r;

@@ -114,9 +114,10 @@ bool WSRequestBroker::ExplodeURI(const std::string& uri, std::string& path, std:
   std::vector<std::string> dirty;
   std::vector<std::string> clean;
   std::vector<std::string>::const_iterator it;
-  // decode and split path by dirname
+  // decode path
   std::string r_path(pathdecode(parser.Path()));
-  tokenize(r_path, "/", "", dirty, true);
+  // split path by dirname (no escape)
+  tokenize(r_path, "/", "", dirty, true, true);
   // rebuild normalized path
   it = dirty.cbegin();
   while (it != dirty.cend())
@@ -157,10 +158,10 @@ bool WSRequestBroker::ExplodeURI(const std::string& uri, std::string& path, std:
 
 WSRequestBroker::VARS WSRequestBroker::ExplodeQuery(const std::string& uriparams)
 {
-  // decode query string
+  // decode query string (no escape)
   VARS params;
   std::vector<std::string> tokens;
-  tokenize(uriparams, "&", "", tokens, true);
+  tokenize(uriparams, "&", "", tokens, true, true);
   for (std::string& t : tokens)
   {
     size_t p = t.find_first_of('=');
@@ -287,7 +288,7 @@ bool WSRequestBroker::ParseQuery()
       // backup initial request for logging
       m_requestLine.assign(strread);
       std::vector<std::string> query;
-      tokenize(strread, " ", "", query, true);
+      tokenize(strread, " ", "", query, true, true);
       if (query.size() == 3)
       {
         // check the requested method

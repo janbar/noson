@@ -25,6 +25,7 @@
 #include "socket.h"
 
 #include <string>
+#include <map>
 
 namespace NSROOT
 {
@@ -66,9 +67,23 @@ namespace NSROOT
      * The certificate and key must match for the operation to succeed.
      * @param certfile the string path of the certificate file (pem)
      * @param pkeyfile the string path of the private key file (pem)
-     * @return true on success, else false
+     * @return false on error, else true
      */
     bool InitContext(const std::string& certfile, const std::string& pkeyfile);
+
+    /**
+     * Initialize a server context for the given SNI
+     * @param sni the SNI string
+     * @param certfile the string path of the certificate file (pem)
+     * @param pkeyfile the string path of the private key file (pem)
+     * @return false on error, else true
+     */
+    bool InitSNIContext(const std::string& sni, const std::string& certfile, const std::string& pkeyfile);
+
+    /**
+     * Internal use only
+     */
+    void* FindSNIContext(const char* sni);
 
     /**
      * Create a new server socket with this context.
@@ -97,6 +112,8 @@ namespace NSROOT
     SSLServerContext& operator=(const SSLServerContext& other);
 
     void* m_server_ctx;       ///< SSL server context
+    typedef std::map<std::string, void*> sni_map_t;
+    sni_map_t m_sni_ctx;      ///< SSL SNI context
   };
 
   class SecureSocket : public TcpSocket
@@ -107,7 +124,7 @@ namespace NSROOT
     virtual ~SecureSocket();
 
     // Overrides TcpSocket
-    bool Connect(const char *server, unsigned port, int rcvbuf);
+    bool Connect(const char* server, unsigned port, int rcvbuf);
     bool SendData(const char* buf, size_t size);
     size_t ReceiveData(void* buf, size_t n);
     size_t BlockingRead(void* buf, size_t n);

@@ -225,7 +225,7 @@ int WSRequestReply::WriteFileStream(FILE* file)
   if (m_stage != STAGE_CONTENT)
   {
     DBG(DBG_ERROR, "%s: bad stage (%d)\n", __FUNCTION__, m_stage);
-    return false;
+    return (-1);
   }
   return m_chunked->WriteFileStream(file);
 }
@@ -235,7 +235,7 @@ int WSRequestReply::WriteFileStream(FILE* file, unsigned maxlen)
   if (m_stage != STAGE_CONTENT)
   {
     DBG(DBG_ERROR, "%s: bad stage (%d)\n", __FUNCTION__, m_stage);
-    return false;
+    return (-1);
   }
   return m_chunked->WriteFileStream(file, maxlen);
 }
@@ -245,7 +245,7 @@ int WSRequestReply::WriteInputStream(InputStream& in)
   if (m_stage != STAGE_CONTENT)
   {
     DBG(DBG_ERROR, "%s: bad stage (%d)\n", __FUNCTION__, m_stage);
-    return false;
+    return (-1);
   }
   return m_chunked->WriteInputStream(in);
 }
