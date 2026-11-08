@@ -94,65 +94,102 @@ bool WSRequestBroker::ExplodeURI(const std::string& uri, std::string& path, std:
   if (uri.empty())
     return false;
   // convert generic uri * to nil
-  else if (uri == "*")
+  if (uri == "*")
   {
     path.clear();
     uriparams.clear();
     ishidden = false;
     return true;
   }
-  // accept only local uri, therefore reject url starting by scheme
-  else if (uri.front() != '/')
+  // a local absolute uri must start by slash
+  if (uri.front() != 0x2f && uri.front() != 0x5c)
     return false;
-
   // force sheme and parse uri
   URIParser parser(std::string("file://").append(uri));
   if (!parser.Path())
     return false;
-  unsigned len = 0;
-  bool hidden = false;
-  std::vector<std::string> dirty;
-  std::vector<std::string> clean;
-  std::vector<std::string>::const_iterator it;
   // decode path
   std::string r_path(pathdecode(parser.Path()));
-  // split path by dirname (no escape)
-  tokenize(r_path, "/", "", dirty, true, true);
-  // rebuild normalized path
-  it = dirty.cbegin();
-  while (it != dirty.cend())
+
+  path.reserve(r_path.size());
+  path.assign(1, 0x2f);
+  uriparams.clear();
+  ishidden = false;
+
+  bool beg = true;
+  int dot = 0;
+  std::string::const_iterator p = r_path.cbegin();
+
+  while (p != r_path.cend())
   {
-    if (*it == "..")
+    if (*p == 0x2f || *p == 0x5c)
     {
-      // check a path traversal attempt
-      if (clean.empty())
-        return false;
-      clean.pop_back();
+      if (!beg)
+      {
+        if (dot == 1)
+        {
+          path.pop_back();
+          dot = 0;
+        }
+        else if (dot == 2)
+        {
+          for (;;)
+          {
+            path.pop_back();
+            if (path.empty())
+              return false;
+            if (path.back() == 0x2f && --dot == 0)
+              break;
+          }
+        }
+        else
+          path.push_back(0x2f);
+        beg = true;
+      }
     }
-    else if (*it != ".")
+    else
     {
-      clean.push_back(*it);
-      len += it->size() + 1;
-      // check a hidden path traversal attempt
-      if (it->front() == '.')
-        hidden = true;
+      if (*p != 0x2e)
+      {
+        if (dot)
+          ishidden = true;
+        dot = 0;
+      }
+      else
+      {
+        if (beg)
+          dot = 1;
+        else if (dot == 1)
+          dot = 2;
+        else if (dot == 2)
+        {
+          dot = 0;
+          ishidden = true;
+        }
+      }
+      path.push_back(*p);
+      beg = false;
     }
-    ++it;
+
+    ++p;
   }
-  // set hidden path status
-  ishidden = hidden;
-  // store path string
-  path.clear();
-  path.reserve(len);
-  for (auto& str : clean)
-    path.append("/").append(str);
-  if (path.empty() || r_path.back() == '/')
-    path.push_back('/');
+
+  // process trailing dots
+  if (dot)
+  {
+    for (;;)
+    {
+      path.pop_back();
+      if (path.empty())
+        return false;
+      if (path.back() == 0x2f && --dot == 0)
+        break;
+    }
+  }
+
   // store params string
   if (parser.Params())
     uriparams.assign(parser.Params());
-  else
-    uriparams.clear();
   return true;
 }
 

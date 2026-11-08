@@ -24,6 +24,8 @@
 
 #include <string>
 
+/* SECURITY: A processed string MUST NOT be decoded twice! */
+
 #define pathencode __pathencode
 std::string pathencode(const std::string& str);
 

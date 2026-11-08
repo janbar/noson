@@ -27,23 +27,16 @@
 #include <string>
 
 /* Valid characters for the URI path */
-/* The following characters are considered as reserved (RFC 3986):
- *   unreserved    = ALPHA DIGIT - . _ ~ /
- *   sub-delims    = ! $ & ' ( ) * + , ; =
- *   gen-delims    = % @ : [ | ]
- * They won't be encoded or decoded.
- * 0x00 won't be decoded to prevent NUL injection.
- */
 static const char uri_pchar_table[128] = {
 //0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
-  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 1
-  0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 2
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, // 3
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 4
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, // 5
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, // 2
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, // 3
+  0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 4
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, // 5
   0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 6
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, // 7
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, // 7
 };
 
 std::string pathencode(const std::string& str)
@@ -84,17 +77,14 @@ std::string pathdecode(const std::string& str)
       buf[2] = '\0';
       if (buf[1] && hex_to_num(buf, &v) == 0)
       {
-        // do not decode valid pchar
-        if (v < 0 || v > 127 || uri_pchar_table[v] == 0)
+        // prevent NUL injection
+        if (v != 0 )
         {
           c = static_cast<char>(v);
           cstr += 2;
         }
       }
     }
-    /* convert backslash to slash */
-    if (c == 0x5c)
-      c = 0x2f;
     out.push_back(c);
     ++cstr;
   }
